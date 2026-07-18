@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infinite Strategy Lab — 무한매수법 · VR 계산기</title>
+<style>
+  :root{--bg:#0f1420;--panel:#1a2130;--panel2:#232c3d;--line:#2e3a52;--txt:#e8edf6;--muted:#93a1bd;--buy:#3b82f6;--sell:#ef4444;--warn:#f59e0b;--ok:#22c55e;--accent:#8b5cf6;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--txt);font-size:15px;line-height:1.5}
+  header{padding:14px 16px;background:linear-gradient(120deg,#161d2c,#1d2740);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  header h1{margin:0;font-size:17px}
+  header .sub{color:var(--muted);font-size:12px;margin-top:2px}
+  .disclaimer{background:#3a2410;border:1px solid #6b4a1a;color:#ffd699;padding:8px 12px;font-size:12.5px;border-radius:8px;margin:10px 16px}
+  nav{display:flex;gap:4px;overflow-x:auto;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:59px;z-index:19}
+  nav button{white-space:nowrap;background:transparent;border:1px solid transparent;color:var(--muted);padding:8px 13px;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600}
+  nav button.active{background:var(--panel2);color:var(--txt);border-color:var(--line)}
+  main{max-width:920px;margin:0 auto;padding:16px}
+  .tab{display:none}.tab.active{display:block}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .card h2{margin:0 0 4px;font-size:16px}
+  .card h3{margin:14px 0 8px;font-size:14px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  label.f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+  label.f input,label.f select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:9px 10px;font-size:15px;width:100%}
+  label.f input:focus,label.f select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+  .yellow input{background:#3a3410;border-color:#6b5f1a;color:#fff8d6}
+  button.act{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:11px 16px;font-size:15px;font-weight:700;cursor:pointer}
+  button.act:hover{filter:brightness(1.1)}
+  button.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:9px 14px;cursor:pointer;font-weight:600;font-size:14px}
+  button.danger{background:#3a1414;color:#ffb4b4;border:1px solid #6b2a2a;border-radius:9px;padding:9px 14px;cursor:pointer;font-weight:700;font-size:14px}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+  th,td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--muted);font-weight:600;font-size:12px}
+  tr.buy td{color:#bcd3ff}tr.sell td{color:#ffc4c4}
+  .pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
+  .pill.buy{background:rgba(59,130,246,.18);color:#8fb8ff}
+  .pill.sell{background:rgba(239,68,68,.18);color:#ff9d9d}
+  .pill.hold{background:rgba(148,163,184,.18);color:#c3cee0}
+  .pill.warn{background:rgba(245,158,11,.18);color:#ffcf7a}
+  .pill.ok{background:rgba(34,197,94,.18);color:#8ff0b4}
+  .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+  .kpi .box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .kpi .box .l{font-size:12px;color:var(--muted)}
+  .kpi .box .v{font-size:18px;font-weight:800;margin-top:3px}
+  .muted{color:var(--muted)}.small{font-size:12.5px}
+  .audit{background:var(--panel2);border:1px dashed var(--line);border-radius:9px;padding:11px;margin-top:10px;font-size:12.5px;color:var(--muted);font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap;display:none}
+  .audit.show{display:block}
+  .sig{display:flex;align-items:center;gap:10px;padding:10px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);margin-bottom:8px}
+  .sig .bar{flex:1;height:8px;border-radius:99px;background:linear-gradient(90deg,#ef4444,#f59e0b,#22c55e);position:relative}
+  .sig .bar .dot{position:absolute;top:-4px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #0f1420;transform:translateX(-50%)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:640px){.row2{grid-template-columns:1fr}}
+  .note{font-size:12px;color:var(--muted);margin-top:6px}
+  .src{font-size:11.5px;color:#6b7896}
+  .tag{font-size:11px;padding:2px 7px;border-radius:6px;background:rgba(34,197,94,.15);color:#8ff0b4;margin-left:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>📈 Infinite Strategy Lab</h1>
+  <div class="sub">무한매수법(Rao V4) · 밸류리밸런싱(VR) 웹 계산기 — 내 엑셀 수식 기반 · 시세 매일 자동 갱신</div>
+</header>
+<div class="disclaimer">⚠️ <b>위험 고지</b> — 본 도구는 <b>계산·기록·교육용</b>이며 투자 권유·수익 보장·자동매매가 아닙니다. TQQQ·SOXL 등 3배 레버리지 ETF는 원금의 상당 부분 또는 전부를 잃을 수 있습니다. 모든 결과는 <b>주문 초안</b>이며 실제 거래 전 원문 공식과 증권사 주문 조건을 직접 확인하세요.</div>
+
+<nav id="nav">
+  <button data-tab="dash" class="active">대시보드</button>
+  <button data-tab="infinite">무한매수법</button>
+  <button data-tab="vr">VR</button>
+  <button data-tab="indi">지표</button>
+  <button data-tab="log">매매기록</button>
+  <button data-tab="guide">가이드</button>
+</nav>
+
+<main>
+<section id="dash" class="tab active">
+  <div class="card">
+    <h2>대시보드</h2>
+    <div class="note">각 전략 탭에서 “기록 저장”을 누르면 여기 누적 상황이 표시됩니다. 데이터는 이 브라우저에만 저장됩니다.</div>
+    <div class="kpi" id="dashKpi" style="margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <h3>진입 환경 요약 <span class="src" id="indiAsOf"></span></h3>
+    <div id="dashEnv"></div>
+  </div>
+  <div class="card">
+    <h3>최근 기록</h3>
+    <div id="dashRecent"><div class="muted small">아직 저장된 기록이 없습니다.</div></div>
+  </div>
+</section>
+
+<section id="infinite" class="tab">
+  <div class="card">
+    <h2>무한매수법 계산기 <span class="tag">Rao V4 · VERIFIED</span></h2>
+    <div class="note">노란 칸(현재 보유 상태)만 입력하면 다음 주문표가 계산됩니다. 현재가는 매일 자동 갱신됩니다.</div>
+    <h3>① 설정</h3>
+    <div class="grid">
+      <label class="f">종목·분할 프리셋
+        <select id="ib_preset">
+          <option value="tqqq40">TQQQ (40분할)</option>
+          <option value="tqqq20">TQQQ (20분할)</option>
+          <option value="soxl20">SOXL (20분할)</option>
+          <option value="soxl40">SOXL (40분할)</option>
+          <option value="custom">직접입력</option>
+        </select>
+      </label>
+      <label class="f">사이클 자본 cap($)<input id="ib_cap" type="number" step="1" value="10000"></label>
+      <label class="f">분할수 N<input id="ib_N" type="number" step="1" value="40"></label>
+      <label class="f">별 기준 base(%)<input id="ib_base" type="number" step="0.01" value="15"></label>
+      <label class="f">별 기울기 slope(%/T)<input id="ib_slope" type="number" step="0.0001" value="0.75"></label>
+      <label class="f">지정가 매도 finalsell(%)<input id="ib_fs" type="number" step="0.01" value="15"></label>
+      <label class="f">리버스 발동 T&gt;<input id="ib_rev" type="number" step="1" value="39"></label>
+    </div>
+    <h3>② 현재 보유 상태</h3>
+    <div class="grid yellow">
+      <label class="f">현재 T (진행 회차)<input id="ib_T" type="number" step="0.5" value="0"></label>
+      <label class="f">보유 현금($)<input id="ib_cash" type="number" step="0.01" value="10000"></label>
+      <label class="f">보유 수량(주)<input id="ib_sh" type="number" step="1" value="0"></label>
+      <label class="f">평단($)<input id="ib_avg" type="number" step="0.01" value="0"></label>
+    </div>
+    <div class="btnrow">
+      <button class="act" onclick="IB.calc()">주문표 계산</button>
+      <button class="ghost" onclick="toggleAudit('ib_audit')">계산 근거 보기</button>
+    </div>
+    <div id="ib_status" style="margin-top:12px"></div>
+    <div id="ib_orders"></div>
+    <div id="ib_audit" class="audit"></div>
+  </div>
+
+  <div class="card">
+    <h3>③ 체결 반영 → 다음 상태 계산</h3>
+    <div class="note">오늘 실제 체결분을 입력하면 다음 회차 상태(현금·수량·평단·T)를 계산하고 기록에 저장합니다.</div>
+    <div class="grid yellow">
+      <label class="f">실제 매수 수량<input id="ib_bs" type="number" step="1" value="0"></label>
+      <label class="f">실제 매수 체결가($)<input id="ib_bp" type="number" step="0.01" value=""></label>
+      <label class="f">실제 매도 수량<input id="ib_ss" type="number" step="1" value="0"></label>
+      <label class="f">실제 매도 체결가($)<input id="ib_sp" type="number" step="0.01" value=""></label>
+    </div>
+    <div class="btnrow">
+      <button class="act" onclick="IB.applyFill()">다음 상태 계산</button>
+      <button class="ghost" onclick="IB.saveRecord()">기록 저장</button>
+      <button class="ghost" onclick="IB.pushToState()">→ 다음 상태를 입력칸에 반영</button>
+    </div>
+    <div id="ib_next"></div>
+  </div>
+
+  <div class="card">
+    <h3>📊 평단 vs 시장가 (시계열)</h3>
+    <div class="note">앱을 열 때마다 시장가·평단이 하루 1포인트씩 자동 기록됩니다. 매수를 반영하면 평단이 갱신됩니다.</div>
+    <div id="ib_chart" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
+    <h3>리버스 모드 (참고 계산)</h3>
+    <div class="note">소진 시(T &gt; 리버스 발동값) 전환. 첫날 MOC 매도만, 별지점=최근 5거래일 종가 평균.</div>
+    <div class="grid yellow">
+      <label class="f">최근5일 종가 평균($)<input id="rv_star" type="number" step="0.01" value=""></label>
+      <label class="f">보유 수량<input id="rv_sh" type="number" step="1" value="0"></label>
+      <label class="f">보유 현금($)<input id="rv_cash" type="number" step="0.01" value="0"></label>
+      <label class="f">첫날 여부
+        <select id="rv_first"><option value="1">첫날 (MOC 매도만)</option><option value="0">둘째날 이후</option></select>
+      </label>
+    </div>
+    <div class="btnrow"><button class="act" onclick="IB.reverse()">리버스 주문 계산</button></div>
+    <div id="rv_out"></div>
+  </div>
+</section>
+
+<section id="vr" class="tab">
+  <div class="card">
+    <h2>VR 계산기 <span class="tag">밸류리밸런싱 · VERIFIED</span></h2>
+    <div class="note">계산은 <b>기준가(전일 종가)</b> 기준. <b>종목별로 상태가 따로 저장</b>됩니다. 적립식 · 거치식 · 인출식 지원.</div>
+    <h3>① 설정</h3>
+    <div class="grid">
+      <label class="f">종목
+        <select id="vr_sym"><option value="tqqq">TQQQ</option><option value="upro">UPRO</option></select>
+      </label>
+      <label class="f">전략 구분
+        <select id="vr_type"><option>적립식VR</option><option>거치식VR</option><option>인출식VR</option></select>
+      </label>
+      <label class="f">G값<input id="vr_G" type="number" step="1" value="10"></label>
+      <label class="f">적용 밴드 ±(%)<input id="vr_band" type="number" step="1" value="15"></label>
+      <label class="f">Pool 사용한도(%)<input id="vr_pool" type="number" step="1" value="70"></label>
+      <label class="f">수수료/슬리피지($/주)<input id="vr_fee" type="number" step="0.01" value="0"></label>
+      <label class="f">매 사이클 적립액($)<input id="vr_dep" type="number" step="0.01" value="250"></label>
+      <label class="f">매 사이클 인출액($)<input id="vr_wd" type="number" step="0.01" value="0"></label>
+      <label class="f">적립 배수 (공격매수)
+        <select id="vr_mult"><option value="1">기본 ×1</option><option value="1.5">공격 ×1.5</option></select>
+      </label>
+    </div>
+    <h3>② 직전 사이클 상태 <span class="src">(1사이클 시작이면 본인 실제 시작값 입력)</span></h3>
+    <div class="grid yellow">
+      <label class="f">직전 V($)<input id="vr_pv" type="number" step="0.01" value="2000"></label>
+      <label class="f">직전 Pool/현금($)<input id="vr_pp" type="number" step="0.01" value="2000"></label>
+      <label class="f">직전 보유수량<input id="vr_ps" type="number" step="1" value="0"></label>
+      <label class="f">기준가(전일종가·자동)($)<input id="vr_price" type="number" step="0.01" value="75"></label>
+    </div>
+    <div class="btnrow">
+      <button class="act" onclick="VR.calc()">리밸런싱 계산</button>
+      <button class="ghost" onclick="toggleAudit('vr_audit')">계산 근거 보기</button>
+      <button class="ghost" onclick="VR.saveRecord()">기록 저장</button>
+      <button class="ghost" onclick="VR.pushToState()">→ 다음 사이클 상태 반영</button>
+    </div>
+    <div id="vr_out"></div>
+    <div id="vr_audit" class="audit"></div>
+  </div>
+  <div class="card">
+    <h3>📊 평단 vs 시장가 (시계열)</h3>
+    <div class="note">선택한 종목의 시장가와 VR 평균단가를 시간에 걸쳐 비교합니다. “→ 다음 사이클 상태 반영”을 누르면 평단이 갱신됩니다.</div>
+    <div id="vr_chart" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <h3>💰 QDTE 인컴 → UPRO</h3>
+    <div class="note">QDTE 분배금을 모아 UPRO VR 매수 자금으로 쓰는 트래커. 받은 분배금을 적립하면 누적되고, "→ UPRO VR 적립액으로"를 누르면 UPRO VR 매수 자금이 됩니다.</div>
+    <div class="grid yellow" style="margin-top:8px">
+      <label class="f">QDTE 보유 수량(참고)<input id="qd_sh" type="number" step="1" value="0"></label>
+      <label class="f">금액($) — 적립/차감<input id="qd_in" type="number" step="0.01" value=""></label>
+    </div>
+    <div class="btnrow">
+      <button class="ghost" onclick="QDTE.add()">분배금 적립 (+)</button>
+      <button class="ghost" onclick="QDTE.use()">사용 차감 (−)</button>
+      <button class="act" onclick="QDTE.toUpro()">→ UPRO VR 적립액으로</button>
+    </div>
+    <div id="qd_out" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<section id="indi" class="tab">
+  <div class="card">
+    <h2>기술적 지표 — 진입 환경 <span class="src" id="indiAsOf2"></span></h2>
+    <div class="note">값은 매일 장 마감 후 자동 갱신되며, 직접 수정도 가능합니다.</div>
+    <div class="row2" style="margin-top:12px">
+      <div>
+        <h3>시장 변동성</h3>
+        <div class="grid yellow"><label class="f">VIX (공포지수)<input id="ix_vix" type="number" step="0.01" value="16.38"></label></div>
+        <h3>TQQQ</h3>
+        <div class="grid yellow">
+          <label class="f">현재가($)<input id="ix_tq_p" type="number" step="0.01" value="75.02"></label>
+          <label class="f">RSI(14)<input id="ix_tq_rsi" type="number" step="0.1" value="49.1"></label>
+          <label class="f">50일선($)<input id="ix_tq_50" type="number" step="0.01" value="76.47"></label>
+          <label class="f">200일선($)<input id="ix_tq_200" type="number" step="0.01" value="58.24"></label>
+          <label class="f">52주 고점($)<input id="ix_tq_hi" type="number" step="0.01" value="88.09"></label>
+        </div>
+      </div>
+      <div>
+        <h3>SOXL</h3>
+        <div class="grid yellow">
+          <label class="f">현재가($)<input id="ix_sx_p" type="number" step="0.01" value="176.66"></label>
+          <label class="f">RSI(14)<input id="ix_sx_rsi" type="number" step="0.1" value="45.2"></label>
+          <label class="f">50일선($)<input id="ix_sx_50" type="number" step="0.01" value="203.21"></label>
+          <label class="f">200일선($)<input id="ix_sx_200" type="number" step="0.01" value="91.50"></label>
+          <label class="f">52주 고점($)<input id="ix_sx_hi" type="number" step="0.01" value="302"></label>
+        </div>
+      </div>
+    </div>
+    <div class="btnrow"><button class="act" onclick="IX.calc()">신호 재계산</button></div>
+    <div id="ix_out" style="margin-top:14px"></div>
+  </div>
+  <div class="card">
+    <h3>🌐 매크로 (주간 자동)</h3>
+    <div class="note">VIX·시장 레짐, 금리·경제지표, 공포탐욕지수를 매주 자동 갱신합니다.</div>
+    <div id="macro_out" style="margin-top:8px"></div>
+  </div>
+</section>
+
+<section id="log" class="tab">
+  <div class="card">
+    <h2>매매기록</h2>
+    <div class="btnrow">
+      <button class="ghost" onclick="Store.exportJSON()">JSON 백업 내보내기</button>
+      <label class="ghost" style="cursor:pointer">JSON 복원<input type="file" id="imp" accept="application/json" style="display:none" onchange="Store.importJSON(event)"></label>
+    </div>
+    <div id="logTable" style="margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <h3>📲 텔레그램 주문 알림</h3>
+    <div class="note">계산된 오늘의 주문을 텔레그램으로 받아, Fi PRO에 직접 입력해 주문하세요. 봇 토큰·chat id는 이 브라우저에만 저장됩니다(서버 전송 없음).</div>
+    <div class="grid yellow" style="margin-top:8px">
+      <label class="f">봇 토큰<input id="tg_token" type="text" placeholder="123456:ABC..." value=""></label>
+      <label class="f">chat id<input id="tg_chat" type="text" placeholder="숫자 id" value=""></label>
+    </div>
+    <div class="btnrow">
+      <button class="ghost" onclick="TG.saveCfg()">설정 저장</button>
+      <button class="ghost" onclick="TG.test()">테스트 메시지</button>
+      <button class="act" onclick="TG.sendDaily()">📲 오늘 주문 전송</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>☁️ GitHub 자동 동기화</h3>
+    <div class="note">체결을 반영하면(“다음 상태 반영” / “다음 사이클 상태 반영”) 저장소의 <b>state.json</b>이 자동으로 갱신돼, 매일 밤 텔레그램 주문표가 항상 최신 포지션으로 계산됩니다. 토큰은 이 브라우저에만 저장되고 GitHub로만 전송됩니다.</div>
+    <div class="grid yellow" style="margin-top:8px">
+      <label class="f">GitHub 토큰 (fine-grained PAT)<input id="gh_token" type="password" placeholder="github_pat_..." value=""></label>
+      <label class="f">저장소<input id="gh_repo" type="text" value="candomindset81-ai/infinite-strategy-lab"></label>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin:8px 0"><input type="checkbox" id="gh_auto"> 체결 반영 시 자동 동기화</label>
+    <div class="btnrow">
+      <button class="ghost" onclick="GH.saveCfg()">설정 저장</button>
+      <button class="act" onclick="GH.sync(false)">☁️ 지금 동기화</button>
+    </div>
+    <div id="gh_out" class="small muted" style="margin-top:6px"></div>
+  </div>
+  <div class="card">
+    <h3>초기화</h3>
+    <div class="note">무한매수법·VR·차트·매매기록을 모두 지우고 <b>1사이클부터 다시 시작</b>합니다. 되돌릴 수 없으니 필요하면 먼저 JSON 백업을 내보내세요.</div>
+    <div class="btnrow"><button class="danger" onclick="resetAll()">1사이클부터 초기화</button></div>
+  </div>
+</section>
+
+<section id="guide" class="tab">
+  <div class="card">
+    <h2>📖 한눈에 — 무엇이 자동인가</h2>
+    <div class="note">시세·계산·발송·동기화 전부 GitHub 클라우드가 자동으로 합니다. 컴퓨터·앱이 꺼져 있어도 작동해요.</div>
+    <p class="small"><b>전부 자동:</b> 매일 시세 · 매주 매크로 · 매 거래일 <b>밤 9시(필리핀)</b> 주문표 텔레그램 발송 · <b>내 체결 메시지를 읽어 포지션 자동 갱신</b> · 주말·휴장일 자동 스킵.</p>
+    <h2 style="margin-top:14px">📌 매일 내가 하는 일 (월~금) — 딱 2가지</h2>
+    <ol style="font-size:13.5px;line-height:1.9;padding-left:20px;margin:8px 0 0">
+      <li><b>밤 9시</b> 텔레그램으로 온 주문표를 <b>Fi PRO에 LOC로 입력</b>.</li>
+      <li>⭐ <b>체결되면 봇에게 메시지 한 줄</b>(아래 ① 규칙) → 봇이 자동 반영하고 ✅ 답장. (체결 없던 날·VR 관망은 생략)</li>
+    </ol>
+    <p class="src">이제 앱에서 반영할 필요 없이 텔레그램 메시지로 끝. 컴퓨터·앱이 꺼져 있어도 GitHub이 처리합니다.</p>
+  </div>
+  <div class="card">
+    <h2>① 체결·적립은 텔레그램으로 알리기 ⭐</h2>
+    <p class="small">설정(텔레그램·저장소·시크릿)은 이미 끝나 있습니다. <b>주문 알림 오는 그 봇에게</b> 체결을 아래 형식으로 보내면 GitHub이 자동 반영하고 ✅ 답장합니다.</p>
+    <table>
+      <thead><tr><th>상황</th><th>보내는 메시지</th></tr></thead>
+      <tbody>
+        <tr><td>SOXL 1주 매수 @134.69</td><td><code>체결 SOXL 매수 1 134.69</code></td></tr>
+        <tr><td>SOXL 6주 매도 @174.14</td><td><code>체결 SOXL 매도 6 174.14</code></td></tr>
+        <tr><td>VR TQQQ 3주 매수 @63.40</td><td><code>체결 TQQQ 매수 3 63.40</code></td></tr>
+        <tr><td>2주 금요일 적립</td><td><code>적립 TQQQ</code> · <code>적립 UPRO</code></td></tr>
+        <tr><td>현재 상태 조회</td><td><code>상태</code></td></tr>
+      </tbody>
+    </table>
+    <p class="src">형식: 종목(SOXL·TQQQ·UPRO) → 매수/매도 → 수량 → 가격. 반영은 최대 2시간 주기 + 매일 밤 9시 주문 직전. ⚠️ 앱의 "자동 동기화"는 꺼둔 상태 유지(텔레그램이 유일한 반영 경로).</p>
+  </div>
+  <div class="card">
+    <h2>② 무한매수법 (SOXL) — 매일 조금씩 매수</h2>
+    <p class="small">무한매수법 탭 → 프리셋 <b>SOXL(20분할)</b> → "주문표 계산". <b>매 거래일</b> 주문을 넣습니다.</p>
+    <table>
+      <thead><tr><th>주문</th><th>뜻</th><th>체결 조건</th></tr></thead>
+      <tbody>
+        <tr class="buy"><td>① 별 LOC 매수</td><td>평단 위 '별지점'에 매수</td><td>종가 ≤ 지정가</td></tr>
+        <tr class="buy"><td>② 평단 LOC 매수</td><td>평단 가격에 매수</td><td>종가 ≤ 평단</td></tr>
+        <tr class="sell"><td>③ 쿼터 LOC 매도</td><td>보유 1/4 별지점 매도</td><td>종가 ≥ 별지점</td></tr>
+        <tr class="sell"><td>④ 지정가 매도</td><td>나머지 전량(수익실현)</td><td>종가 ≥ 평단+15~20%</td></tr>
+      </tbody>
+    </table>
+    <p class="src">💡 LOC=종가 체결 지정가. 매수가가 현재가보다 높아 보여도 정상(상한선이라 종가로 매수). T가 발동값(20분할=19) 넘으면 소진 → 리버스 모드.</p>
+  </div>
+  <div class="card">
+    <h2>③ VR (TQQQ · UPRO) — 매일 밴드 체크 · 2주 금요일 적립</h2>
+    <p class="small"><b>매일 전일 종가로 밴드 체크</b>: 목표 평가금(V) ±15% 밴드를 <b>벗어날 때만</b> 사고팝니다(밴드 안이면 관망). <b>정기 적립·리밸런싱은 2주 금요일</b> — 텔레그램에 "🗓️ 2주 적립일" 안내가 뜨면 TQQQ +$250 · UPRO +$100 적립 후 반영. (일정: 07/31 → 08/14 → 08/28 …)</p>
+    <table>
+      <thead><tr><th>상황</th><th>행동</th></tr></thead>
+      <tbody>
+        <tr><td>평가금이 하단 밑 (급락)</td><td style="color:#8fb8ff">매수</td></tr>
+        <tr><td>평가금이 밴드 안</td><td>관망 (거래 없음)</td></tr>
+        <tr><td>평가금이 상단 위 (급등)</td><td style="color:#ff9d9d">매도</td></tr>
+      </tbody>
+    </table>
+    <p class="small">적립액(자동): <b>TQQQ 2주 $250 · UPRO 2주 $100</b>. 전략 단계는 "전략 구분"에서 전환: <b>적립식</b>($200,000까지) → <b>거치식</b> → <b>인출식</b>(목표 도달 시).</p>
+  </div>
+  <div class="card">
+    <h2>④ 부가 기능 · 백업</h2>
+    <p class="small">이제 앱은 <b>조회·백업용</b>입니다(매일 열 필요 없음). <b>💰 QDTE→UPRO</b> 배당금 적립 추적(VR 탭) · <b>📊 차트</b> 시장가 vs 평단 · <b>지표·매크로</b> 참고용(자동) · <b>JSON 백업</b> 기기 이동·대비용 · <b>1사이클부터 초기화</b> 전부 지우고 처음부터(먼저 백업!). ⚠️ "자동 동기화"는 꺼둔 상태 유지.</p>
+  </div>
+  <div class="card">
+    <h2>❓ 자주 묻는 질문</h2>
+    <p class="small"><b>앱 안 열어도 되나요?</b> 네 — 주문 발송·체결 반영 전부 자동. 내가 하는 건 Fi PRO 입력 + 체결 메시지뿐.<br>
+    <b>체결 메시지 답장이 안 와요.</b> 반영은 최대 2시간 주기. 형식이 맞으면 곧 ✅ 옵니다. 틀리면 봇이 올바른 형식을 알려줘요.<br>
+    <b>VR이 계속 관망이에요.</b> 정상 — 밴드 안이면 거래 안 함.<br>
+    <b>매수가가 시세보다 높아요.</b> 정상 — LOC 상한선이라 종가로 매수됨.<br>
+    <b>컴퓨터 꺼도 되나요?</b> 네 — 전부 GitHub 클라우드에서 작동. 저장소 Private에서도 정상.</p>
+  </div>
+  <div class="card">
+    <h2>무한매수법(Rao V4) 규칙 요약</h2>
+    <p class="small">1회매수금 = 현금 ÷ (N − T). 별% = max(0, base − slope×T). 별지점 = 평단 ×(1+별%). 별 LOC 매수가 = 별지점 − 0.01.</p>
+    <p class="small">전반전(T &lt; N/2): 별쪽 예산 = 1회매수금/2, 평단쪽 예산 = 1회매수금/2. 후반전(T ≥ N/2): 별쪽 예산 = 1회매수금 전액, 평단쪽 = 0.</p>
+    <p class="small">쿼터 매도 = 보유수량/4(내림), 별지점에 LOC. 지정가 매도 = 평단 ×(1+finalsell), 나머지 전량. T 갱신: 매수 +1(전량)/+0.5(일부), 쿼터매도 ×0.75, 지정가매도 ×0.25.</p>
+    <p class="small src">분할수(N) 변형 프리셋의 slope는 엑셀 패턴(별% 이 T=N/2에서 0이 됨 → slope = 2×base÷N)에서 도출했습니다. 언제든 직접 수정 가능합니다.</p>
+  </div>
+  <div class="card">
+    <h2>VR(밸류리밸런싱) 규칙 요약</h2>
+    <p class="small">새 V = 직전 V + 직전 Pool/G + 적립 − 인출. 하단 = V×(1−밴드), 상단 = V×(1+밴드).</p>
+    <p class="small">매수필요 = max(0, 하단−평가금), 매도필요 = max(0, 평가금−상단). Pool 한도 = (Pool+적립−인출)×한도%. 매수주수 = 내림(최대매수 ÷ (가격+수수료)).</p>
+  </div>
+</section>
+</main>
+
+<script>
+/* ===================== 유틸 ===================== */
+const R = {
+  fix:(x,d=8)=>{ if(x===''||x===null||isNaN(x))return NaN; return Math.round((+x+Number.EPSILON)*10**d)/10**d; },
+  floor:(x)=>Math.floor(R.fix(x,8)),
+  money:(x)=>Math.round(R.fix(x,6)*100)/100,
+  n:(id)=>{ const v=document.getElementById(id).value; return v===''?NaN:parseFloat(v); },
+  s:(id)=>document.getElementById(id).value,
+  set:(id,v)=>{document.getElementById(id).value=v;},
+  fmt:(x,d=2)=> (x===''||x===null||isNaN(x))?'–':(+x).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}),
+  pct:(x)=> isNaN(x)?'–':(x*100).toFixed(2)+'%'
+};
+function toggleAudit(id){document.getElementById(id).classList.toggle('show');}
+const today=()=>new Date().toISOString().slice(0,10);
+
+/* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
+   [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
+const MKT = {
+  asOf:'2026-07-16',
+  vix:16.38,
+  tqqq:{p:68.72, rsi:49.1, m50:76.47, m200:58.24, hi:88.09, prevClose:68.72},
+  soxl:{p:134.69, rsi:45.2, m50:203.21, m200:91.50, hi:302, prevClose:134.69},
+  upro:{p:142.73, rsi:50, m50:140, m200:120, hi:151.41, prevClose:142.73}
+};
+/* [AUTO-UPDATE:MKT-END] */
+
+/* ===================== 매크로 데이터 (매주 자동 갱신 블록) =====================
+   [AUTO-UPDATE:MACRO] 매주 자동 작업이 이 블록만 교체합니다. */
+const MACRO = {
+  asOf:'2026-07-16',
+  vix:16.38,
+  regime:'중립',
+  fearGreed:'-',
+  us10y:'-',
+  fedRate:'-',
+  note:''
+};
+/* [AUTO-UPDATE:MACRO-END] */
+
+/* ===================== 저장소 ===================== */
+const Store = {
+  KEY:'isl_records_v1',
+  get(){ try{return JSON.parse(localStorage.getItem(this.KEY))||[]}catch(e){return[]} },
+  save(list){ localStorage.setItem(this.KEY, JSON.stringify(list)); },
+  add(rec){ const l=this.get(); rec.id=Date.now(); rec.ts=new Date().toISOString(); l.unshift(rec); this.save(l); Dash.render(); Log.render(); },
+  exportJSON(){
+    const blob=new Blob([JSON.stringify({app:'InfiniteStrategyLab',exportedAt:new Date().toISOString(),records:this.get(),history:Hist.get()},null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='infinite_strategy_lab_backup_'+today()+'.json'; a.click();
+  },
+  importJSON(ev){
+    const f=ev.target.files[0]; if(!f)return; const rd=new FileReader();
+    rd.onload=()=>{ try{ const d=JSON.parse(rd.result); const recs=Array.isArray(d)?d:(d.records||[]);
+      if(!Array.isArray(recs))throw 0; this.save(recs); if(d.history)Hist.save(d.history); Dash.render(); Log.render(); alert('복원 완료: '+recs.length+'건');
+    }catch(e){ alert('잘못된 파일입니다.'); } };
+    rd.readAsText(f);
+  },
+  del(id){ this.save(this.get().filter(r=>r.id!==id)); Dash.render(); Log.render(); }
+};
+
+/* ===================== 시계열(평단 vs 시장가) ===================== */
+const Hist = {
+  KEY:'isl_hist_v1', AVGKEY:'isl_ib_avg', VRKEY:'isl_vr_pos_v1',
+  get(){ try{return Object.assign({tqqq:[],soxl:[],vrtqqq:[],vrupro:[]}, JSON.parse(localStorage.getItem(this.KEY))||{})}catch(e){return{tqqq:[],soxl:[],vrtqqq:[],vrupro:[]}} },
+  save(h){ localStorage.setItem(this.KEY,JSON.stringify(h)); },
+  avgMap(){ try{return JSON.parse(localStorage.getItem(this.AVGKEY))||{}}catch(e){return{}} },
+  setIbAvg(sym,avg){ const m=this.avgMap(); m[sym]=avg; localStorage.setItem(this.AVGKEY,JSON.stringify(m)); },
+  vrPosAll(){ try{return JSON.parse(localStorage.getItem(this.VRKEY))||{}}catch(e){return{}} },
+  vrPos(sym){ return this.vrPosAll()[sym]||{costBasis:0,shares:0,avg:0}; },
+  setVrPos(sym,o){ const a=this.vrPosAll(); a[sym]=o; localStorage.setItem(this.VRKEY,JSON.stringify(a)); },
+  _push(arr,d,mkt,avg){ const i=arr.findIndex(x=>x.d===d); const rec={d,mkt,avg}; if(i>=0)arr[i]=rec; else arr.push(rec); arr.sort((a,b)=>a.d<b.d?-1:1); },
+  snapshot(){
+    const d=today(), h=this.get(), am=this.avgMap();
+    this._push(h.tqqq,d,MKT.tqqq.p, am.tqqq||0);
+    this._push(h.soxl,d,MKT.soxl.p, am.soxl||0);
+    this._push(h.vrtqqq,d,MKT.tqqq.p, this.vrPos('tqqq').avg||0);
+    this._push(h.vrupro,d,MKT.upro.p, this.vrPos('upro').avg||0);
+    this.save(h);
+  }
+};
+function renderLineChart(data){
+  if(!data||data.length===0) return '<div class="muted small">아직 기록이 없습니다. 매일 앱을 열면 시장가·평단이 1포인트씩 자동 기록되고, 매수를 반영하면 평단선이 그려집니다.</div>';
+  const W=680,H=250,pl=48,pr=14,pt=14,pb=32;
+  const ys=[]; data.forEach(d=>{ ys.push(d.mkt); if(d.avg>0)ys.push(d.avg); });
+  let mn=Math.min.apply(null,ys), mx=Math.max.apply(null,ys); if(mn===mx){mn*=0.98;mx*=1.02;}
+  const pad=(mx-mn)*0.12||1; mn-=pad; mx+=pad;
+  const X=i=> data.length<=1? (pl+(W-pl-pr)/2) : pl+(W-pl-pr)*i/(data.length-1);
+  const Y=v=> pt+(H-pt-pb)*(1-(v-mn)/(mx-mn));
+  const line=(key,color)=>{ const pts=[]; data.forEach((d,i)=>{ if(key==='avg'&&!(d.avg>0))return; pts.push([X(i),Y(d[key])]); });
+    if(pts.length===0)return '';
+    const poly='<polyline fill="none" stroke="'+color+'" stroke-width="2.5" points="'+pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+'"/>';
+    const dots=pts.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2.6" fill="'+color+'"/>').join('');
+    return poly+dots; };
+  let grid=''; [mn,(mn+mx)/2,mx].forEach(v=>{ const y=Y(v);
+    grid+='<line x1="'+pl+'" y1="'+y.toFixed(1)+'" x2="'+(W-pr)+'" y2="'+y.toFixed(1)+'" stroke="#2e3a52" stroke-width="1"/>'
+      +'<text x="'+(pl-6)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="#93a1bd">$'+v.toFixed(1)+'</text>'; });
+  const xlab='<text x="'+pl+'" y="'+(H-9)+'" font-size="10" fill="#93a1bd">'+data[0].d.slice(5)+'</text>'
+    +'<text x="'+(W-pr)+'" y="'+(H-9)+'" text-anchor="end" font-size="10" fill="#93a1bd">'+data[data.length-1].d.slice(5)+'</text>';
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+grid+line('mkt','#3b82f6')+line('avg','#f59e0b')+xlab+'</svg>'
+    +'<div style="display:flex;gap:18px;margin-top:6px;font-size:12px"><span style="color:#8fb8ff">■ 시장가</span><span style="color:#ffcf7a">■ 평단</span></div>';
+}
+
+/* ===================== 무한매수법 엔진 ===================== */
+const IBengine = {
+  orders(p){
+    const {N,base,slope,fs,T,cash,shares,avg}=p;
+    const F  = (N - T) <= 0 ? 0 : cash/(N - T);
+    const starPct = Math.max(0, base - slope*T);
+    const starPoint = avg===0 ? null : avg*(1+starPct);
+    const starBuyPrice = starPoint===null ? null : R.fix(starPoint-0.01,6);
+    const phase = T===0 ? 'First Buy' : (T < N/2 ? 'Front Half' : 'Back Half');
+    const starBudget = phase==='Back Half' ? F : F/2;
+    const avgBudget  = phase==='Front Half'? F/2 : 0;
+    const starQty = (starBuyPrice===null || starBudget===0) ? 0 : R.floor(starBudget/starBuyPrice);
+    const avgQty  = (avg===0 || avgBudget===0) ? 0 : R.floor(avgBudget/avg);
+    const quarterQty  = R.floor(shares/4);
+    const quarterPrice= starPoint;
+    const desigQty = Math.max(shares-quarterQty,0);
+    const desigPrice = avg===0 ? null : avg*(1+fs);
+    const reverse = T > p.rev;
+    return {F,starPct,starPoint,starBuyPrice,phase,starBudget,avgBudget,starQty,avgQty,quarterQty,quarterPrice,desigQty,desigPrice,reverse};
+  },
+  fill(p,o,f){
+    const {T,cash,shares,avg}=p; const {bs,bp,ss,sp}=f;
+    const priceMissing = (bs>0 && (bp===''||isNaN(bp))) || (ss>0 && (sp===''||isNaN(sp)));
+    const endShares = shares + (bs||0) - (ss||0);
+    const endCash = priceMissing ? cash : cash - (bs>0?bs*bp:0) + (ss>0?ss*sp:0);
+    let endAvg;
+    if(priceMissing) endAvg=avg;
+    else if(endShares===0) endAvg=0;
+    else endAvg = (avg*shares + (bs>0?bs*bp:0) - avg*(ss||0))/endShares;
+    const buyInc = (bs>= (o.starQty+o.avgQty) && bs>0) ? 1 : (bs>0 ? 0.5 : 0);
+    let newT, action;
+    if(priceMissing){ newT=T; action='가격입력필요'; }
+    else if((bs||0)===0 && (ss||0)===0){ newT=T; action='No Fill'; }
+    else if(endShares===0){ newT=0; action='Cycle End'; }
+    else if((ss||0)>0){
+      const isDesig = ss>=o.desigQty;
+      newT = (isDesig ? T*0.25 : T*0.75) + buyInc;
+      action = (isDesig?'지정가매도(T×0.25)':'쿼터매도(T×0.75)') + (buyInc?(' + 매수(+'+buyInc+')'):'');
+    } else { newT=T+buyInc; action='매수(+'+buyInc+')'; }
+    return {endShares,endCash:R.money(endCash),endAvg:endAvg===0?0:R.money(endAvg),newT:R.fix(newT,4),action};
+  }
+};
+
+/* ===================== 무한매수법 UI ===================== */
+const IB = {
+  presets:{
+    tqqq40:{cap:10000,N:40,base:15,slope:0.75,fs:15,rev:39, pos:{T:0,cash:10000,sh:0,avg:0}},
+    tqqq20:{cap:10000,N:20,base:15,slope:1.5, fs:15,rev:19, pos:{T:0,cash:10000,sh:0,avg:0}},
+    soxl20:{cap:10000,N:20,base:20,slope:2,   fs:20,rev:19, pos:{T:0,cash:10000,sh:0,avg:0}},
+    soxl40:{cap:10000,N:40,base:20,slope:1.0, fs:20,rev:39, pos:{T:0,cash:10000,sh:0,avg:0}}
+  },
+  symOf(k){ return (k&&k.indexOf('tqqq')===0)?'tqqq':((k&&k.indexOf('soxl')===0)?'soxl':null); },
+  POSKEY:'isl_ib_pos_v1',
+  loadPos(){ try{return JSON.parse(localStorage.getItem(this.POSKEY))||{}}catch(e){return{}} },
+  savePos(){ const k=R.s('ib_preset'); if(k==='custom')return; const all=this.loadPos();
+    all[k]={T:R.n('ib_T'),cash:R.n('ib_cash'),sh:R.n('ib_sh'),avg:R.n('ib_avg')}; localStorage.setItem(this.POSKEY,JSON.stringify(all));
+    const sym=this.symOf(k); if(sym) Hist.setIbAvg(sym, R.n('ib_avg')); },
+  applyPreset(loadState){
+    const k=R.s('ib_preset'); if(k==='custom'){this.calc();return;} const p=this.presets[k];
+    R.set('ib_cap',p.cap);R.set('ib_N',p.N);R.set('ib_base',p.base);R.set('ib_slope',p.slope);R.set('ib_fs',p.fs);R.set('ib_rev',p.rev);
+    if(loadState!==false){ const saved=this.loadPos()[k]||p.pos;
+      R.set('ib_T',saved.T);R.set('ib_cash',saved.cash);R.set('ib_sh',saved.sh);R.set('ib_avg',saved.avg); }
+    this.calc();
+  },
+  read(){ return {cap:R.n('ib_cap'),N:R.n('ib_N'),base:R.n('ib_base')/100,slope:R.n('ib_slope')/100,fs:R.n('ib_fs')/100,rev:R.n('ib_rev'),
+      T:R.n('ib_T'),cash:R.n('ib_cash'),shares:R.n('ib_sh'),avg:R.n('ib_avg')}; },
+  _last:null,_next:null,
+  renderChart(){ const sym=this.symOf(R.s('ib_preset'));
+    document.getElementById('ib_chart').innerHTML = sym? renderLineChart(Hist.get()[sym]||[]) : '<div class="muted small">직접입력 모드에서는 차트가 표시되지 않습니다.</div>'; },
+  calc(){
+    const p=this.read(); const o=IBengine.orders(p); this._last={p,o};
+    const sym=this.symOf(R.s('ib_preset')); const cur=sym?MKT[sym].p:null;
+    document.getElementById('ib_status').innerHTML = '<div class="kpi">'
+      +'<div class="box"><div class="l">현재가(자동)</div><div class="v">'+(cur?('$'+R.fmt(cur)):'–')+'</div></div>'
+      +'<div class="box"><div class="l">Phase</div><div class="v">'+(p.T===0?'첫 매수':(p.T<p.N/2?'전반전':'후반전'))+'</div></div>'
+      +'<div class="box"><div class="l">별% / 별지점</div><div class="v">'+R.pct(o.starPct)+' / '+(o.starPoint?('$'+R.fmt(o.starPoint)):'–')+'</div></div>'
+      +'<div class="box"><div class="l">1회매수금</div><div class="v">$'+R.fmt(o.F)+'</div></div>'
+      +'<div class="box"><div class="l">모드</div><div class="v">'+(o.reverse?'<span class="pill warn">리버스 필요</span>':'<span class="pill ok">일반</span>')+'</div></div>'
+      +'</div>';
+    const row=(cls,label,type,price,qty)=>{ const amt=(price&&qty)?price*qty:'';
+      return '<tr class="'+cls+'"><td>'+label+'</td><td><span class="pill '+cls+'">'+type+'</span></td><td>'+(price?('$'+R.fmt(price)):'–')+'</td><td>'+(qty||0)+'</td><td>'+(amt?('$'+R.fmt(amt)):'–')+'</td></tr>'; };
+    document.getElementById('ib_orders').innerHTML = '<table><thead><tr><th>구분</th><th>유형</th><th>가격</th><th>수량(주)</th><th>예상금액</th></tr></thead><tbody>'
+      +row('buy','① 별 LOC 매수','매수',o.starBuyPrice,o.starQty)
+      +row('buy','② 평단 LOC 매수','매수',p.avg,o.avgQty)
+      +row('sell','③ 쿼터 LOC 매도','매도',o.quarterPrice,o.quarterQty)
+      +row('sell','④ 지정가 매도','매도',o.desigPrice,o.desigQty)+'</tbody></table>';
+    document.getElementById('ib_audit').textContent =
+'[무한매수법 계산 근거]\n입력 T='+p.T+', 현금=$'+R.fmt(p.cash)+', 수량='+p.shares+', 평단=$'+R.fmt(p.avg)+'\n'
++'cap='+p.cap+', N='+p.N+', base='+R.pct(p.base)+', slope='+(p.slope*100).toFixed(4)+'%/T, finalsell='+R.pct(p.fs)+'\n'
++'─ F=현금/(N−T)='+R.fmt(p.cash)+'/('+p.N+'−'+p.T+') = $'+R.fmt(o.F)+'\n'
++'─ 별%=max(0,base−slope×T) = '+R.pct(o.starPct)+'\n'
++'─ 별지점=평단×(1+별%) = '+(o.starPoint?('$'+R.fmt(o.starPoint)):'평단0')+'\n'
++'─ Phase='+o.phase+' → K=$'+R.fmt(o.starBudget)+', L=$'+R.fmt(o.avgBudget)+'\n'
++'─ 별매수가 I=별지점−0.01='+(o.starBuyPrice?('$'+R.fmt(o.starBuyPrice)):'–')+' / 별수량 M=내림(K/I)='+o.starQty+'\n'
++'─ 평단수량 N=내림(L/평단)='+o.avgQty+' / 쿼터 O=내림(수량/4)='+o.quarterQty+' / 지정가 Q=수량−쿼터='+o.desigQty+' @ '+(o.desigPrice?('$'+R.fmt(o.desigPrice)):'–')+'\n'
++'─ 리버스: T('+p.T+')>발동('+p.rev+') ? '+(o.reverse?'예':'아니오')+'\n반올림: 금액 소수2자리, 수량 내림.';
+    this.renderChart();
+  },
+  applyFill(){
+    if(!this._last)this.calc(); const {p,o}=this._last;
+    const f={bs:R.n('ib_bs')||0,bp:R.s('ib_bp')===''?'':R.n('ib_bp'),ss:R.n('ib_ss')||0,sp:R.s('ib_sp')===''?'':R.n('ib_sp')};
+    const nx=IBengine.fill(p,o,f); this._next=nx;
+    document.getElementById('ib_next').innerHTML='<div class="kpi" style="margin-top:12px">'
+      +'<div class="box"><div class="l">다음 현금</div><div class="v">$'+R.fmt(nx.endCash)+'</div></div>'
+      +'<div class="box"><div class="l">다음 수량</div><div class="v">'+nx.endShares+'</div></div>'
+      +'<div class="box"><div class="l">다음 평단</div><div class="v">$'+R.fmt(nx.endAvg)+'</div></div>'
+      +'<div class="box"><div class="l">다음 T</div><div class="v">'+nx.newT+'</div></div>'
+      +'</div><div class="note">액션: <b>'+nx.action+'</b></div>';
+  },
+  pushToState(){
+    if(!this._next){this.applyFill();}
+    const nx=this._next; R.set('ib_cash',nx.endCash);R.set('ib_sh',nx.endShares);R.set('ib_avg',nx.endAvg);R.set('ib_T',nx.newT);
+    R.set('ib_bs',0);R.set('ib_bp','');R.set('ib_ss',0);R.set('ib_sp','');
+    this.savePos(); Hist.snapshot(); this.calc(); document.getElementById('ib_next').innerHTML=''; GH.autoSync();
+  },
+  saveRecord(){
+    if(!this._last)this.calc(); const {p,o}=this._last;
+    Store.add({type:'무한매수법',symbol:R.s('ib_preset').toUpperCase(),
+      state:{T:p.T,cash:p.cash,shares:p.shares,avg:p.avg}, next:this._next||null,
+      summary:'T='+p.T+' · 별지점 '+(o.starPoint?('$'+R.fmt(o.starPoint)):'–')+' · 별매수 '+o.starQty+'주 / 지정가매도 '+o.desigQty+'주'});
+    alert('무한매수법 기록을 저장했습니다.');
+  },
+  reverse(){
+    const N=R.n('ib_N'), star=R.s('rv_star')===''?NaN:R.n('rv_star'), sh=R.n('rv_sh'), cash=R.n('rv_cash'), first=R.s('rv_first')==='1';
+    const div = N>=40?20:10; const sellQty=R.floor(sh/div); const buyBudget=first?0:R.money(cash/4);
+    document.getElementById('rv_out').innerHTML='<table style="margin-top:10px"><thead><tr><th>항목</th><th>내용</th></tr></thead><tbody>'
+      +'<tr><td>매도 방식</td><td>'+(first?'첫날 — MOC 매도만':'별지점 위 매도 시도')+'</td></tr>'
+      +'<tr><td>매도 수량</td><td>내림(보유 '+sh+' / '+div+') = <b>'+sellQty+'주</b></td></tr>'
+      +'<tr><td>별지점(최근5일 평균)</td><td>'+(isNaN(star)?'최근 5일 종가 평균 입력':'$'+R.fmt(star))+'</td></tr>'
+      +'<tr class="buy"><td>쿼터매수 예산</td><td>'+(first?'첫날은 매수 없음':'총현금/4 = <b>$'+R.fmt(buyBudget)+'</b> (별지점 아래 LOC)')+'</td></tr>'
+      +'</tbody></table><div class="note">T 갱신: '+(N>=40?'40분할 — 매도 T×0.95, 매수 T+(40−T)×0.25':'20분할 — 매도 T×0.9, 매수 T+(20−T)×0.25')+'.</div>';
+  }
+};
+
+/* ===================== VR 엔진 ===================== */
+const VRengine = {
+  calc(p){
+    const {G,band,pool,fee,dep,wd,mult,pv,pp,ps,price}=p;
+    const deposit = dep*mult;
+    const newV = pv + pp/G + deposit - wd;
+    const lower = newV*(1-band);
+    const upper = newV*(1+band);
+    const evalBefore = ps*price;
+    const buyNeed = Math.max(0, lower-evalBefore);
+    const sellNeed= Math.max(0, evalBefore-upper);
+    const poolAvail = pp+deposit-wd;
+    const poolLimit = poolAvail*pool;
+    const maxBuy = Math.min(buyNeed, poolLimit, Math.max(0,poolAvail));
+    const buyShares = buyNeed>0 ? R.floor(maxBuy/(price+fee)) : 0;
+    const sellShares= sellNeed>0? Math.min(ps, R.floor(sellNeed/price)):0;
+    const actualBuy = buyShares*(price+fee);
+    const actualSell= sellShares*price;
+    const endShares = ps+buyShares-sellShares;
+    const endPool = pp+deposit-wd-actualBuy+actualSell;
+    const action = buyShares>0?('매수 '+buyShares+'주'):(sellShares>0?('매도 '+sellShares+'주'):'관망 / 밴드 내');
+    const totalAsset = endShares*price+endPool;
+    return {deposit,newV,lower,upper,evalBefore,buyNeed,sellNeed,poolAvail,poolLimit,maxBuy,buyShares,sellShares,actualBuy,actualSell,endShares,endPool,action,totalAsset};
+  }
+};
+
+/* ===================== VR UI ===================== */
+const VR = {
+  SYMS:['tqqq','upro'],
+  STKEY:'isl_vr_state_v1',
+  store(){ try{return JSON.parse(localStorage.getItem(this.STKEY))||{}}catch(e){return{}} },
+  loadState(sym){ return this.store()[sym]||null; },
+  DEFDEP:{tqqq:250, upro:100},
+  saveState(){ const s=this.store(); s[R.s('vr_sym')]={pv:R.n('vr_pv'),pp:R.n('vr_pp'),ps:R.n('vr_ps'),type:R.s('vr_type'),mult:R.n('vr_mult'),dep:R.n('vr_dep')}; localStorage.setItem(this.STKEY,JSON.stringify(s)); },
+  loadSym(){
+    const sym=R.s('vr_sym'); const st=this.loadState(sym)||{};
+    R.set('vr_pv',st.pv||0);R.set('vr_pp',st.pp||0);R.set('vr_ps',st.ps||0);
+    document.getElementById('vr_type').value=st.type||'적립식VR';
+    document.getElementById('vr_mult').value=String(st.mult||1);
+    R.set('vr_dep', st.dep!=null?st.dep:(this.DEFDEP[sym]!=null?this.DEFDEP[sym]:0));
+    R.set('vr_price',MKT[sym]?MKT[sym].prevClose:0);
+    this.calc();
+  },
+  read(){return {sym:R.s('vr_sym'),G:R.n('vr_G'),band:R.n('vr_band')/100,pool:R.n('vr_pool')/100,fee:R.n('vr_fee'),
+    dep:R.n('vr_dep'),wd:R.n('vr_wd'),mult:R.n('vr_mult'),pv:R.n('vr_pv'),pp:R.n('vr_pp'),ps:R.n('vr_ps'),price:R.n('vr_price')};},
+  _last:null,
+  renderChart(){ document.getElementById('vr_chart').innerHTML = renderLineChart(Hist.get()['vr'+R.s('vr_sym')]||[]); },
+  calc(){
+    const p=this.read(); const o=VRengine.calc(p); this._last={p,o}; this.saveState();
+    const cls = o.buyShares>0?'buy':(o.sellShares>0?'sell':'hold');
+    document.getElementById('vr_out').innerHTML='<div class="kpi" style="margin-top:12px">'
+      +'<div class="box"><div class="l">새 V</div><div class="v">$'+R.fmt(o.newV)+'</div></div>'
+      +'<div class="box"><div class="l">밴드 (하단~상단)</div><div class="v" style="font-size:15px">$'+R.fmt(o.lower)+' ~ $'+R.fmt(o.upper)+'</div></div>'
+      +'<div class="box"><div class="l">리밸 전 평가금</div><div class="v">$'+R.fmt(o.evalBefore)+'</div></div>'
+      +'<div class="box"><div class="l">액션</div><div class="v"><span class="pill '+cls+'">'+o.action+'</span></div></div>'
+      +'</div><table style="margin-top:12px"><tbody>'
+      +'<tr class="'+(o.buyShares>0?'buy':'')+'"><td>매수 필요금 / 최대 매수금</td><td>$'+R.fmt(o.buyNeed)+' / $'+R.fmt(o.maxBuy)+'</td></tr>'
+      +'<tr class="'+(o.sellShares>0?'sell':'')+'"><td>매도 필요금</td><td>$'+R.fmt(o.sellNeed)+'</td></tr>'
+      +'<tr><td>주문 주수</td><td>'+(o.buyShares>0?('매수 '+o.buyShares+'주 @ $'+R.fmt(p.price)):(o.sellShares>0?('매도 '+o.sellShares+'주 @ $'+R.fmt(p.price)):'없음'))+'</td></tr>'
+      +'<tr><td>리밸 후 보유수량 / Pool</td><td>'+o.endShares+'주 / $'+R.fmt(o.endPool)+'</td></tr>'
+      +'<tr><td>총자산(참고)</td><td>$'+R.fmt(o.totalAsset)+'</td></tr></tbody></table>';
+    document.getElementById('vr_audit').textContent=
+'[VR 계산 근거]\n입력 직전V=$'+R.fmt(p.pv)+', 직전Pool=$'+R.fmt(p.pp)+', 직전수량='+p.ps+', 기준가=$'+R.fmt(p.price)+'\n'
++'G='+p.G+', 밴드=±'+R.pct(p.band)+', Pool한도='+R.pct(p.pool)+', 적립=$'+R.fmt(p.dep)+'×'+p.mult+'=$'+R.fmt(o.deposit)+'\n'
++'─ 새 V=직전V+Pool/G+적립−인출 = $'+R.fmt(o.newV)+'\n'
++'─ 하단=V×(1−밴드)=$'+R.fmt(o.lower)+' / 상단=V×(1+밴드)=$'+R.fmt(o.upper)+'\n'
++'─ 평가금=수량×기준가='+p.ps+'×'+R.fmt(p.price)+'=$'+R.fmt(o.evalBefore)+'\n'
++'─ 매수필요=max(0,하단−평가금)=$'+R.fmt(o.buyNeed)+' / 매도필요=$'+R.fmt(o.sellNeed)+'\n'
++'─ Pool가용=$'+R.fmt(o.poolAvail)+' → 한도 ×'+R.pct(p.pool)+'=$'+R.fmt(o.poolLimit)+' / 최대매수=$'+R.fmt(o.maxBuy)+'\n'
++'─ 매수주수=내림(최대매수/(가격+수수료))='+o.buyShares+' / 매도주수='+o.sellShares+'\n'
++'─ 리밸후 수량='+o.endShares+', Pool=$'+R.fmt(o.endPool)+', 총자산=$'+R.fmt(o.totalAsset)+'\n반올림: 금액 소수2자리, 주수 내림.';
+    this.renderChart();
+  },
+  saveRecord(){
+    if(!this._last)this.calc(); const {p,o}=this._last;
+    Store.add({type:'VR',symbol:R.s('vr_sym').toUpperCase()+' '+R.s('vr_type'),
+      state:{V:o.newV,pool:p.pp,shares:p.ps,price:p.price}, next:{endShares:o.endShares,endPool:R.money(o.endPool)},
+      summary:'새V $'+R.fmt(o.newV)+' · 밴드 $'+R.fmt(o.lower)+'~$'+R.fmt(o.upper)+' · '+o.action});
+    alert('VR 기록을 저장했습니다.');
+  },
+  pushToState(){
+    if(!this._last)this.calc(); const {p,o}=this._last; const sym=p.sym;
+    let vp=Hist.vrPos(sym);
+    let prevCB = (typeof vp.costBasis==='number' && vp.shares===p.ps) ? vp.costBasis : p.ps*(vp.avg||p.price);
+    const sellRemoved = (o.sellShares>0 && p.ps>0) ? (prevCB/p.ps)*o.sellShares : 0;
+    const newCB = prevCB + o.actualBuy - sellRemoved;
+    const newAvg = o.endShares>0 ? newCB/o.endShares : 0;
+    Hist.setVrPos(sym,{costBasis:R.money(newCB),shares:o.endShares,avg:R.money(newAvg)});
+    R.set('vr_pv',R.money(o.newV)); R.set('vr_pp',R.money(o.endPool)); R.set('vr_ps',o.endShares);
+    this.saveState(); Hist.snapshot(); this.calc(); GH.autoSync();
+  }
+};
+
+/* ===================== GitHub 상태 동기화 ===================== */
+const GH = {
+  KEY:'isl_gh_v1',
+  cfg(){ try{return JSON.parse(localStorage.getItem(this.KEY))||{}}catch(e){return{}} },
+  saveCfg(){ const c={token:R.s('gh_token').trim(), repo:(R.s('gh_repo').trim()||'candomindset81-ai/infinite-strategy-lab'), auto:document.getElementById('gh_auto').checked};
+    localStorage.setItem(this.KEY,JSON.stringify(c));
+    const o=document.getElementById('gh_out'); if(o)o.textContent='설정 저장됨'+(c.auto?' · 자동 동기화 ON':''); },
+  loadCfg(){ const c=this.cfg(); if(c.token!=null)R.set('gh_token',c.token); if(c.repo)R.set('gh_repo',c.repo);
+    const a=document.getElementById('gh_auto'); if(a)a.checked=!!c.auto; },
+  buildState(){
+    const G=R.n('vr_G')||10, band=(R.n('vr_band')||15)/100, pool=(R.n('vr_pool')||70)/100, fee=R.n('vr_fee')||0;
+    const vrStore=VR.store();
+    const vrEntry=(sym,label)=>{ const st=vrStore[sym]||{}; const pv=st.pv||0, pp=st.pp||0, ps=st.ps||0;
+      const dep=(st.dep!=null?st.dep:(VR.DEFDEP[sym]||0)); const mult=st.mult||1; const deposit=dep*mult;
+      return {label, sym, V:R.money(pv+pp/G+deposit), ps, poolAvail:R.money(pp+deposit), pool, band, fee, dep}; };
+    const ib=IB.loadPos()['soxl20'];
+    return { updated:new Date().toISOString().slice(0,10), note:'앱에서 자동 동기화됨.', vr_deposit_anchor:'2026-07-17',
+      ib: ib?{label:'SOXL 무한매수법 (20분할)',sym:'soxl',N:20,base:20,slope:2,fs:20,rev:19,T:ib.T,cash:ib.cash,sh:ib.sh,avg:ib.avg}:null,
+      vr:[ vrEntry('tqqq','VR TQQQ (적립식)'), vrEntry('upro','VR UPRO (적립식)') ] };
+  },
+  async sync(silent){
+    const c=this.cfg(); const out=document.getElementById('gh_out');
+    if(!c.token){ if(!silent)alert('먼저 GitHub 토큰을 저장하세요.'); return; }
+    const repo=c.repo||'candomindset81-ai/infinite-strategy-lab';
+    const url='https://api.github.com/repos/'+repo+'/contents/state.json';
+    const H={'Authorization':'Bearer '+c.token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+    try{
+      let sha=null; const g=await fetch(url,{headers:H}); if(g.ok){ sha=(await g.json()).sha; }
+      const json=JSON.stringify(this.buildState(),null,2);
+      const content=btoa(unescape(encodeURIComponent(json)));
+      const body={message:'chore: sync state from app',content,branch:'main'}; if(sha)body.sha=sha;
+      const r=await fetch(url,{method:'PUT',headers:H,body:JSON.stringify(body)});
+      if(r.ok){ const msg='✅ 동기화 완료 · '+new Date().toLocaleString(); if(out)out.textContent=msg; if(!silent)alert(msg); }
+      else { const t=await r.text(); const msg='동기화 실패 '+r.status+': '+t.slice(0,150); if(out)out.textContent=msg; if(!silent)alert(msg); }
+    }catch(e){ if(out)out.textContent='동기화 오류: '+e.message; if(!silent)alert('동기화 오류: '+e.message); }
+  },
+  autoSync(){ const c=this.cfg(); if(c.auto && c.token){ this.sync(true); } }
+};
+
+/* ===================== QDTE 인컴 → UPRO 트래커 ===================== */
+const QDTE = {
+  KEY:'isl_qdte_v1',
+  bal(){ const v=parseFloat(localStorage.getItem(this.KEY)); return isNaN(v)?0:v; },
+  setBal(v){ localStorage.setItem(this.KEY, String(R.money(Math.max(0,v)))); this.render(); },
+  add(){ const a=R.n('qd_in'); if(isNaN(a)||a<=0){alert('금액을 입력하세요.');return;} this.setBal(this.bal()+a); R.set('qd_in',''); },
+  use(){ const a=R.n('qd_in'); if(isNaN(a)||a<=0){alert('금액을 입력하세요.');return;} this.setBal(this.bal()-a); R.set('qd_in',''); },
+  toUpro(){ const b=this.bal(); if(b<=0){alert('적립된 분배금이 없습니다.');return;}
+    document.getElementById('vr_sym').value='upro'; VR.loadSym(); R.set('vr_dep',R.money(b)); VR.calc();
+    alert('UPRO VR 적립액에 $'+R.fmt(b)+' 를 넣었습니다. VR 탭(UPRO)에서 계산에 반영됐어요.'); },
+  render(){ const el=document.getElementById('qd_out'); if(!el)return;
+    el.innerHTML='<div class="kpi"><div class="box"><div class="l">누적 분배금 (UPRO 매수 자금)</div><div class="v">$'+R.fmt(this.bal())+'</div></div>'
+      +'<div class="box"><div class="l">QDTE 보유</div><div class="v">'+(R.n('qd_sh')||0)+'주</div></div></div>'
+      +'<div class="src" style="margin-top:6px">받은 분배금을 "분배금 적립(+)"으로 쌓고, "→ UPRO VR 적립액으로"를 누르면 그 금액이 UPRO VR 매수 자금(적립액)이 됩니다.</div>'; }
+};
+
+/* ===================== 지표 엔진 ===================== */
+const IX = {
+  calc(){
+    const vix=R.n('ix_vix');
+    const tq={p:R.n('ix_tq_p'),rsi:R.n('ix_tq_rsi'),m50:R.n('ix_tq_50'),m200:R.n('ix_tq_200'),hi:R.n('ix_tq_hi')};
+    const sx={p:R.n('ix_sx_p'),rsi:R.n('ix_sx_rsi'),m50:R.n('ix_sx_50'),m200:R.n('ix_sx_200'),hi:R.n('ix_sx_hi')};
+    const rsiTag=(r)=> r<=30?['과매도','ok']: r<45?['약세','warn']: r<=55?['중립','hold']: r<70?['강세','buy']:['과매수','sell'];
+    const vixTag=(x)=> x>=30?['공포(분할 기회)','ok']: x>=20?['경계','warn']: x>=15?['보통','hold']:['안일(저변동)','warn'];
+    const trend=(o)=>{ const t200=o.p>=o.m200?['상승추세(200일선↑)','ok']:['하락추세(200일선↓)','warn']; return {t200,dd:o.p/o.hi-1}; };
+    const sym=(name,o)=>{ const rt=rsiTag(o.rsi); const tr=trend(o); const m50=o.p>=o.m50?'50일선 위':'50일선 아래';
+      const ddTag = tr.dd<=-0.5?['공격매수권(-50%↓)','ok']: tr.dd<=-0.3?['깊은 조정','warn']:['',''];
+      return '<div class="card" style="margin:0 0 10px;padding:12px"><b>'+name+'</b> — $'+R.fmt(o.p)+' <span class="src">(고점대비 '+R.pct(o.p/o.hi-1)+', '+m50+')</span>'
+        +'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'
+        +'<span class="pill '+rt[1]+'">RSI '+o.rsi+' · '+rt[0]+'</span><span class="pill '+tr.t200[1]+'">'+tr.t200[0]+'</span>'
+        +(ddTag[0]?('<span class="pill '+ddTag[1]+'">'+ddTag[0]+'</span>'):'')+'</div></div>'; };
+    const vt=vixTag(vix);
+    const total = Math.round((Math.max(0,Math.min(1,(70-tq.rsi)/40))*0.25 + Math.max(0,Math.min(1,(70-sx.rsi)/40))*0.2 + Math.max(0,Math.min(1,(vix-13)/22))*0.3 + Math.max(0,Math.min(1,(-(tq.p/tq.hi-1))/0.5))*0.25)*100);
+    const envTag = total>=66?['분할매수 우호 (공포/저평가)','ok']: total>=40?['중립','hold']:['과열/고평가 주의','warn'];
+    document.getElementById('ix_out').innerHTML=
+      '<div class="sig"><div style="min-width:120px">진입환경 점수 <b>'+total+'</b>/100</div><div class="bar"><div class="dot" style="left:'+total+'%"></div></div><span class="pill '+envTag[1]+'">'+envTag[0]+'</span></div>'
+      +'<div class="sig"><b>VIX '+R.fmt(vix)+'</b> <span class="pill '+vt[1]+'">'+vt[0]+'</span> <span class="src">20↑ 변동성 확대, 30↑ 공포</span></div>'
+      +sym('TQQQ',tq)+sym('SOXL',sx)
+      +'<p class="src">RSI·VIX·고점대비 낙폭을 단순 결합한 참고 지표이며 투자 신호가 아닙니다.</p>';
+    const de=document.getElementById('dashEnv');
+    if(de) de.innerHTML='<div class="sig"><div style="min-width:120px">진입환경 <b>'+total+'</b>/100</div><div class="bar"><div class="dot" style="left:'+total+'%"></div></div><span class="pill '+envTag[1]+'">'+envTag[0]+'</span></div><div class="small muted">VIX '+R.fmt(vix)+' · TQQQ RSI '+tq.rsi+' · SOXL RSI '+sx.rsi+'</div>';
+    return total;
+  }
+};
+
+function renderMacro(){
+  const m=MACRO; const el=document.getElementById('macro_out'); if(!el)return;
+  el.innerHTML='<div class="kpi">'
+    +'<div class="box"><div class="l">시장 레짐</div><div class="v">'+m.regime+'</div></div>'
+    +'<div class="box"><div class="l">VIX</div><div class="v">'+R.fmt(m.vix)+'</div></div>'
+    +'<div class="box"><div class="l">공포탐욕</div><div class="v" style="font-size:15px">'+m.fearGreed+'</div></div>'
+    +'<div class="box"><div class="l">미10년물 / 기준금리</div><div class="v" style="font-size:14px">'+m.us10y+' / '+m.fedRate+'</div></div>'
+    +'</div><div class="src" style="margin-top:6px">기준: '+m.asOf+' · 매주 자동 갱신'+(m.note?(' · '+m.note):'')+'</div>';
+}
+
+/* ===================== 대시보드 · 기록 ===================== */
+const Dash = {
+  render(){
+    const recs=Store.get(); const ib=recs.filter(r=>r.type==='무한매수법'), vr=recs.filter(r=>r.type==='VR');
+    document.getElementById('dashKpi').innerHTML=
+      '<div class="box"><div class="l">총 기록</div><div class="v">'+recs.length+'</div></div>'
+      +'<div class="box"><div class="l">무한매수법</div><div class="v">'+ib.length+'</div></div>'
+      +'<div class="box"><div class="l">VR</div><div class="v">'+vr.length+'</div></div>'
+      +'<div class="box"><div class="l">마지막 기록</div><div class="v" style="font-size:14px">'+(recs[0]?new Date(recs[0].ts).toLocaleDateString('ko-KR'):'–')+'</div></div>';
+    document.getElementById('dashRecent').innerHTML = recs.length? recs.slice(0,5).map(r=>'<div class="sig"><span class="pill '+(r.type==='VR'?'buy':'hold')+'">'+r.type+'</span><div style="flex:1"><b>'+r.symbol+'</b> <span class="small muted">'+r.summary+'</span></div><span class="src">'+new Date(r.ts).toLocaleDateString('ko-KR')+'</span></div>').join('') : '<div class="muted small">아직 저장된 기록이 없습니다.</div>';
+  }
+};
+const Log = {
+  render(){
+    const recs=Store.get();
+    document.getElementById('logTable').innerHTML = recs.length?
+      '<table><thead><tr><th>일시</th><th>전략</th><th>종목</th><th>요약</th><th></th></tr></thead><tbody>'
+      +recs.map(r=>'<tr><td>'+new Date(r.ts).toLocaleDateString('ko-KR')+'</td><td>'+r.type+'</td><td>'+r.symbol+'</td><td style="text-align:left" class="small">'+r.summary+'</td><td><button class="ghost" style="padding:4px 8px" onclick="Store.del('+r.id+')">삭제</button></td></tr>').join('')
+      +'</tbody></table>' : '<div class="muted small">기록이 없습니다.</div>';
+  }
+};
+
+/* ===================== 텔레그램 알림 ===================== */
+const TG = {
+  CFG:'isl_tg_v1',
+  get(){ try{return JSON.parse(localStorage.getItem(this.CFG))||{}}catch(e){return{}} },
+  loadCfg(){ const c=this.get(); if(c.token)R.set('tg_token',c.token); if(c.chat)R.set('tg_chat',c.chat); },
+  saveCfg(){ localStorage.setItem(this.CFG,JSON.stringify({token:R.s('tg_token').trim(),chat:R.s('tg_chat').trim()})); alert('텔레그램 설정을 저장했습니다.'); },
+  async send(text){
+    const c=this.get(); if(!c.token||!c.chat){ alert('먼저 봇 토큰과 chat id를 저장하세요.'); return; }
+    try{
+      const r=await fetch('https://api.telegram.org/bot'+c.token+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:c.chat,text:text,parse_mode:'HTML'})});
+      const j=await r.json();
+      alert(j.ok?'텔레그램 전송 완료':('전송 실패: '+(j.description||'오류')));
+    }catch(e){ alert('전송 오류: '+e); }
+  },
+  test(){ this.send('✅ Infinite Strategy Lab 연결 테스트 — 정상입니다.'); },
+  ibLine(sym){
+    const pos=IB.loadPos(); const keys=sym==='soxl'?['soxl20','soxl40']:['tqqq40','tqqq20'];
+    const key=keys.find(k=>pos[k])||keys[0]; const pr=IB.presets[key]; const st=pos[key]||pr.pos;
+    const p={N:pr.N,base:pr.base/100,slope:pr.slope/100,fs:pr.fs/100,rev:pr.rev,T:st.T,cash:st.cash,shares:st.sh,avg:st.avg};
+    if(p.shares===0 && p.T===0) return '';   // 미시작 종목 제외
+    const o=IBengine.orders(p);
+    let s='🔹 <b>'+sym.toUpperCase()+'</b> (T '+p.T+' · 시장가 $'+R.fmt(MKT[sym].p)+')\n';
+    if(o.starQty>0) s+='  ① 별 LOC 매수 '+o.starQty+'주 @ $'+R.fmt(o.starBuyPrice)+'\n';
+    if(o.avgQty>0)  s+='  ② 평단 LOC 매수 '+o.avgQty+'주 @ $'+R.fmt(p.avg)+'\n';
+    s+='  ③ 쿼터 LOC 매도 '+o.quarterQty+'주 @ $'+(o.quarterPrice?R.fmt(o.quarterPrice):'-')+'\n';
+    s+='  ④ 지정가 매도 '+o.desigQty+'주 @ $'+(o.desigPrice?R.fmt(o.desigPrice):'-')+'\n';
+    return s;
+  },
+  vrLine(sym){
+    const st=VR.loadState(sym); if(!st || (st.ps===0 && (!st.pv||st.pv===0))) return '';
+    const p={G:R.n('vr_G'),band:R.n('vr_band')/100,pool:R.n('vr_pool')/100,fee:R.n('vr_fee'),dep:(st.dep!=null?st.dep:(VR.DEFDEP[sym]||0)),wd:R.n('vr_wd'),mult:st.mult||1,pv:st.pv,pp:st.pp,ps:st.ps,price:MKT[sym]?MKT[sym].prevClose:0};
+    const o=VRengine.calc(p);
+    return '🔸 <b>'+sym.toUpperCase()+'</b> 기준가 $'+R.fmt(p.price)+' · '+o.action+'\n  밴드 $'+R.fmt(o.lower)+' ~ $'+R.fmt(o.upper)+'\n';
+  },
+  buildDaily(){
+    let s='📈 <b>오늘의 주문</b> ('+MKT.asOf+' 종가 기준)\n\n';
+    const a=this.ibLine('soxl'), b=this.ibLine('tqqq');
+    s += (a||b) ? ('[무한매수법]\n'+a+b+'\n') : '[무한매수법] 진행 중인 종목 없음\n\n';
+    let vr=''; VR.SYMS.forEach(sym=>{ vr+=this.vrLine(sym); });
+    s += vr ? ('[VR]\n'+vr+'\n') : '[VR] 진행 중인 종목 없음\n\n';
+    s += '⚠️ 계산 결과(주문 초안). Fi PRO에서 직접 확인 후 주문하세요.';
+    return s;
+  },
+  sendDaily(){ this.send(this.buildDaily()); }
+};
+
+/* ===================== 초기화(리셋) ===================== */
+function resetAll(){
+  if(!confirm('무한매수법·VR·차트·매매기록을 모두 지우고 1사이클부터 다시 시작할까요? 되돌릴 수 없습니다.'))return;
+  ['isl_records_v1','isl_ib_pos_v1','isl_ib_avg','isl_vr_pos_v1','isl_vr_state_v1','isl_hist_v1','isl_qdte_v1','isl_seeded_v1'].forEach(k=>localStorage.removeItem(k));
+  location.reload();
+}
+
+/* ===================== 초기화(부팅) ===================== */
+document.getElementById('nav').addEventListener('click',function(e){
+  const b=e.target.closest('button'); if(!b)return;
+  document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); document.getElementById(b.dataset.tab).classList.add('active');
+});
+document.getElementById('ib_preset').addEventListener('change',()=>IB.applyPreset());
+document.getElementById('vr_sym').addEventListener('change',()=>VR.loadSym());
+
+function applyMarket(){
+  R.set('ix_vix',MKT.vix);
+  R.set('ix_tq_p',MKT.tqqq.p);R.set('ix_tq_rsi',MKT.tqqq.rsi);R.set('ix_tq_50',MKT.tqqq.m50);R.set('ix_tq_200',MKT.tqqq.m200);R.set('ix_tq_hi',MKT.tqqq.hi);
+  R.set('ix_sx_p',MKT.soxl.p);R.set('ix_sx_rsi',MKT.soxl.rsi);R.set('ix_sx_50',MKT.soxl.m50);R.set('ix_sx_200',MKT.soxl.m200);R.set('ix_sx_hi',MKT.soxl.hi);
+  R.set('vr_price',MKT.tqqq.prevClose);
+}
+applyMarket();
+const asOf='자동 갱신: '+MKT.asOf+' 종가 (매일 정오 필리핀시간 · 직접 수정 가능)';
+document.getElementById('indiAsOf').textContent=asOf;
+document.getElementById('indiAsOf2').textContent=asOf;
+
+/* 최초 진입 표시 플래그(더 이상 과거 기록을 시드하지 않음 — 1사이클부터 시작) */
+if(!localStorage.getItem('isl_seeded_v1')) localStorage.setItem('isl_seeded_v1','1');
+
+Hist.snapshot();
+IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); GH.loadCfg();
+</script>
+</body>
+</html>
