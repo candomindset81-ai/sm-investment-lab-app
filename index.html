@@ -288,18 +288,16 @@
     </div>
   </div>
   <div class="card">
-    <h3>☁️ GitHub 자동 동기화</h3>
-    <div class="note">체결을 반영하면(“다음 상태 반영” / “다음 사이클 상태 반영”) 저장소의 <b>state.json</b>이 자동으로 갱신돼, 매일 밤 텔레그램 주문표가 항상 최신 포지션으로 계산됩니다. 토큰은 이 브라우저에만 저장되고 GitHub로만 전송됩니다.</div>
+    <h3>☁️ 클라우드 상태 크로스체크</h3>
+    <div class="note">텔레그램으로 반영된 <b>실제 전략 상태</b>(저장소 state.json)를 그대로 보여줍니다. <b>읽기 전용</b>이라 덮어쓰기 위험이 없어요. GitHub 읽기 토큰을 한 번 저장하면 앱을 열 때마다 자동으로 최신 포지션이 표시됩니다.</div>
     <div class="grid yellow" style="margin-top:8px">
-      <label class="f">GitHub 토큰 (fine-grained PAT)<input id="gh_token" type="password" placeholder="github_pat_..." value=""></label>
-      <label class="f">저장소<input id="gh_repo" type="text" value="candomindset81-ai/infinite-strategy-lab"></label>
+      <label class="f">GitHub 토큰 (Contents 읽기)<input id="cs_token" type="password" placeholder="github_pat_..." value=""></label>
     </div>
-    <label style="display:flex;align-items:center;gap:8px;margin:8px 0"><input type="checkbox" id="gh_auto"> 체결 반영 시 자동 동기화</label>
     <div class="btnrow">
-      <button class="ghost" onclick="GH.saveCfg()">설정 저장</button>
-      <button class="act" onclick="GH.sync(false)">☁️ 지금 동기화</button>
+      <button class="ghost" onclick="CS.saveToken()">토큰 저장</button>
+      <button class="act" onclick="CS.fetch()">🔄 상태 새로고침</button>
     </div>
-    <div id="gh_out" class="small muted" style="margin-top:6px"></div>
+    <div id="cs_out" style="margin-top:8px"><span class="small muted">토큰을 저장하면 현재 클라우드 상태가 여기 표시됩니다.</span></div>
   </div>
   <div class="card">
     <h3>초기화</h3>
@@ -719,6 +717,31 @@ const VR = {
 };
 
 /* ===================== GitHub 상태 동기화 ===================== */
+/* ===================== 클라우드 상태 크로스체크 (읽기 전용) ===================== */
+const CS = {
+  KEY:'isl_cs_v1',
+  REPO:'candomindset81-ai/infinite-strategy-lab',
+  token(){ try{return (JSON.parse(localStorage.getItem(this.KEY))||{}).token||''}catch(e){return ''} },
+  saveToken(){ localStorage.setItem(this.KEY, JSON.stringify({token:R.s('cs_token').trim()})); this.fetch(); },
+  loadToken(){ const t=this.token(); if(t){ R.set('cs_token',t); this.fetch(); } },
+  async fetch(){
+    const t=this.token(); const out=document.getElementById('cs_out');
+    if(!t){ if(out)out.innerHTML='<span class="small muted">토큰을 저장하면 현재 클라우드 상태가 표시됩니다.</span>'; return; }
+    if(out)out.innerHTML='<span class="small muted">불러오는 중…</span>';
+    try{
+      const r=await fetch('https://api.github.com/repos/'+this.REPO+'/contents/state.json',{cache:'no-store',headers:{'Authorization':'Bearer '+t,'Accept':'application/vnd.github+json'}});
+      if(!r.ok){ if(out)out.innerHTML='<span class="small" style="color:#ff9d9d">불러오기 실패 '+r.status+' — 토큰·권한을 확인하세요.</span>'; return; }
+      const j=await r.json();
+      const s=JSON.parse(decodeURIComponent(escape(atob((j.content||'').replace(/\s/g,'')))));
+      let h='<table><tbody>';
+      if(s.ib) h+='<tr><td>🔵 '+s.ib.label+'</td><td>T='+s.ib.T+' · '+s.ib.sh+'주 · 평단 $'+R.fmt(s.ib.avg)+' · 현금 $'+R.fmt(s.ib.cash)+'</td></tr>';
+      (s.vr||[]).forEach(function(v){ h+='<tr><td>'+(v.sym==='tqqq'?'🟢':'🟡')+' '+v.label+'</td><td>V $'+R.fmt(v.V)+' · '+v.ps+'주 · Pool $'+R.fmt(v.poolAvail)+'</td></tr>'; });
+      h+='</tbody></table><div class="src">클라우드 갱신: '+(s.updated||'-')+' · 확인 '+new Date().toLocaleString()+'</div>';
+      if(out)out.innerHTML=h;
+    }catch(e){ if(out)out.innerHTML='<span class="small" style="color:#ff9d9d">오류: '+e.message+'</span>'; }
+  }
+};
+
 const GH = {
   KEY:'isl_gh_v1',
   cfg(){ try{return JSON.parse(localStorage.getItem(this.KEY))||{}}catch(e){return{}} },
@@ -912,7 +935,7 @@ document.getElementById('indiAsOf2').textContent=asOf;
 if(!localStorage.getItem('isl_seeded_v1')) localStorage.setItem('isl_seeded_v1','1');
 
 Hist.snapshot();
-IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); GH.loadCfg();
+IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken();
 </script>
 </body>
 </html>
