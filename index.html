@@ -71,7 +71,10 @@
   <button data-tab="vr">VR</button>
   <button data-tab="indi">지표</button>
   <button data-tab="income">💰 인컴</button>
+  <button data-tab="flow">🔀 자본흐름</button>
+  <button data-tab="analytics">📊 분석</button>
   <button data-tab="goals">🎯 목표</button>
+  <button data-tab="notif">🔔 알림</button>
   <button data-tab="master">🧭 마스터</button>
   <button data-tab="log">매매기록</button>
   <button data-tab="guide">가이드</button>
@@ -431,6 +434,51 @@
     </div>
     <div class="btnrow"><button class="act" onclick="Goals.render()">계산</button></div>
     <div id="wg_out" style="margin-top:12px"></div>
+  </div>
+</section>
+
+<section id="flow" class="tab">
+  <div class="card">
+    <h2>🔀 자본흐름 관리 <span class="tag">Rule Engine</span></h2>
+    <div class="note">배당·현금을 규칙에 따라 배분합니다. <b>목표 미달</b>이면 전액 인컴 재투자, <b>목표 달성</b>이면 그로스·인컴으로 분배(비율 설정 가능).</div>
+    <div class="grid">
+      <label class="f">월 배당 목표($)<input id="wf_target" type="number" step="10" value="500"></label>
+      <label class="f">달성 후 그로스(%)<input id="wf_g" type="number" step="1" value="70"></label>
+      <label class="f">달성 후 인컴(%)<input id="wf_i" type="number" step="1" value="30"></label>
+    </div>
+    <div class="btnrow"><button class="ghost" onclick="Flow.saveCfg()">규칙 저장</button></div>
+    <h3>배분 계산</h3>
+    <div class="grid yellow">
+      <label class="f">이번에 배분할 금액($)<input id="wf_amt" type="number" step="1" value=""></label>
+    </div>
+    <div class="btnrow"><button class="act" onclick="Flow.calc()">배분 계산</button></div>
+    <div id="wf_out" style="margin-top:12px"></div>
+  </div>
+</section>
+
+<section id="analytics" class="tab">
+  <div class="card">
+    <h2>📊 분석 엔진</h2>
+    <div class="note">자산 배분·레버리지 리스크·배당 분석. 값은 인컴 입력 + 앱 포지션·시세 기준입니다.</div>
+    <div id="wa_out"></div>
+  </div>
+  <div class="card">
+    <h3>🔮 시나리오 (시장 변동 시)</h3>
+    <div class="note">3배 레버리지(VR·SOXL)는 시장 변동의 약 3배, 인컴(DTE)은 약 1배로 움직인다고 가정한 추정입니다.</div>
+    <div id="wa_scenario"></div>
+  </div>
+</section>
+
+<section id="notif" class="tab">
+  <div class="card">
+    <h2>🔔 알림 엔진</h2>
+    <div class="note">규칙 기반 알림을 자동으로 표시합니다. 임계값은 조정 가능합니다.</div>
+    <div class="grid">
+      <label class="f">낙폭 경고 기준(%)<input id="wn_dd" type="number" step="1" value="20"></label>
+      <label class="f">레버리지 비중 상한(%)<input id="wn_alloc" type="number" step="1" value="60"></label>
+    </div>
+    <div class="btnrow"><button class="ghost" onclick="Notif.saveCfg()">설정 저장</button> <button class="act" onclick="Notif.render()">🔄 알림 새로고침</button></div>
+    <div id="wn_out" style="margin-top:12px"></div>
   </div>
 </section>
 
@@ -1082,8 +1130,78 @@ const Master = {
   }
 };
 
+/* ===================== WOS: 자본흐름 관리 ===================== */
+const Flow = {
+  CFG:'wos_flow_v1',
+  cfg(){ try{return Object.assign({target:500,g:70,i:30},JSON.parse(localStorage.getItem(this.CFG))||{})}catch(e){return {target:500,g:70,i:30}} },
+  loadCfg(){ const c=this.cfg(); R.set('wf_target',c.target); R.set('wf_g',c.g); R.set('wf_i',c.i); },
+  saveCfg(){ localStorage.setItem(this.CFG,JSON.stringify({target:R.n('wf_target')||0,g:R.n('wf_g')||0,i:R.n('wf_i')||0})); this.render(); },
+  status(){ const c=this.cfg(); const tax=Income.tax()/100; const mo=Income.totals().mo*(1-tax); return {reached:mo>=c.target, mo:mo, c:c}; },
+  render(){ this.loadCfg(); const s=this.status();
+    const badge=s.reached?'<span class="pill sell">목표 달성</span>':'<span class="pill buy">목표 미달</span>';
+    const h='<div class="kpi"><div class="box"><div class="l">현재 월배당(세후)</div><div class="v">$'+R.fmt(s.mo)+'</div></div>'
+      +'<div class="box"><div class="l">월 목표</div><div class="v">$'+R.fmt(s.c.target)+'</div></div>'
+      +'<div class="box"><div class="l">상태</div><div class="v">'+badge+'</div></div></div>'
+      +'<div class="src" style="margin-top:8px">규칙: 목표 미달 → <b>전액 인컴 재투자</b> · 목표 달성 → <b>그로스 '+s.c.g+'% · 인컴 '+s.c.i+'%</b></div>';
+    const out=document.getElementById('wf_out'); if(out)out.innerHTML=h;
+  },
+  calc(){ const s=this.status(); const amt=R.n('wf_amt'); const out=document.getElementById('wf_out');
+    if(isNaN(amt)||amt<=0){ alert('배분할 금액을 입력하세요'); return; }
+    const rows = s.reached ? [['📈 그로스 (UPRO·TQQQ VR)',amt*s.c.g/100],['💰 인컴 (QDTE 등)',amt*s.c.i/100]] : [['💰 인컴 재투자 (전액)',amt]];
+    let h='<div class="note" style="margin-bottom:8px">'+(s.reached?'목표 달성 → 분배':'목표 미달 → 전액 인컴 재투자')+'</div><table><thead><tr><th>배분처</th><th>금액</th><th>비율</th></tr></thead><tbody>';
+    rows.forEach(r=>{ h+='<tr><td>'+r[0]+'</td><td>$'+R.fmt(r[1])+'</td><td>'+R.pct(r[1]/amt)+'</td></tr>'; });
+    h+='</tbody></table><div class="src" style="margin-top:8px">💡 계산 결과는 배분 가이드입니다. 실제 매수는 Fi PRO에서 직접 실행하세요.</div>';
+    if(out)out.innerHTML=h;
+  }
+};
+
+/* ===================== WOS: 분석 엔진 ===================== */
+const Analytics = {
+  render(){
+    const inc=Income.totals().mv; const growth=Master.vrVal(); const a=Master.alphaVal(); const alpha=a.val+a.cash;
+    const total=inc+growth+alpha; const lev=growth+a.val;
+    const bar=(label,val,color)=>{ const w=total>0?val/total*100:0; return '<div style="margin:6px 0"><div class="small">'+label+' — $'+R.fmt(val)+' ('+w.toFixed(1)+'%)</div><div style="background:#22304a;border-radius:6px;height:12px"><div style="background:'+color+';height:12px;width:'+w.toFixed(1)+'%;border-radius:6px"></div></div></div>'; };
+    let h='<h3>자산 배분</h3>'+bar('💰 인컴(DTE)',inc,'#38d39f')+bar('📈 그로스(VR)',growth,'#4ea1ff')+bar('⚡ 알파(SOXL)',alpha,'#ffb454');
+    const levPct=total>0?lev/total*100:0;
+    h+='<h3 style="margin-top:14px">레버리지 리스크</h3><div class="kpi">'
+      +'<div class="box"><div class="l">3배 레버리지 노출</div><div class="v">'+levPct.toFixed(1)+'%</div></div>'
+      +'<div class="box"><div class="l">인컴·현금</div><div class="v">'+(100-levPct).toFixed(1)+'%</div></div>'
+      +'<div class="box"><div class="l">총 포트폴리오</div><div class="v">$'+R.fmt(total)+'</div></div></div>'
+      +'<div class="src" style="margin-top:6px">'+(levPct>60?'⚠️ 레버리지 비중이 높습니다. 하락장에서 손실이 크게 증폭될 수 있어요.':'레버리지 비중이 관리 범위입니다.')+'</div>';
+    const dl=Income.loadDiv(); if(dl.length){ const bySym={}; dl.forEach(x=>bySym[x.sym]=(bySym[x.sym]||0)+x.amt);
+      h+='<h3 style="margin-top:14px">배당 분석 (누적 수령)</h3><table><thead><tr><th>종목</th><th>누적</th></tr></thead><tbody>';
+      Object.keys(bySym).forEach(s=>h+='<tr><td>'+s+'</td><td>$'+R.fmt(bySym[s])+'</td></tr>'); h+='</tbody></table>'; }
+    document.getElementById('wa_out').innerHTML=h;
+    const scen=[-30,-20,-10,10,20];
+    let sh='<table><thead><tr><th>시장</th><th>레버리지(×3)</th><th>인컴(×1)</th><th>총 포트폴리오</th><th>변화</th></tr></thead><tbody>';
+    scen.forEach(m=>{ const f=m/100; const levNew=lev*(1+3*f); const incNew=(inc+a.cash)*(1+f); const tot=levNew+incNew; const chg=total>0?(tot-total)/total*100:0;
+      sh+='<tr class="'+(m<0?'sell':'buy')+'"><td>'+(m>0?'+':'')+m+'%</td><td>$'+R.fmt(levNew)+'</td><td>$'+R.fmt(incNew)+'</td><td>$'+R.fmt(tot)+'</td><td>'+(chg>0?'+':'')+chg.toFixed(1)+'%</td></tr>'; });
+    sh+='</tbody></table>';
+    document.getElementById('wa_scenario').innerHTML=sh;
+  }
+};
+
+/* ===================== WOS: 알림 엔진 ===================== */
+const Notif = {
+  CFG:'wos_notif_v1',
+  cfg(){ try{return Object.assign({dd:20,alloc:60},JSON.parse(localStorage.getItem(this.CFG))||{})}catch(e){return {dd:20,alloc:60}} },
+  saveCfg(){ localStorage.setItem(this.CFG,JSON.stringify({dd:R.n('wn_dd')||20,alloc:R.n('wn_alloc')||60})); this.render(); },
+  render(){ const c=this.cfg(); R.set('wn_dd',c.dd); R.set('wn_alloc',c.alloc); const now=Date.now(); const alerts=[];
+    Income.loadDiv().forEach(x=>{ const d=new Date(x.date).getTime(); if(now-d<=7*864e5 && now-d>=-864e5) alerts.push(['💵','배당 수령: '+x.sym+' $'+R.fmt(x.amt)+' ('+x.date+')','ok']); });
+    const tax=Income.tax()/100; const mo=Income.totals().mo*(1-tax);
+    const achieved=Goals.TARGETS.filter(g=>mo>=g).pop(); if(achieved) alerts.push(['🎯','목표 달성: $'+achieved.toLocaleString()+'/월 (현재 $'+R.fmt(mo)+')','ok']);
+    try{ const ib=(JSON.parse(localStorage.getItem('isl_ib_pos_v1'))||{}).soxl20; if(ib&&ib.avg>0&&typeof MKT!=='undefined'&&MKT.soxl){ const dd=(MKT.soxl.p/ib.avg-1)*100; if(dd<=-c.dd) alerts.push(['📉','SOXL 낙폭 경고: 평단 대비 '+dd.toFixed(1)+'%','warn']); } }catch(e){}
+    try{ const vr=JSON.parse(localStorage.getItem('isl_vr_pos_v1'))||{}; if(vr.tqqq&&vr.tqqq.avg>0&&typeof MKT!=='undefined'&&MKT.tqqq){ const dd=(MKT.tqqq.prevClose/vr.tqqq.avg-1)*100; if(dd<=-c.dd) alerts.push(['📉','TQQQ 낙폭 경고: 평단 대비 '+dd.toFixed(1)+'%','warn']); } }catch(e){}
+    const inc=Income.totals().mv; const growth=Master.vrVal(); const a=Master.alphaVal(); const total=inc+growth+a.val+a.cash; const lev=growth+a.val; const levPct=total>0?lev/total*100:0;
+    if(levPct>c.alloc) alerts.push(['⚖️','레버리지 비중 '+levPct.toFixed(1)+'% > 상한 '+c.alloc+'% — 인컴 비중 확대 권장','warn']);
+    let h; if(alerts.length===0){ h='<div class="muted small">현재 활성 알림이 없습니다. ✅</div>'; }
+    else { h='<div style="display:flex;flex-direction:column;gap:8px">'; alerts.forEach(al=>{ const bg=al[2]==='warn'?'#3a2018':'#11321f'; const bd=al[2]==='warn'?'#ff9d5c':'#38d39f'; h+='<div style="background:'+bg+';border-left:3px solid '+bd+';padding:8px 12px;border-radius:6px">'+al[0]+' '+al[1]+'</div>'; }); h+='</div>'; }
+    document.getElementById('wn_out').innerHTML=h;
+  }
+};
+
 /* ===================== WOS 컨트롤러 ===================== */
-const WOS = { refresh(){ try{Income.render();}catch(e){console.log('inc',e);} try{Goals.render();}catch(e){console.log('goal',e);} try{Master.render();}catch(e){console.log('master',e);} } };
+const WOS = { refresh(){ [Income,Flow,Analytics,Goals,Notif,Master].forEach(function(m){ try{m.render();}catch(e){console.log('WOS',e);} }); } };
 
 /* ===================== 초기화(부팅) ===================== */
 document.getElementById('nav').addEventListener('click',function(e){
