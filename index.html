@@ -75,6 +75,7 @@
   <button data-tab="analytics">📊 분석</button>
   <button data-tab="goals">🎯 목표</button>
   <button data-tab="notif">🔔 알림</button>
+  <button data-tab="advisor">🤖 어드바이저</button>
   <button data-tab="master">🧭 마스터</button>
   <button data-tab="log">매매기록</button>
   <button data-tab="guide">가이드</button>
@@ -490,6 +491,15 @@
     </div>
     <div class="btnrow"><button class="ghost" onclick="Notif.saveCfg()">설정 저장</button> <button class="act" onclick="Notif.render()">🔄 알림 새로고침</button></div>
     <div id="wn_out" style="margin-top:12px"></div>
+  </div>
+</section>
+
+<section id="advisor" class="tab">
+  <div class="card">
+    <h2>🤖 어드바이저 <span class="tag">규칙 기반</span></h2>
+    <div class="note">인컴·자본흐름·분석·목표·알림 데이터를 종합해 <b>우선순위 있는 행동 제안</b>을 자동 생성합니다. LLM 없이 결정론적 규칙으로 동작하며, 투자 자문이 아닌 참고용입니다.</div>
+    <div class="btnrow"><button class="act" onclick="Advisor.render()">🔄 어드바이저 새로고침</button></div>
+    <div id="ad_out" style="margin-top:12px"></div>
   </div>
 </section>
 
@@ -1233,8 +1243,42 @@ const BuyPlan = {
   }
 };
 
+/* ===================== WOS: 규칙 기반 어드바이저 ===================== */
+const Advisor = {
+  render(){
+    const inc=Income.totals(); const tax=Income.tax()/100; const incMoNet=inc.mo*(1-tax);
+    const growth=Master.vrVal(); const a=Master.alphaVal(); const total=inc.mv+growth+a.val+a.cash; const lev=growth+a.val; const levPct=total>0?lev/total*100:0;
+    const notif=Notif.cfg(); const flow=Flow.cfg(); const recs=[];
+    if(levPct>notif.alloc) recs.push({p:'high',icon:'⚖️',t:'레버리지 비중 '+levPct.toFixed(0)+'% > 상한 '+notif.alloc+'% — 이번 배당·현금은 인컴(DTE) 재투자를 권장합니다.'});
+    else if(total>0) recs.push({p:'info',icon:'⚖️',t:'레버리지 비중 '+levPct.toFixed(0)+'% — 관리 범위입니다.'});
+    const goal=Goals.TARGETS.find(function(g){return incMoNet<g;});
+    if(goal){ const gy=inc.mv>0?inc.yr/inc.mv:0; const m0=Goals.monthsToReach(goal,inc.mv,gy,tax,true,0); const m1=Goals.monthsToReach(goal,inc.mv,gy,tax,true,100);
+      let txt='다음 목표 $'+goal.toLocaleString()+'/월 (현재 $'+R.fmt(incMoNet)+'). '+(m0!=null?('현 속도로 약 '+m0+'개월'):'적립 없이는 도달 어려움');
+      if(m1!=null&&m0!=null&&m1<m0) txt+=' · 월 +$100 적립 시 '+m1+'개월(−'+(m0-m1)+')';
+      recs.push({p:'med',icon:'🎯',t:txt}); }
+    else if(incMoNet>0) recs.push({p:'info',icon:'🎯',t:'최고 목표 $5,000/월 달성! 인출식 전환을 고려하세요.'});
+    if(inc.mv>0){ Income.load().forEach(function(r){ const w=r.px>0?(r.sh*r.px/inc.mv*100):0; const tw=r.tw||0; if(tw>0){ const diff=w-tw; if(Math.abs(diff)>=5) recs.push({p:'med',icon:'📊',t:r.sym+' 실제 '+w.toFixed(0)+'% vs 목표 '+tw+'% → 다음 매수 시 '+(diff<0?'비중↑':'비중↓')+' 조정 권장.'}); } }); }
+    try{ const ib=(JSON.parse(localStorage.getItem('isl_ib_pos_v1'))||{}).soxl20; if(ib&&ib.avg>0&&typeof MKT!=='undefined'&&MKT.soxl){ const dd=(MKT.soxl.p/ib.avg-1)*100; if(dd<=-notif.dd) recs.push({p:'high',icon:'📉',t:'SOXL 평단 대비 '+dd.toFixed(0)+'% — 무한매수법 원칙대로 분할 매수 지속(감정적 매도 주의).'}); } }catch(e){}
+    const fs=Flow.status();
+    recs.push({p:'info',icon:'🔀',t: fs.reached ? ('배당 규칙: 목표 달성 → 그로스 '+flow.g+'% · 인컴 '+flow.i+'% 분배.') : '배당 규칙: 목표 미달 → 배당·현금 전액 인컴 재투자.'});
+    const dl=Income.loadDiv(); const recent=dl.filter(function(x){return Date.now()-new Date(x.date).getTime()<=14*864e5;});
+    if(inc.mv>0 && recent.length===0) recs.push({p:'med',icon:'💵',t:'최근 14일 배당 기록이 없습니다 — 받은 배당을 기록하면 추적·세후 계산이 정확해집니다.'});
+    if(inc.mv===0 && Income.load().length>0) recs.push({p:'info',icon:'✏️',t:'인컴 종목의 현재가를 입력하면 비중·배당·분석·제안이 정확해집니다.'});
+    const order={high:0,med:1,info:2}; recs.sort(function(x,y){return order[x.p]-order[y.p];});
+    let h='<div class="kpi"><div class="box"><div class="l">총 포트폴리오</div><div class="v">$'+R.fmt(total)+'</div></div>'
+      +'<div class="box"><div class="l">월 배당(세후)</div><div class="v">$'+R.fmt(incMoNet)+'</div></div>'
+      +'<div class="box"><div class="l">레버리지</div><div class="v">'+levPct.toFixed(0)+'%</div></div>'
+      +'<div class="box"><div class="l">다음 목표</div><div class="v">'+(goal?('$'+goal.toLocaleString()):'달성')+'</div></div></div>';
+    h+='<h3 style="margin-top:14px">우선순위 제안</h3><div style="display:flex;flex-direction:column;gap:8px">';
+    recs.forEach(function(r){ const col=r.p==='high'?['#3a2018','#ff9d5c']:(r.p==='med'?['#1a2b40','#4ea1ff']:['#16241a','#38d39f']); const tag=r.p==='high'?'중요':(r.p==='med'?'권장':'참고');
+      h+='<div style="background:'+col[0]+';border-left:3px solid '+col[1]+';padding:8px 12px;border-radius:6px"><b>'+r.icon+' ['+tag+']</b> '+r.t+'</div>'; });
+    h+='</div><div class="src" style="margin-top:8px">규칙 기반 자동 제안입니다(투자 자문 아님). 최종 판단·주문은 본인이 하세요.</div>';
+    document.getElementById('ad_out').innerHTML=h;
+  }
+};
+
 /* ===================== WOS 컨트롤러 ===================== */
-const WOS = { refresh(){ [Income,Flow,Analytics,Goals,Notif,Master].forEach(function(m){ try{m.render();}catch(e){console.log('WOS',e);} }); } };
+const WOS = { refresh(){ [Income,Flow,Analytics,Goals,Notif,Advisor,Master].forEach(function(m){ try{m.render();}catch(e){console.log('WOS',e);} }); } };
 
 /* ===================== 초기화(부팅) ===================== */
 document.getElementById('nav').addEventListener('click',function(e){
