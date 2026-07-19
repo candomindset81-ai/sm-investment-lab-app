@@ -1038,7 +1038,7 @@ const Income = {
   loadDiv(){ try{return JSON.parse(localStorage.getItem(this.DKEY))||[]}catch(e){return[]} },
   saveDiv(a){ localStorage.setItem(this.DKEY,JSON.stringify(a)); },
   tax(){ const t=parseFloat(localStorage.getItem(this.TKEY)); return isNaN(t)?15:t; },
-  seedDefaults(){ if(localStorage.getItem('wos_income_seed'))return; if(this.load().length===0){ this.save([{sym:'QDTE',sh:0,avg:0,px:0,dist:0,tw:45},{sym:'XDTE',sh:0,avg:0,px:0,dist:0,tw:35},{sym:'RDTE',sh:0,avg:0,px:0,dist:0,tw:20}]); } localStorage.setItem('wos_income_seed','1'); },
+  seedDefaults(){ if(localStorage.getItem('wos_income_seed2'))return; if(this.load().length===0){ this.save([{sym:'QDTE',sh:0,avg:0,px:0,dist:0,tw:50},{sym:'XDTE',sh:0,avg:0,px:0,dist:0,tw:30},{sym:'RDTE',sh:0,avg:0,px:0,dist:0,tw:20}]); } localStorage.setItem('wos_income_seed2','1'); },
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
   totals(){ let mv=0,cost=0,wk=0; this.load().forEach(r=>{ mv+=r.sh*r.px; cost+=r.sh*r.avg; wk+=r.sh*r.dist; }); return {mv:mv,cost:cost,wk:wk,yr:wk*52,mo:wk*52/12}; },
   add(){ const sym=R.s('wi_sym').trim().toUpperCase(); if(!sym){alert('종목을 입력하세요');return;}
