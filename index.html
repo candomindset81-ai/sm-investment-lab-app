@@ -406,9 +406,20 @@
       <label class="f">평균단가($)<input id="wi_avg" type="number" step="0.01" value=""></label>
       <label class="f">현재가($)<input id="wi_px" type="number" step="0.01" value=""></label>
       <label class="f">주당 주간배당($)<input id="wi_dist" type="number" step="0.0001" value=""></label>
+      <label class="f">목표비중(%)<input id="wi_tw" type="number" step="1" value=""></label>
     </div>
     <div class="btnrow"><button class="act" onclick="Income.add()">➕ 추가/갱신</button></div>
     <div id="wi_table" style="margin-top:12px"></div>
+  </div>
+  <div class="card">
+    <h3>🛒 매수 배분 계산기</h3>
+    <div class="note">투자할 금액을 넣으면 <b>목표 비중</b>에 맞춰 종목별 <b>매수 주수</b>를 계산합니다. (① 에 종목·현재가·목표비중을 먼저 입력. 목표비중 미설정 시 동일 비중으로 배분)</div>
+    <div class="grid yellow">
+      <label class="f">투자 금액($)<input id="bp_amt" type="number" step="1" value=""></label>
+      <label class="f">비중 방식<select id="bp_mode"><option value="equal">동일 비중 (기본)</option><option value="target">목표 비중</option><option value="current">현재 비중</option></select></label>
+    </div>
+    <div class="btnrow"><button class="act" onclick="BuyPlan.calc()">매수 주수 계산</button></div>
+    <div id="bp_out" style="margin-top:12px"></div>
   </div>
   <div class="card">
     <h3>② 배당 수령 기록</h3>
@@ -1030,10 +1041,10 @@ const Income = {
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
   totals(){ let mv=0,cost=0,wk=0; this.load().forEach(r=>{ mv+=r.sh*r.px; cost+=r.sh*r.avg; wk+=r.sh*r.dist; }); return {mv:mv,cost:cost,wk:wk,yr:wk*52,mo:wk*52/12}; },
   add(){ const sym=R.s('wi_sym').trim().toUpperCase(); if(!sym){alert('종목을 입력하세요');return;}
-    const row={sym:sym, sh:R.n('wi_sh')||0, avg:R.n('wi_avg')||0, px:R.n('wi_px')||0, dist:R.n('wi_dist')||0};
+    const row={sym:sym, sh:R.n('wi_sh')||0, avg:R.n('wi_avg')||0, px:R.n('wi_px')||0, dist:R.n('wi_dist')||0, tw:R.n('wi_tw')||0};
     const a=this.load(); const i=a.findIndex(x=>x.sym===sym); if(i>=0)a[i]=row; else a.push(row); this.save(a);
-    R.set('wi_sym','');R.set('wi_sh','');R.set('wi_avg','');R.set('wi_px','');R.set('wi_dist',''); WOS.refresh(); },
-  edit(sym){ const r=this.load().find(x=>x.sym===sym); if(!r)return; R.set('wi_sym',r.sym);R.set('wi_sh',r.sh);R.set('wi_avg',r.avg);R.set('wi_px',r.px);R.set('wi_dist',r.dist); },
+    R.set('wi_sym','');R.set('wi_sh','');R.set('wi_avg','');R.set('wi_px','');R.set('wi_dist','');R.set('wi_tw',''); WOS.refresh(); },
+  edit(sym){ const r=this.load().find(x=>x.sym===sym); if(!r)return; R.set('wi_sym',r.sym);R.set('wi_sh',r.sh);R.set('wi_avg',r.avg);R.set('wi_px',r.px);R.set('wi_dist',r.dist);R.set('wi_tw',r.tw||''); },
   del(sym){ this.save(this.load().filter(x=>x.sym!==sym)); WOS.refresh(); },
   addDiv(){ const d=R.s('wd_date')||today(); const sym=R.s('wd_sym').trim().toUpperCase(); const amt=R.n('wd_amt'); if(!sym||isNaN(amt)){alert('종목·금액을 입력하세요');return;}
     const a=this.loadDiv(); a.push({date:d,sym:sym,amt:amt}); this.saveDiv(a); R.set('wd_sym','');R.set('wd_amt',''); WOS.refresh(); },
@@ -1043,10 +1054,10 @@ const Income = {
     const a=this.load(); const t=this.totals(); const taxR=this.tax()/100;
     if(a.length===0){ document.getElementById('wi_table').innerHTML='<div class="muted small">위에서 보유 종목을 추가하세요 (예: QDTE · 100주 · 평단 $45 · 현재가 $46 · 주당 주간배당 $0.25).</div>'; }
     else {
-      let h='<table><thead><tr><th>종목</th><th>수량</th><th>평단</th><th>현재가</th><th>평가금</th><th>비중</th><th>주배당</th><th>월배당</th><th>연배당</th><th>YoC</th><th></th></tr></thead><tbody>';
+      let h='<table><thead><tr><th>종목</th><th>수량</th><th>평단</th><th>현재가</th><th>평가금</th><th>비중</th><th>주배당</th><th>월배당</th><th>연배당</th><th>YoC</th><th>목표%</th><th></th></tr></thead><tbody>';
       a.forEach(r=>{ const mv=r.sh*r.px, cost=r.sh*r.avg, wk=r.sh*r.dist, yr=wk*52, mo=yr/12, w=t.mv>0?mv/t.mv:0, yoc=cost>0?yr/cost:0;
-        h+='<tr><td><b>'+r.sym+'</b></td><td>'+r.sh+'</td><td>$'+R.fmt(r.avg)+'</td><td>$'+R.fmt(r.px)+'</td><td>$'+R.fmt(mv)+'</td><td>'+R.pct(w)+'</td><td>$'+R.fmt(wk)+'</td><td>$'+R.fmt(mo)+'</td><td>$'+R.fmt(yr)+'</td><td>'+R.pct(yoc)+'</td><td><button class="ghost" style="padding:2px 8px" onclick="Income.edit(\''+r.sym+'\')">수정</button> <button class="danger" style="padding:2px 8px" onclick="Income.del(\''+r.sym+'\')">×</button></td></tr>'; });
-      h+='</tbody><tfoot><tr style="font-weight:700"><td>합계</td><td></td><td></td><td></td><td>$'+R.fmt(t.mv)+'</td><td>100%</td><td>$'+R.fmt(t.wk)+'</td><td>$'+R.fmt(t.mo)+'</td><td>$'+R.fmt(t.yr)+'</td><td></td><td></td></tr></tfoot></table>';
+        h+='<tr><td><b>'+r.sym+'</b></td><td>'+r.sh+'</td><td>$'+R.fmt(r.avg)+'</td><td>$'+R.fmt(r.px)+'</td><td>$'+R.fmt(mv)+'</td><td>'+R.pct(w)+'</td><td>$'+R.fmt(wk)+'</td><td>$'+R.fmt(mo)+'</td><td>$'+R.fmt(yr)+'</td><td>'+R.pct(yoc)+'</td><td>'+(r.tw||0)+'%</td><td><button class="ghost" style="padding:2px 8px" onclick="Income.edit(\''+r.sym+'\')">수정</button> <button class="danger" style="padding:2px 8px" onclick="Income.del(\''+r.sym+'\')">×</button></td></tr>'; });
+      h+='</tbody><tfoot><tr style="font-weight:700"><td>합계</td><td></td><td></td><td></td><td>$'+R.fmt(t.mv)+'</td><td>100%</td><td>$'+R.fmt(t.wk)+'</td><td>$'+R.fmt(t.mo)+'</td><td>$'+R.fmt(t.yr)+'</td><td></td><td></td><td></td></tr></tfoot></table>';
       h+='<div class="kpi" style="margin-top:12px">'
         +'<div class="box"><div class="l">월 배당(세전)</div><div class="v">$'+R.fmt(t.mo)+'</div></div>'
         +'<div class="box"><div class="l">월 배당(세후 '+this.tax()+'%)</div><div class="v">$'+R.fmt(t.mo*(1-taxR))+'</div></div>'
@@ -1197,6 +1208,27 @@ const Notif = {
     let h; if(alerts.length===0){ h='<div class="muted small">현재 활성 알림이 없습니다. ✅</div>'; }
     else { h='<div style="display:flex;flex-direction:column;gap:8px">'; alerts.forEach(al=>{ const bg=al[2]==='warn'?'#3a2018':'#11321f'; const bd=al[2]==='warn'?'#ff9d5c':'#38d39f'; h+='<div style="background:'+bg+';border-left:3px solid '+bd+';padding:8px 12px;border-radius:6px">'+al[0]+' '+al[1]+'</div>'; }); h+='</div>'; }
     document.getElementById('wn_out').innerHTML=h;
+  }
+};
+
+/* ===================== WOS: 매수 배분 계산기 ===================== */
+const BuyPlan = {
+  calc(){ const amt=R.n('bp_amt'); const out=document.getElementById('bp_out'); const mode=(document.getElementById('bp_mode')||{}).value||'equal';
+    if(isNaN(amt)||amt<=0){ alert('투자 금액을 입력하세요'); return; }
+    const a=Income.load(); if(a.length===0){ if(out)out.innerHTML='<div class="muted small">먼저 ① 보유 입력에서 종목·현재가를 추가하세요 (예: QDTE·XDTE·RDTE).</div>'; return; }
+    let weights=a.map(function(r){ if(mode==='equal')return 1; if(mode==='current')return r.sh*r.px; return (r.tw||0); });
+    let sum=weights.reduce(function(s,x){return s+x;},0);
+    let note=(mode==='equal'?'동일 비중':(mode==='current'?'현재 비중':'목표 비중'));
+    if(sum<=0){ weights=a.map(function(){return 1;}); sum=a.length; note+=' (설정값 없어 동일 비중으로 배분)'; }
+    weights=weights.map(function(w){return w/sum;});
+    let rows=[], spent=0;
+    a.forEach(function(r,i){ const alloc=amt*weights[i]; const sh=r.px>0?Math.floor(alloc/r.px):0; const cost=sh*r.px; spent+=cost; rows.push({sym:r.sym,w:weights[i],alloc:alloc,px:r.px,sh:sh,cost:cost}); });
+    let h='<div class="note" style="margin-bottom:8px">방식: <b>'+note+'</b> · 투자 $'+R.fmt(amt)+'</div>';
+    h+='<table><thead><tr><th>종목</th><th>비중</th><th>배분액</th><th>현재가</th><th>매수 주수</th><th>실제 매수금</th></tr></thead><tbody>';
+    rows.forEach(function(r){ h+='<tr><td><b>'+r.sym+'</b></td><td>'+R.pct(r.w)+'</td><td>$'+R.fmt(r.alloc)+'</td><td>$'+R.fmt(r.px)+'</td><td><b>'+r.sh+'주</b></td><td>$'+R.fmt(r.cost)+'</td></tr>'; });
+    h+='</tbody></table><div class="kpi" style="margin-top:10px"><div class="box"><div class="l">실제 매수금</div><div class="v">$'+R.fmt(spent)+'</div></div><div class="box"><div class="l">남는 현금</div><div class="v">$'+R.fmt(amt-spent)+'</div></div></div>';
+    h+='<div class="src" style="margin-top:6px">주수 = 배분액 ÷ 현재가 <b>내림</b>. 이 수량대로 Fi PRO에서 매수하세요. 매수 후 ①에 반영하면 다른 탭도 자동 갱신됩니다.</div>';
+    if(out)out.innerHTML=h;
   }
 };
 
