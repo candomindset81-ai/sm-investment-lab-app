@@ -416,7 +416,7 @@
     <div class="note">투자할 금액을 넣으면 <b>목표 비중</b>에 맞춰 종목별 <b>매수 주수</b>를 계산합니다. (① 에 종목·현재가·목표비중을 먼저 입력. 목표비중 미설정 시 동일 비중으로 배분)</div>
     <div class="grid yellow">
       <label class="f">투자 금액($)<input id="bp_amt" type="number" step="1" value=""></label>
-      <label class="f">비중 방식<select id="bp_mode"><option value="equal">동일 비중 (기본)</option><option value="target">목표 비중</option><option value="current">현재 비중</option></select></label>
+      <label class="f">비중 방식<select id="bp_mode"><option value="target">목표 비중 (기본)</option><option value="equal">동일 비중</option><option value="current">현재 비중</option></select></label>
     </div>
     <div class="btnrow"><button class="act" onclick="BuyPlan.calc()">매수 주수 계산</button></div>
     <div id="bp_out" style="margin-top:12px"></div>
@@ -1038,6 +1038,7 @@ const Income = {
   loadDiv(){ try{return JSON.parse(localStorage.getItem(this.DKEY))||[]}catch(e){return[]} },
   saveDiv(a){ localStorage.setItem(this.DKEY,JSON.stringify(a)); },
   tax(){ const t=parseFloat(localStorage.getItem(this.TKEY)); return isNaN(t)?15:t; },
+  seedDefaults(){ if(localStorage.getItem('wos_income_seed'))return; if(this.load().length===0){ this.save([{sym:'QDTE',sh:0,avg:0,px:0,dist:0,tw:45},{sym:'XDTE',sh:0,avg:0,px:0,dist:0,tw:35},{sym:'RDTE',sh:0,avg:0,px:0,dist:0,tw:20}]); } localStorage.setItem('wos_income_seed','1'); },
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
   totals(){ let mv=0,cost=0,wk=0; this.load().forEach(r=>{ mv+=r.sh*r.px; cost+=r.sh*r.avg; wk+=r.sh*r.dist; }); return {mv:mv,cost:cost,wk:wk,yr:wk*52,mo:wk*52/12}; },
   add(){ const sym=R.s('wi_sym').trim().toUpperCase(); if(!sym){alert('종목을 입력하세요');return;}
@@ -1260,7 +1261,7 @@ document.getElementById('indiAsOf2').textContent=asOf;
 if(!localStorage.getItem('isl_seeded_v1')) localStorage.setItem('isl_seeded_v1','1');
 
 Hist.snapshot();
-IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); WOS.refresh();
+IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh();
 </script>
 </body>
 </html>
