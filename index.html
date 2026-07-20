@@ -904,9 +904,47 @@ const CS = {
           }
         }
       }catch(e){}
+      // ── 알파(무한매수법) 상태를 앱 탭에 반영 ──
+      try{
+        if(s.ib && s.ib.sym){
+          const key = s.ib.sym + (s.ib.N||20);
+          if(IB.presets[key]){
+            const all = IB.loadPos(); const cur = all[key]||{};
+            if(+cur.T!==+s.ib.T || +cur.cash!==+s.ib.cash || +cur.sh!==+s.ib.sh || +cur.avg!==+s.ib.avg){
+              all[key] = {T:+s.ib.T, cash:+s.ib.cash, sh:+s.ib.sh, avg:+s.ib.avg};
+              localStorage.setItem(IB.POSKEY, JSON.stringify(all));
+              synced++;
+              changes.push('⚡ '+s.ib.sym.toUpperCase()+' 무한매수법: T='+s.ib.T+' · '+s.ib.sh+'주 · 평단 $'+(+s.ib.avg).toFixed(4)+' · 현금 $'+R.fmt(s.ib.cash));
+            }
+            const sel=document.getElementById('ib_preset');
+            if(sel && sel.value!=='custom' && sel.value!==key){ sel.value=key; }
+            try{ IB.applyPreset(); }catch(e){}
+          }
+        }
+      }catch(e){}
+      // ── 성장(VR) 상태를 앱 탭에 반영 ──
+      try{
+        if(s.vr && s.vr.length){
+          const st = VR.store(); let vrChanged=false;
+          s.vr.forEach(function(c){
+            const cur = st[c.sym]||{};
+            if(+cur.pv!==+c.V || +cur.pp!==+c.poolAvail || +cur.ps!==+c.ps){
+              st[c.sym] = {pv:+c.V, pp:+c.poolAvail, ps:+c.ps,
+                           type:cur.type||'적립식VR', mult:cur.mult||1,
+                           dep:(c.dep!=null?+c.dep:(cur.dep!=null?cur.dep:0))};
+              vrChanged=true; synced++;
+              changes.push('📈 VR '+c.sym.toUpperCase()+': '+c.ps+'주 · V $'+R.fmt(c.V)+' · Pool $'+R.fmt(c.poolAvail));
+            }
+          });
+          if(vrChanged){
+            localStorage.setItem(VR.STKEY, JSON.stringify(st));
+            try{ VR.loadSym(); }catch(e){}
+          }
+        }
+      }catch(e){}
       let h='';
       if(synced>0){
-        h+='<div class="note" style="margin-bottom:8px">📥 <b>클라우드 기준으로 인컴 '+synced+'종목 갱신</b><br><span class="small">'+changes.join('<br>')+'</span></div>';
+        h+='<div class="note" style="margin-bottom:8px">📥 <b>클라우드 기준으로 '+synced+'건 갱신</b><br><span class="small">'+changes.join('<br>')+'</span></div>';
       }
       h+='<table><tbody>';
       if(s.ib) h+='<tr><td>⚡ '+s.ib.label+'</td><td>T='+s.ib.T+' · '+s.ib.sh+'주 · 평단 $'+R.fmt(s.ib.avg)+' · 현금 $'+R.fmt(s.ib.cash)+'</td></tr>';
