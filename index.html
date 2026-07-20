@@ -430,7 +430,12 @@
       <label class="f">종목<input id="wd_sym" type="text" placeholder="QDTE" value=""></label>
       <label class="f">금액(세전 $)<input id="wd_amt" type="number" step="0.01" value=""></label>
     </div>
-    <div class="btnrow"><button class="ghost" onclick="Income.addDiv()">배당 기록 추가</button></div>
+    <div class="btnrow">
+      <button class="ghost" onclick="Income.addDiv()">배당 기록 추가</button>
+      <button class="ghost" onclick="Income.fillDist()">📥 최신 분배금 채우기</button>
+      <button class="act" onclick="Income.logWeek()">🧾 이번 주 배당 일괄 기록</button>
+    </div>
+    <div id="wd_sched" class="src" style="margin-top:8px"></div>
     <div id="wd_out" style="margin-top:10px"></div>
   </div>
 </section>
@@ -1050,6 +1055,14 @@ function resetAll(){
   location.reload();
 }
 
+/* 주간 분배금 참고표 — 배당락은 매주 목요일, 지급 금요일 (Roundhill 주간분배)
+   ※ 주당 금액은 매주 변동합니다. 실제 수령액으로 덮어쓰는 것을 권장합니다. */
+const DIST = {
+  asOf:'2026-07-19', nextEx:'2026-07-23', payDay:'금요일', exDay:'목요일',
+  perShare:{ QDTE:0.2089, XDTE:0.0900, RDTE:0.1656 },
+  src:{ QDTE:'차기 선언액(7/23 배당락)', XDTE:'최근 실지급(7/16 배당락)', RDTE:'분배율 기반 추정' }
+};
+
 /* ===================== WOS: 인컴 엔진 ===================== */
 const Income = {
   KEY:'wos_income_v1', DKEY:'wos_divlog_v1', TKEY:'wos_tax_v1',
@@ -1070,6 +1083,22 @@ const Income = {
   addDiv(){ const d=R.s('wd_date')||today(); const sym=R.s('wd_sym').trim().toUpperCase(); const amt=R.n('wd_amt'); if(!sym||isNaN(amt)){alert('종목·금액을 입력하세요');return;}
     const a=this.loadDiv(); a.push({date:d,sym:sym,amt:amt}); this.saveDiv(a); R.set('wd_sym','');R.set('wd_amt',''); WOS.refresh(); },
   delDiv(i){ const a=this.loadDiv(); a.splice(i,1); this.saveDiv(a); WOS.refresh(); },
+  fillDist(){ const a=this.load(); let n=0;
+    a.forEach(function(r){ const d=DIST.perShare[r.sym]; if(d){ r.dist=d; n++; } });
+    this.save(a); WOS.refresh();
+    alert(n+'개 종목의 주당 주간배당을 채웠습니다 (기준일 '+DIST.asOf+').\n※ 주당 금액은 매주 변동하니 실제 수령액으로 조정하세요.');
+  },
+  logWeek(){ const a=this.load().filter(function(r){return (r.sh||0)>0 && (r.dist||0)>0;});
+    if(a.length===0){ alert('보유수량과 주당 주간배당이 입력된 종목이 없습니다.'); return; }
+    const d=prompt('배당 지급일(YYYY-MM-DD)을 입력하세요', today());
+    if(!d) return;
+    let tot=0, lines=[];
+    a.forEach(function(r){ const amt=Math.round(r.sh*r.dist*100)/100; tot+=amt; lines.push(r.sym+' '+r.sh+'주 × $'+r.dist+' = $'+amt.toFixed(2)); });
+    if(!confirm('아래 내용으로 배당을 기록할까요?\n\n'+lines.join('\n')+'\n\n합계 $'+tot.toFixed(2)+'\n\n※ 예상액입니다. 실제 수령액과 다르면 개별 수정하세요.')) return;
+    const log=this.loadDiv();
+    a.forEach(function(r){ log.push({date:d, sym:r.sym, amt:Math.round(r.sh*r.dist*100)/100}); });
+    this.saveDiv(log); WOS.refresh();
+  },
   render(){
     R.set('wi_tax', this.tax());
     const a=this.load(); const t=this.totals(); const taxR=this.tax()/100;
@@ -1096,6 +1125,11 @@ const Income = {
       idx.forEach(i=>{ const x=arr[i]; dh+='<tr><td>'+x.date+'</td><td>'+x.sym+'</td><td>$'+R.fmt(x.amt)+'</td><td>$'+R.fmt(x.amt*(1-taxR))+'</td><td><button class="danger" style="padding:2px 8px" onclick="Income.delDiv('+i+')">×</button></td></tr>'; });
       dh+='</tbody></table>'; }
     document.getElementById('wd_out').innerHTML=dh;
+    const sc=document.getElementById('wd_sched');
+    if(sc){ let s='📅 배당락 <b>매주 '+DIST.exDay+'</b> · 지급 <b>'+DIST.payDay+'</b> · 차기 배당락 <b>'+DIST.nextEx+'</b> (기준 '+DIST.asOf+')<br>참고 주당 분배금: ';
+      s+=Object.keys(DIST.perShare).map(function(k){return k+' $'+DIST.perShare[k]+' <span class="muted">('+DIST.src[k]+')</span>';}).join(' · ');
+      s+='<br>※ 주당 금액은 매주 크게 변동합니다. 실제 수령액으로 수정해 쓰세요.';
+      sc.innerHTML=s; }
   }
 };
 
