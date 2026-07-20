@@ -466,6 +466,16 @@
     <div class="btnrow"><button class="act" onclick="Flow.calc()">배분 계산</button></div>
     <div id="wf_out" style="margin-top:12px"></div>
   </div>
+  <div class="card">
+    <h3>⚡ 알파(SOXL) 수익 → 인컴 배분</h3>
+    <div class="note">무한매수법으로 <b>실현한 수익</b>을 세후로 환산해 인컴 엔진(QDTE·XDTE·RDTE)에 <b>목표 비중대로</b> 배분합니다. 사이클 종료·부분 익절 때마다 사용하세요.</div>
+    <div class="grid yellow">
+      <label class="f">실현 수익(세전 $)<input id="af_gross" type="number" step="0.01" value=""></label>
+      <label class="f">양도세율(%)<input id="af_tax" type="number" step="0.1" value="22"></label>
+    </div>
+    <div class="btnrow"><button class="act" onclick="AlphaFlow.calc()">인컴 배분 계산</button></div>
+    <div id="af_out" style="margin-top:12px"></div>
+  </div>
 </section>
 
 <section id="analytics" class="tab">
@@ -1164,7 +1174,7 @@ const Flow = {
     const h='<div class="kpi"><div class="box"><div class="l">현재 월배당(세후)</div><div class="v">$'+R.fmt(s.mo)+'</div></div>'
       +'<div class="box"><div class="l">월 목표</div><div class="v">$'+R.fmt(s.c.target)+'</div></div>'
       +'<div class="box"><div class="l">상태</div><div class="v">'+badge+'</div></div></div>'
-      +'<div class="src" style="margin-top:8px">규칙: 목표 미달 → <b>전액 인컴 재투자</b> · 목표 달성 → <b>그로스 '+s.c.g+'% · 인컴 '+s.c.i+'%</b></div>';
+      +'<div class="src" style="margin-top:8px">규칙 ① 배당: 목표 미달 → <b>전액 인컴 재투자</b> · 목표 달성 → <b>그로스 '+s.c.g+'% · 인컴 '+s.c.i+'%</b><br>규칙 ② 알파(SOXL) 실현수익: <b>세후 전액 → 인컴 엔진(목표 비중)</b></div>';
     const out=document.getElementById('wf_out'); if(out)out.innerHTML=h;
   },
   calc(){ const s=this.status(); const amt=R.n('wf_amt'); const out=document.getElementById('wf_out');
@@ -1219,6 +1229,36 @@ const Notif = {
     let h; if(alerts.length===0){ h='<div class="muted small">현재 활성 알림이 없습니다. ✅</div>'; }
     else { h='<div style="display:flex;flex-direction:column;gap:8px">'; alerts.forEach(al=>{ const bg=al[2]==='warn'?'#3a2018':'#11321f'; const bd=al[2]==='warn'?'#ff9d5c':'#38d39f'; h+='<div style="background:'+bg+';border-left:3px solid '+bd+';padding:8px 12px;border-radius:6px">'+al[0]+' '+al[1]+'</div>'; }); h+='</div>'; }
     document.getElementById('wn_out').innerHTML=h;
+  }
+};
+
+/* ===================== WOS: 알파 수익 → 인컴 배분 ===================== */
+const AlphaFlow = {
+  calc(){
+    const gross=R.n('af_gross'); const taxp=R.n('af_tax'); const out=document.getElementById('af_out');
+    if(isNaN(gross)||gross<=0){ alert('실현 수익(세전)을 입력하세요'); return; }
+    const tax=isNaN(taxp)?0:taxp;
+    const net=gross*(1-tax/100);
+    const a=Income.load();
+    if(a.length===0){ if(out)out.innerHTML='<div class="muted small">인컴 탭에서 종목·현재가를 먼저 입력하세요.</div>'; return; }
+    let ws=a.map(function(r){return r.tw||0;});
+    let sum=ws.reduce(function(s,x){return s+x;},0);
+    let note='목표 비중';
+    if(sum<=0){ ws=a.map(function(){return 1;}); sum=a.length; note='동일 비중(목표 미설정)'; }
+    ws=ws.map(function(w){return w/sum;});
+    let rows=[], spent=0;
+    a.forEach(function(r,i){ const alloc=net*ws[i]; const sh=r.px>0?Math.floor(alloc/r.px):0; const cost=sh*r.px; spent+=cost;
+      rows.push({sym:r.sym,w:ws[i],alloc:alloc,px:r.px,sh:sh,cost:cost}); });
+    let h='<div class="kpi"><div class="box"><div class="l">세전 수익</div><div class="v">$'+R.fmt(gross)+'</div></div>'
+      +'<div class="box"><div class="l">세금('+tax+'%)</div><div class="v">-$'+R.fmt(gross-net)+'</div></div>'
+      +'<div class="box"><div class="l">인컴 투입액(세후)</div><div class="v">$'+R.fmt(net)+'</div></div></div>';
+    h+='<div class="note" style="margin:8px 0">배분 방식: <b>'+note+'</b></div>';
+    h+='<table><thead><tr><th>종목</th><th>비중</th><th>배분액</th><th>현재가</th><th>매수 주수</th><th>실제 매수금</th></tr></thead><tbody>';
+    rows.forEach(function(r){ h+='<tr><td><b>'+r.sym+'</b></td><td>'+R.pct(r.w)+'</td><td>$'+R.fmt(r.alloc)+'</td><td>$'+R.fmt(r.px)+'</td><td><b>'+r.sh+'주</b></td><td>$'+R.fmt(r.cost)+'</td></tr>'; });
+    h+='</tbody></table><div class="kpi" style="margin-top:10px"><div class="box"><div class="l">실제 매수금</div><div class="v">$'+R.fmt(spent)+'</div></div>'
+      +'<div class="box"><div class="l">남는 현금</div><div class="v">$'+R.fmt(net-spent)+'</div></div></div>';
+    h+='<div class="src" style="margin-top:6px">규칙: 무한매수법 실현 수익은 세후 전액을 인컴 엔진에 목표 비중대로 재투입. 매수 후 인컴 탭 보유수량에 반영하세요.</div>';
+    if(out)out.innerHTML=h;
   }
 };
 
