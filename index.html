@@ -883,22 +883,44 @@ const CS = {
       if(!r.ok){ if(out)out.innerHTML='<span class="small" style="color:#ff9d9d">불러오기 실패 '+r.status+' — 토큰·권한을 확인하세요.</span>'; return; }
       const j=await r.json();
       const s=JSON.parse(decodeURIComponent(escape(atob((j.content||'').replace(/\s/g,'')))));
-      // 클라우드가 갱신한 주간 분배금을 앱 인컴에 자동 반영 (보유수량은 건드리지 않음)
-      let synced=0;
+      // 클라우드(state.json)가 단일 원본. 인컴 보유수량·평단·분배금을 앱에 자동 반영.
+      let synced=0, changes=[];
       try{
         if(s.income && s.income.holdings){
           const app=Income.load();
           s.income.holdings.forEach(function(c){
             const r=app.find(function(x){return x.sym===c.sym;});
-            if(r && c.dist && r.dist!==c.dist){ r.dist=c.dist; synced++; }
+            if(!r) return;
+            const d=[];
+            if(c.sh!=null && +r.sh!==+c.sh){ d.push(r.sh+'주 → '+c.sh+'주'); r.sh=+c.sh; }
+            if(c.avg!=null && +r.avg!==+c.avg){ d.push('평단 '+(+r.avg).toFixed(4)+' → '+(+c.avg).toFixed(4)); r.avg=+c.avg; }
+            if(c.dist!=null && +r.dist!==+c.dist){ d.push('분배금 '+(+r.dist).toFixed(4)+' → '+(+c.dist).toFixed(4)); r.dist=+c.dist; }
+            if(d.length){ synced++; changes.push(c.sym+': '+d.join(' · ')); }
           });
-          if(synced>0){ Income.save(app); }
+          if(synced>0){
+            Income.save(app);
+            try{ if(typeof Income.render==='function') Income.render(); }catch(e){}
+            try{ if(typeof WOS!=='undefined' && WOS.refresh) WOS.refresh(); }catch(e){}
+          }
         }
       }catch(e){}
-      let h='<table><tbody>';
-      if(synced>0) h='<div class="note" style="margin-bottom:8px">📥 클라우드 분배금 '+synced+'건을 인컴 탭에 자동 반영했습니다.</div>'+h;
-      if(s.ib) h+='<tr><td>🔵 '+s.ib.label+'</td><td>T='+s.ib.T+' · '+s.ib.sh+'주 · 평단 $'+R.fmt(s.ib.avg)+' · 현금 $'+R.fmt(s.ib.cash)+'</td></tr>';
+      let h='';
+      if(synced>0){
+        h+='<div class="note" style="margin-bottom:8px">📥 <b>클라우드 기준으로 인컴 '+synced+'종목 갱신</b><br><span class="small">'+changes.join('<br>')+'</span></div>';
+      }
+      h+='<table><tbody>';
+      if(s.ib) h+='<tr><td>⚡ '+s.ib.label+'</td><td>T='+s.ib.T+' · '+s.ib.sh+'주 · 평단 $'+R.fmt(s.ib.avg)+' · 현금 $'+R.fmt(s.ib.cash)+'</td></tr>';
       (s.vr||[]).forEach(function(v){ h+='<tr><td>'+(v.sym==='tqqq'?'🟢':'🟡')+' '+v.label+'</td><td>V $'+R.fmt(v.V)+' · '+v.ps+'주 · Pool $'+R.fmt(v.poolAvail)+'</td></tr>'; });
+      if(s.income && s.income.holdings){
+        let wk=0;
+        s.income.holdings.forEach(function(c){
+          wk += (+c.sh||0)*(+c.dist||0);
+          h+='<tr><td>💰 '+c.sym+'</td><td>'+(c.sh||0)+'주 · 평단 $'+(+c.avg||0).toFixed(4)+' · 주당 $'+(+c.dist||0).toFixed(4)+'</td></tr>';
+        });
+        const tax=(+s.income.tax_pct||0)/100, tgt=+s.income.target_monthly_net||700;
+        const moNet=wk*52/12*(1-tax), prog=tgt>0?(moNet/tgt*100):0;
+        h+='<tr><td>🎯 인컴 목표</td><td>주간 $'+R.fmt(wk)+' · 월 세후 $'+R.fmt(moNet)+' · <b>'+prog.toFixed(1)+'%</b> / $'+R.fmt(tgt)+'</td></tr>';
+      }
       h+='</tbody></table><div class="src">클라우드 갱신: '+(s.updated||'-')+' · 확인 '+new Date().toLocaleString()+'</div>';
       if(out)out.innerHTML=h;
     }catch(e){ if(out)out.innerHTML='<span class="small" style="color:#ff9d9d">오류: '+e.message+'</span>'; }
