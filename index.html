@@ -75,6 +75,7 @@
   <button data-tab="analytics">📊 분석</button>
   <button data-tab="goals">🎯 목표</button>
   <button data-tab="notif">🔔 알림</button>
+  <button data-tab="risk">🛡️ 리스크</button>
   <button data-tab="advisor">🤖 어드바이저</button>
   <button data-tab="master">🧭 마스터</button>
   <button data-tab="log">매매기록</button>
@@ -514,6 +515,15 @@
   </div>
 </section>
 
+<section id="risk" class="tab">
+  <div class="card">
+    <h2>🛡️ 리스크 대시보드 <span class="tag">QDTE·XDTE·RDTE</span></h2>
+    <div class="note">시장 리스크·배당 지속성을 매일 자동 평가해 <b>신호등·추천</b>으로 보여줍니다. 클라우드(state.json)의 <b>risk</b> 섹션을 읽어 표시하며, 기존 매매 로직과 완전히 분리된 독립 참고용입니다. 실제 리스크 점수는 매일 필리핀 새벽 서버가 계산합니다.</div>
+    <div class="btnrow"><button class="act" onclick="CS.fetch()">☁️ 클라우드에서 새로고침</button></div>
+    <div id="risk_out" style="margin-top:12px"><span class="small muted">클라우드 리스크 데이터를 불러오는 중… (매매기록 탭에서 토큰이 저장돼 있어야 합니다)</span></div>
+  </div>
+</section>
+
 <section id="advisor" class="tab">
   <div class="card">
     <h2>🤖 어드바이저 <span class="tag">규칙 기반</span></h2>
@@ -941,6 +951,10 @@ const CS = {
             try{ VR.loadSym(); }catch(e){}
           }
         }
+      }catch(e){}
+      // ── 🛡️ 리스크 섹션을 앱에 저장하고 리스크 탭 렌더(독립) ──
+      try{
+        if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); }
       }catch(e){}
       let h='';
       if(synced>0){
@@ -1472,7 +1486,67 @@ const Advisor = {
 };
 
 /* ===================== WOS 컨트롤러 ===================== */
-const WOS = { refresh(){ [Income,Flow,Analytics,Goals,Notif,Advisor,Master].forEach(function(m){ try{m.render();}catch(e){console.log('WOS',e);} }); } };
+/* ===================== 🛡️ 리스크 대시보드 (독립 확장 모듈) =====================
+   기존 엔진 무수정. 클라우드 state.json 의 risk 섹션(서버가 매일 계산)을 읽어 표시만 함.
+   CS.fetch()가 localStorage('isl_risk_v1')에 최신 risk 를 저장해 두고, 여기서 렌더. */
+const Risk = {
+  KEY:'isl_risk_v1',
+  load(){ try{return JSON.parse(localStorage.getItem(this.KEY))||null}catch(e){return null} },
+  save(r){ try{localStorage.setItem(this.KEY, JSON.stringify(r));}catch(e){} },
+  color(score){ return score>=81?'#ff6b6b':score>=61?'#ff9d5c':score>=41?'#ffd24a':'#5ee2a0'; },
+  barSVG(hist){
+    if(!hist||!hist.length) return '';
+    const w=Math.max(260, hist.length*22), h=90, pad=6;
+    const max=100, bw=(w-pad*2)/hist.length;
+    let bars='';
+    hist.forEach((d,i)=>{ const bh=(d.score/max)*(h-24); const x=pad+i*bw; const y=h-16-bh;
+      bars+='<rect x="'+(x+2)+'" y="'+y+'" width="'+(bw-4)+'" height="'+bh+'" rx="2" fill="'+this.color(d.score)+'"><title>'+d.date+' · '+d.score+'</title></rect>'; });
+    const gl=[20,40,60,80].map(v=>{ const y=h-16-(v/max)*(h-24); return '<line x1="'+pad+'" y1="'+y+'" x2="'+(w-pad)+'" y2="'+y+'" stroke="#2a3a63" stroke-width="1" stroke-dasharray="3,3"/>'; }).join('');
+    return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;max-width:'+w+'px;height:auto">'+gl+bars+'</svg>';
+  },
+  render(){
+    const el=document.getElementById('risk_out'); if(!el)return;
+    const r=this.load();
+    if(!r){ el.innerHTML='<span class="small muted">아직 리스크 데이터가 없습니다. 매매기록 탭에서 클라우드 토큰을 저장한 뒤 "☁️ 클라우드에서 새로고침"을 누르세요. 서버는 매일 새벽(필리핀) 자동 계산합니다.</span>'; return; }
+    const col=this.color(r.score); const fill=Math.round((r.score||0)/10);
+    let h='';
+    // 신호등 + 종합점수
+    h+='<div class="card" style="border-color:'+col+'">';
+    h+='<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">';
+    h+='<div style="font-size:40px">'+(r.emoji||'🛡️')+'</div>';
+    h+='<div><div style="font-size:26px;font-weight:800;color:'+col+'">'+r.score+'<span style="font-size:14px;color:#9fb3d9">/100</span></div>';
+    h+='<div style="font-weight:700">'+r.level+'</div></div>';
+    h+='<div style="flex:1;min-width:180px"><div style="font-size:13px;color:#9fb3d9">추천 행동</div><div style="font-size:16px;font-weight:700">'+(r.emoji||'')+' '+(r.rec_text||'-')+'</div></div>';
+    h+='</div>';
+    h+='<div style="margin-top:8px;font-family:monospace;letter-spacing:2px;color:'+col+'">'+('█'.repeat(fill)+'░'.repeat(10-fill))+'</div>';
+    h+='</div>';
+    // 지표별
+    if(r.factors&&r.factors.length){
+      h+='<div class="card"><h3 style="margin:0 0 8px">📊 지표별 점수</h3><table><tbody>';
+      r.factors.forEach(f=>{ const c=this.color(f.score); const mark=f.score>=70?'🔴':(f.score>=45?'🟡':'🟢');
+        h+='<tr><td style="white-space:nowrap">'+mark+' '+f.name+' <span class="small muted">(가중 '+f.weight+')</span></td>'
+          +'<td style="width:90px;text-align:right;color:'+c+';font-weight:700">'+f.score+'</td>'
+          +'<td class="small muted">'+f.tag+'</td></tr>'; });
+      h+='</tbody></table></div>';
+    }
+    // 추세 차트
+    if(r.hist&&r.hist.length>1){
+      h+='<div class="card"><h3 style="margin:0 0 6px">📈 리스크 추이 ('+r.hist.length+'일)</h3>'+this.barSVG(r.hist)+'</div>';
+    }
+    // 시장 스냅샷
+    if(r.market){ const m=r.market;
+      h+='<div class="card"><h3 style="margin:0 0 6px">🌐 시장 스냅샷</h3><div class="small muted">'
+        +'VIX '+(m.vix!=null?(+m.vix).toFixed(1):'-')
+        +' · 10Y '+(m.us10y!=null?(+m.us10y).toFixed(2)+'%':'-')
+        +' · 나스닥 200DMA '+(m.nasdaq_gap!=null?(m.nasdaq_gap>0?'+':'')+m.nasdaq_gap+'%':'-')
+        +' · 변동성 '+(m.volatility!=null?m.volatility+'%/일':'-')
+        +'</div></div>'; }
+    h+='<div class="src">클라우드 리스크 갱신: '+(r.updated||'-')+' · 서버 매일 자동 계산 · 참고용(투자 자문 아님)</div>';
+    el.innerHTML=h;
+  }
+};
+
+const WOS = { refresh(){ [Income,Flow,Analytics,Goals,Notif,Advisor,Master,Risk].forEach(function(m){ try{m.render();}catch(e){console.log('WOS',e);} }); } };
 
 /* ===================== 초기화(부팅) ===================== */
 document.getElementById('nav').addEventListener('click',function(e){
@@ -1499,7 +1573,7 @@ document.getElementById('indiAsOf2').textContent=asOf;
 if(!localStorage.getItem('isl_seeded_v1')) localStorage.setItem('isl_seeded_v1','1');
 
 Hist.snapshot();
-IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh();
+IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render();
 </script>
 </body>
 </html>
