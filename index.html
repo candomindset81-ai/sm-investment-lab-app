@@ -1535,13 +1535,17 @@ const Risk = {
       h+='<div class="small muted" style="margin-bottom:8px">최근 '+(r.nav_window_months||6)+'개월 · <b>총수익</b>=기준가변화+받은배당(실제 벌었나) · <b>NAV</b>=기준가 추세(원금 잠식 여부). 총수익이 (+)여도 NAV가 크게 (−)면 배당으로 원금을 돌려받는 중.</div>';
       h+='<table><tbody>';
       r.nav.forEach(function(n){
-        var at=+n.ann_total, ap=+n.ann_price;
+        var at=+n.ann_total, ap=+n.ann_price, roc=(n.roc!=null?+n.roc:null);
         var tcol = at>=0?'#5ee2a0':'#ff6b6b';
         var pcol = ap>=-5?'#5ee2a0':(ap>=-12?'#ffd24a':'#ff6b6b');
         var warn = (at>0 && ap<=-12) ? ' ⚠️원금잠식' : (at<0? ' 🔴손실':'');
         h+='<tr><td style="white-space:nowrap"><b>'+n.sym+'</b>'+warn+'</td>'
           +'<td style="text-align:right;color:'+tcol+';font-weight:700">총수익 연 '+(at>0?'+':'')+at+'%</td>'
           +'<td style="text-align:right;color:'+pcol+';font-weight:700">NAV 연 '+(ap>0?'+':'')+ap+'%</td></tr>';
+        if(roc!=null){
+          var rcol = roc>=70?'#ff6b6b':(roc>=40?'#ffd24a':'#5ee2a0');
+          h+='<tr><td colspan="3" class="small" style="color:'+rcol+';padding-top:0">↳ 추정 자본환급(ROC) '+roc+'% <span class="muted">(추정 · 분배금 중 원금반환 비율)</span></td></tr>';
+        }
       });
       h+='</tbody></table></div>';
     }
