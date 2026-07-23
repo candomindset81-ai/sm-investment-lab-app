@@ -463,11 +463,9 @@
 <section id="flow" class="tab">
   <div class="card">
     <h2>🔀 자본흐름 관리 <span class="tag">Rule Engine</span></h2>
-    <div class="note">배당·현금을 규칙에 따라 배분합니다. <b>목표 미달</b>이면 전액 인컴 재투자, <b>목표 달성</b>이면 그로스·인컴으로 분배(비율 설정 가능).</div>
+    <div class="note">배당·현금을 규칙에 따라 배분합니다. 월 세후 배당이 <b>목표 미만</b>이면 전액 인컴 재투자. <b>목표 이상</b>이면 매월 <b>목표액을 VR(성장)</b>로, <b>초과분을 인컴</b>에 재투자.</div>
     <div class="grid">
-      <label class="f">월 배당 목표($)<input id="wf_target" type="number" step="10" value="500"></label>
-      <label class="f">달성 후 그로스(%)<input id="wf_g" type="number" step="1" value="70"></label>
-      <label class="f">달성 후 인컴(%)<input id="wf_i" type="number" step="1" value="30"></label>
+      <label class="f">월 배당 목표(세후 $)<input id="wf_target" type="number" step="10" value="700"></label>
     </div>
     <div class="btnrow"><button class="ghost" onclick="Flow.saveCfg()">규칙 저장</button></div>
     <h3>배분 계산</h3>
@@ -1333,22 +1331,26 @@ const Master = {
 /* ===================== WOS: 자본흐름 관리 ===================== */
 const Flow = {
   CFG:'wos_flow_v1',
-  cfg(){ try{return Object.assign({target:500,g:70,i:30},JSON.parse(localStorage.getItem(this.CFG))||{})}catch(e){return {target:500,g:70,i:30}} },
-  loadCfg(){ const c=this.cfg(); R.set('wf_target',c.target); R.set('wf_g',c.g); R.set('wf_i',c.i); },
-  saveCfg(){ localStorage.setItem(this.CFG,JSON.stringify({target:R.n('wf_target')||0,g:R.n('wf_g')||0,i:R.n('wf_i')||0})); this.render(); },
+  cfg(){ try{return Object.assign({target:700},JSON.parse(localStorage.getItem(this.CFG))||{})}catch(e){return {target:700}} },
+  loadCfg(){ const c=this.cfg(); R.set('wf_target',c.target); },
+  saveCfg(){ localStorage.setItem(this.CFG,JSON.stringify({target:R.n('wf_target')||0})); this.render(); },
   status(){ const c=this.cfg(); const tax=Income.tax()/100; const mo=Income.totals().mo*(1-tax); return {reached:mo>=c.target, mo:mo, c:c}; },
   render(){ this.loadCfg(); const s=this.status();
     const badge=s.reached?'<span class="pill sell">목표 달성</span>':'<span class="pill buy">목표 미달</span>';
+    const excess = Math.max(0, s.mo - s.c.target);
     const h='<div class="kpi"><div class="box"><div class="l">현재 월배당(세후)</div><div class="v">$'+R.fmt(s.mo)+'</div></div>'
       +'<div class="box"><div class="l">월 목표</div><div class="v">$'+R.fmt(s.c.target)+'</div></div>'
       +'<div class="box"><div class="l">상태</div><div class="v">'+badge+'</div></div></div>'
-      +'<div class="src" style="margin-top:8px">규칙 ① 배당: 목표 미달 → <b>전액 인컴 재투자</b> · 목표 달성 → <b>그로스 '+s.c.g+'% · 인컴 '+s.c.i+'%</b><br>규칙 ② 알파(SOXL) 실현수익: <b>세후 전액 → 인컴 엔진(목표 비중)</b></div>';
+      +(s.reached?'<div class="note" style="margin-top:8px">✅ 목표 달성 → 매월 <b>$'+R.fmt(s.c.target)+'은 VR(성장)</b>로, <b>초과분 $'+R.fmt(excess)+'은 인컴</b> 재투자</div>':'')
+      +'<div class="src" style="margin-top:8px">규칙 ① 배당: 목표 미달 → <b>전액 인컴 재투자</b> · 목표 달성 → <b>매월 $'+R.fmt(s.c.target)+' → VR(성장)</b>, <b>초과분 → 인컴 재투자</b><br>규칙 ② 알파(SOXL) 실현수익: <b>세후 전액 → 인컴 엔진(목표 비중)</b></div>';
     const out=document.getElementById('wf_out'); if(out)out.innerHTML=h;
   },
   calc(){ const s=this.status(); const amt=R.n('wf_amt'); const out=document.getElementById('wf_out');
     if(isNaN(amt)||amt<=0){ alert('배분할 금액을 입력하세요'); return; }
-    const rows = s.reached ? [['📈 그로스 (UPRO·TQQQ VR)',amt*s.c.g/100],['💰 인컴 (QDTE 등)',amt*s.c.i/100]] : [['💰 인컴 재투자 (전액)',amt]];
-    let h='<div class="note" style="margin-bottom:8px">'+(s.reached?'목표 달성 → 분배':'목표 미달 → 전액 인컴 재투자')+'</div><table><thead><tr><th>배분처</th><th>금액</th><th>비율</th></tr></thead><tbody>';
+    const toVR = s.reached ? Math.min(amt, s.c.target) : 0;
+    const toInc = amt - toVR;
+    const rows = s.reached ? [['📈 그로스 VR (UPRO·TQQQ)', toVR],['💰 인컴 재투자 (초과분)', toInc]] : [['💰 인컴 재투자 (전액)', amt]];
+    let h='<div class="note" style="margin-bottom:8px">'+(s.reached?('목표 달성 → $'+R.fmt(toVR)+' VR · 초과분 $'+R.fmt(toInc)+' 인컴'):'목표 미달 → 전액 인컴 재투자')+'</div><table><thead><tr><th>배분처</th><th>금액</th><th>비율</th></tr></thead><tbody>';
     rows.forEach(r=>{ h+='<tr><td>'+r[0]+'</td><td>$'+R.fmt(r[1])+'</td><td>'+R.pct(r[1]/amt)+'</td></tr>'; });
     h+='</tbody></table><div class="src" style="margin-top:8px">💡 계산 결과는 배분 가이드입니다. 실제 매수는 Fi PRO에서 직접 실행하세요.</div>';
     if(out)out.innerHTML=h;
