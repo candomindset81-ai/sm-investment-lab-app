@@ -831,6 +831,9 @@ const VR = {
   calc(){
     const p=this.read(); const o=VRengine.calc(p); this._last={p,o}; this.saveState();
     const cls = o.buyShares>0?'buy':(o.sellShares>0?'sell':'hold');
+    let vrLadder='';
+    if(p.ps>0){ const n=Math.min(p.ps,5); let lr=''; for(let i=0;i<n;i++){ const rem=p.ps-i; lr+='<tr><td>매도 '+(i+1)+' · 1주</td><td>$'+R.fmt(o.upper/rem)+'</td></tr>'; }
+      vrLadder='<div class="src" style="margin-top:10px">🔺 <b>라오어 매도 사다리 (LOC · 각 1주)</b> — 가격 = (V×1.15) ÷ 남은주식수, 상승 시 자동 분할 매도</div><table><tbody>'+lr+'</tbody></table>'; }
     document.getElementById('vr_out').innerHTML='<div class="kpi" style="margin-top:12px">'
       +'<div class="box"><div class="l">새 V</div><div class="v">$'+R.fmt(o.newV)+'</div></div>'
       +'<div class="box"><div class="l">밴드 (하단~상단)</div><div class="v" style="font-size:15px">$'+R.fmt(o.lower)+' ~ $'+R.fmt(o.upper)+'</div></div>'
@@ -841,7 +844,7 @@ const VR = {
       +'<tr class="'+(o.sellShares>0?'sell':'')+'"><td>매도 필요금</td><td>$'+R.fmt(o.sellNeed)+'</td></tr>'
       +'<tr><td>주문 주수</td><td>'+(o.buyShares>0?('매수 '+o.buyShares+'주 @ $'+R.fmt(p.price)):(o.sellShares>0?('매도 '+o.sellShares+'주 @ $'+R.fmt(p.price)):'없음'))+'</td></tr>'
       +'<tr><td>리밸 후 보유수량 / Pool</td><td>'+o.endShares+'주 / $'+R.fmt(o.endPool)+'</td></tr>'
-      +'<tr><td>총자산(참고)</td><td>$'+R.fmt(o.totalAsset)+'</td></tr></tbody></table>';
+      +'<tr><td>총자산(참고)</td><td>$'+R.fmt(o.totalAsset)+'</td></tr></tbody></table>'+vrLadder;
     document.getElementById('vr_audit').textContent=
 '[VR 계산 근거]\n입력 직전V=$'+R.fmt(p.pv)+', 직전Pool=$'+R.fmt(p.pp)+', 직전수량='+p.ps+', 기준가=$'+R.fmt(p.price)+'\n'
 +'G='+p.G+', 밴드=±'+R.pct(p.band)+', Pool한도='+R.pct(p.pool)+', 적립=$'+R.fmt(p.dep)+'×'+p.mult+'=$'+R.fmt(o.deposit)+'\n'
