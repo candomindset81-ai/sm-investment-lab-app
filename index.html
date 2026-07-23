@@ -813,7 +813,7 @@ const VR = {
   STKEY:'isl_vr_state_v1',
   store(){ try{return JSON.parse(localStorage.getItem(this.STKEY))||{}}catch(e){return{}} },
   loadState(sym){ return this.store()[sym]||null; },
-  DEFDEP:{tqqq:250, upro:100},
+  DEFDEP:{tqqq:125, upro:50},
   saveState(){ const s=this.store(); s[R.s('vr_sym')]={pv:R.n('vr_pv'),pp:R.n('vr_pp'),ps:R.n('vr_ps'),type:R.s('vr_type'),mult:R.n('vr_mult'),dep:R.n('vr_dep')}; localStorage.setItem(this.STKEY,JSON.stringify(s)); },
   loadSym(){
     const sym=R.s('vr_sym'); const st=this.loadState(sym)||{};
