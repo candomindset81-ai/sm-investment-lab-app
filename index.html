@@ -1624,6 +1624,40 @@ const DTE = {
       log.forEach(function(e){ if((e.date||'').slice(0,4)===yr){ ytdG+=(+e.amt||0); cntW++; } });
       h+='<div class="src" style="margin-top:8px">🧾 <b>세금 대시보드</b> · '+yr+' 누적 수령 세전 <b>$'+R.fmt(ytdG)+'</b> ('+cntW+'주 기록) → 원천징수 '+(tax*100).toFixed(0)+'% 차감 후 <b>$'+R.fmt(ytdG*(1-tax))+'</b></div></div>';
     }catch(e){ console.log('dte cashflow',e); }
+    // ── 🔥 ROC 히트맵 (추정) ──
+    try{
+      let hm='<div class="card"><h3 style="margin:0 0 6px">🔥 ROC 히트맵 <span class="small muted">(추정 · 분배금 중 원금반환 비율 · 높을수록 위험)</span></h3><div style="display:flex;gap:6px">';
+      this.syms.forEach(function(sym){
+        const n=by[sym]; const roc=(n&&n.roc!=null)?+n.roc:null;
+        const bg=roc==null?'#22304a':(roc>=70?'#5a1f1f':(roc>=40?'#54471a':'#1f4a33'));
+        hm+='<div style="flex:1;background:'+bg+';border-radius:8px;padding:10px;text-align:center"><div class="small muted">'+sym+'</div><div style="font-size:20px;font-weight:800">'+(roc!=null?roc+'%':'-')+'</div></div>';
+      });
+      hm+='</div></div>'; h+=hm;
+    }catch(e){ console.log('dte heatmap',e); }
+    // ── ⚖️ Smart Rebalancing (실데이터 · 목표비중 대비) ──
+    try{
+      const inc2=(typeof Income!=='undefined'&&Income.load)?Income.load():[];
+      const tgt={}; inc2.forEach(function(x){ tgt[x.sym]=+x.tw||0; });
+      let mv={}, tot=0;
+      this.syms.forEach(function(sym){
+        const n=by[sym]; const rf=rhf[sym];
+        const px=(rf&&rf.nav!=null)?+rf.nav:((n&&n.price!=null)?+n.price:0);
+        const ih=inc2.find(function(x){return x.sym===sym;}); const sh=ih?(+ih.sh||0):0;
+        mv[sym]=sh*px; tot+=mv[sym];
+      });
+      if(tot>0){
+        let rb='<div class="card"><h3 style="margin:0 0 6px">⚖️ Smart Rebalancing <span class="small muted">(목표비중 대비 · 공식 NAV 기준)</span></h3><table><thead><tr><th>종목</th><th>평가금</th><th>현재</th><th>목표</th><th>제안</th></tr></thead><tbody>';
+        this.syms.forEach(function(sym){
+          const cur=mv[sym]/tot*100, t=tgt[sym]||0, gap=cur-t;
+          const diff=tot*t/100 - mv[sym];
+          const act=Math.abs(gap)<3?'유지':(diff>0?('매수 +$'+R.fmt(diff)):('매도 -$'+R.fmt(-diff)));
+          const col=Math.abs(gap)<3?'#5ee2a0':(Math.abs(gap)<8?'#ffd24a':'#ff9d5c');
+          rb+='<tr><td><b>'+sym+'</b></td><td>$'+R.fmt(mv[sym])+'</td><td>'+cur.toFixed(1)+'%</td><td>'+t+'%</td><td style="color:'+col+'">'+act+'</td></tr>';
+        });
+        rb+='</tbody></table><div class="src">±3%p 이내는 "유지". 인컴 총 $'+R.fmt(tot)+' 기준. 실제 매수는 Fi PRO에서 직접.</div></div>';
+        h+=rb;
+      }
+    }catch(e){ console.log('dte rebalance',e); }
     this.syms.forEach(function(sym){
       const n=by[sym]; if(!n)return;
       const sc=(n.score!=null?+n.score:50), col=DTE.col(sc), mark=sc>=70?'🔴':(sc>=45?'🟡':'🟢');
