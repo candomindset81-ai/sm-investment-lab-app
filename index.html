@@ -966,6 +966,7 @@ const CS = {
       // ── 🛡️ 리스크 섹션을 앱에 저장하고 리스크 탭 렌더(독립) ──
       try{
         try{ if(s.roundhill){ localStorage.setItem('isl_roundhill_v1', JSON.stringify(s.roundhill)); } }catch(e){}
+        try{ if(s.estimates){ localStorage.setItem('isl_estimates_v1', JSON.stringify(s.estimates)); } }catch(e){}
         try{ if(s.income && s.income.log){ localStorage.setItem('isl_divlog_v1', JSON.stringify(s.income.log)); } }catch(e){}
         if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); if(typeof DTE!=='undefined'&&DTE.render) DTE.render(); }
       }catch(e){}
@@ -1601,6 +1602,7 @@ const DTE = {
     return '<svg viewBox="0 0 '+w+' '+H+'" style="width:100%;max-width:'+w+'px;height:auto;margin-top:4px">'+b+'</svg>';
   },
   rh(){ try{return JSON.parse(localStorage.getItem('isl_roundhill_v1'))||null}catch(e){return null} },
+  est(){ try{return JSON.parse(localStorage.getItem('isl_estimates_v1'))||null}catch(e){return null} },
   render(){
     const el=document.getElementById('dte_out'); if(!el)return;
     const r=Risk.load();
@@ -1658,6 +1660,34 @@ const DTE = {
         h+=rb;
       }
     }catch(e){ console.log('dte rebalance',e); }
+    // ── ⚠️ 추정 지표 (3단계 · 실측 아님 · 참고용) ──
+    try{
+      const ES=this.est(); const ef=(ES&&ES.funds)?ES.funds:null;
+      if(ef){
+        let ec='<div class="card" style="border:1px solid #d98a2b;background:rgba(217,138,43,0.06)">'
+          +'<h3 style="margin:0 0 4px;color:#f0a94a">⚠️ 추정 지표 <span class="small muted">(실측 아님 · 휴리스틱 추정 · 참고용)</span></h3>'
+          +'<div class="src" style="margin-bottom:8px">아래는 실측값(총수익률·ROC·NAV감소율·배당추세)에서 <b>규칙으로 추정</b>한 신호입니다. 예측 정확도를 보장하지 않습니다.</div>'
+          +'<table><thead><tr><th>종목</th><th>지속가능성</th><th>삭감확률</th><th>NAV 12개월 추정</th><th>다음 배당 추정</th></tr></thead><tbody>';
+        this.syms.forEach(function(sym){
+          const f=ef[sym]; if(!f){ ec+='<tr><td><b>'+sym+'</b></td><td colspan="4" class="muted">-</td></tr>'; return; }
+          const su=(f.sustain!=null?f.sustain:null), lab=f.sustain_label||'-';
+          const sucol=su==null?'#8aa':(su>=70?'#5ee2a0':(su>=50?'#ffd24a':(su>=30?'#ff9d5c':'#ff6b6b')));
+          const cp=(f.cut_prob!=null?f.cut_prob:null);
+          const cpcol=cp==null?'#8aa':(cp>=60?'#ff6b6b':(cp>=35?'#ff9d5c':'#5ee2a0'));
+          const fc=f.forecast||{};
+          const nav12=(fc.nav_12m!=null)?('$'+(+fc.nav_12m).toFixed(2)+' <span class="small muted">('+(fc.nav_decay_assumed_pct>0?'+':'')+fc.nav_decay_assumed_pct+'%)</span>'):'-';
+          const wd=(fc.weekly_dist_next!=null)?('$'+(+fc.weekly_dist_next).toFixed(4)):'-';
+          ec+='<tr><td><b>'+sym+'</b></td>'
+            +'<td style="color:'+sucol+'"><b>'+(su!=null?su:'-')+'</b> '+lab+'</td>'
+            +'<td style="color:'+cpcol+'">'+(cp!=null?cp+'%':'-')+'</td>'
+            +'<td>'+nav12+'</td><td>'+wd+'</td></tr>';
+        });
+        ec+='</tbody></table>'
+          +'<div class="src" style="margin-top:6px">지속가능성 0~100(높을수록 견고) · 삭감확률=근시일 분배금 삭감 추정 · NAV/배당 추정=최근 추세 지속 가정 하의 선형 투영. '
+          +'갱신: '+((ES&&ES.updated)||'-')+'</div></div>';
+        h+=ec;
+      }
+    }catch(e){ console.log('dte estimates',e); }
     this.syms.forEach(function(sym){
       const n=by[sym]; if(!n)return;
       const sc=(n.score!=null?+n.score:50), col=DTE.col(sc), mark=sc>=70?'🔴':(sc>=45?'🟡':'🟢');
