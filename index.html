@@ -965,6 +965,7 @@ const CS = {
       }catch(e){}
       // ── 🛡️ 리스크 섹션을 앱에 저장하고 리스크 탭 렌더(독립) ──
       try{
+        try{ if(s.roundhill){ localStorage.setItem('isl_roundhill_v1', JSON.stringify(s.roundhill)); } }catch(e){}
         if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); if(typeof DTE!=='undefined'&&DTE.render) DTE.render(); }
       }catch(e){}
       let h='';
@@ -1598,11 +1599,13 @@ const DTE = {
       b+='<rect x="'+(x+1)+'" y="'+y+'" width="'+(bw-2)+'" height="'+bh+'" rx="1.5" fill="'+c+'"><title>'+hist[i][0]+' $'+v.toFixed(4)+'</title></rect>'; });
     return '<svg viewBox="0 0 '+w+' '+H+'" style="width:100%;max-width:'+w+'px;height:auto;margin-top:4px">'+b+'</svg>';
   },
+  rh(){ try{return JSON.parse(localStorage.getItem('isl_roundhill_v1'))||null}catch(e){return null} },
   render(){
     const el=document.getElementById('dte_out'); if(!el)return;
     const r=Risk.load();
     if(!r||!r.nav){ el.innerHTML='<span class="small muted">아직 데이터가 없습니다. 매매기록 탭에서 클라우드 토큰을 저장한 뒤 "☁️ 클라우드에서 새로고침"을 누르세요. 서버가 매일 새벽 자동 계산합니다.</span>'; return; }
     const by={}; r.nav.forEach(function(n){ by[n.sym]=n; });
+    const RH=this.rh(); const rhf=(RH&&RH.funds)?RH.funds:{};
     let h='<div class="src" style="margin-bottom:8px">클라우드 갱신: '+(r.updated||'-')+' · 매일 새벽 자동 · 총수익률=수정종가(분배금 재투자) 기준</div>';
     this.syms.forEach(function(sym){
       const n=by[sym]; if(!n)return;
@@ -1621,6 +1624,17 @@ const DTE = {
       h+='<div class="small" style="margin-top:6px">기준가(NAV) 연 '+DTE.trc(n.ann_price)+' · 총수익 연 '+DTE.trc(n.ann_total)
         +' · 추정 ROC <b style="color:'+(n.roc>=70?'#ff6b6b':(n.roc>=40?'#ffd24a':'#5ee2a0'))+'">'+(n.roc!=null?n.roc:'-')+'%</b></div>';
       h+='<div style="margin-top:8px"><div class="small muted">주간 분배금 · 최근 '+(n.dist!=null?'$'+(+n.dist).toFixed(4):'-')+' · 감소추세 '+trend+'</div>'+DTE.bars(n.hist)+'</div>';
+      const rf=rhf[sym];
+      if(rf && rf.ror){ const o=rf.ror;
+        h+='<div class="note" style="margin-top:8px;background:#141d33;border-left:3px solid #b48cff">'
+          +'<b>🏛️ Roundhill 공식 총수익률</b> <span class="small muted">('+(rf.ror_asof||'')+' · NAV 기준)</span>'
+          +'<table><tbody>'
+          +'<tr><td>1개월</td><td style="text-align:right">'+DTE.trc(o.m1)+'</td><td>3개월</td><td style="text-align:right">'+DTE.trc(o.m3)+'</td></tr>'
+          +'<tr><td>YTD</td><td style="text-align:right">'+DTE.trc(o.ytd)+'</td><td>1년</td><td style="text-align:right">'+DTE.trc(o.y1)+'</td></tr>'
+          +'<tr><td><b>상장이후 누적</b></td><td style="text-align:right">'+DTE.trc(o.incep_cum)+'</td><td>상장이후(연)</td><td style="text-align:right">'+DTE.trc(o.incep_ann)+'</td></tr>'
+          +'</tbody></table>'
+          +'<div class="small muted">공식 NAV $'+(rf.nav!=null?rf.nav:'-')+' ('+(rf.nav_date||'')+' · 당일 '+(rf.nav_chg_pct!=null?((rf.nav_chg_pct>0?'+':'')+rf.nav_chg_pct+'%'):'-')+') · 30일 SEC수익률 '+(rf.sec_yield!=null?rf.sec_yield+'%':'-')+'</div></div>';
+      }
       h+='</div>';
     });
     h+='<div class="note" style="margin-top:8px">💡 0DTE 커버드콜 ETF는 분배금 상당액이 <b>원금반환(ROC)</b>입니다(Roundhill 최근 19a-1 기준 QDTE 추정 ROC 100%). 그래서 <b>분배금률이 아니라 총수익률(재투자)</b>이 실제 성과 지표예요. 참고용 · 투자 자문 아님.</div>';
