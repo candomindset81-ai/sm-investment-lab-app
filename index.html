@@ -1630,6 +1630,34 @@ const DTE = {
 
 const WOS = { refresh(){ [Income,Flow,Analytics,Goals,Notif,Advisor,Master,Risk,DTE].forEach(function(m){ try{m.render();}catch(e){console.log('WOS',e);} }); } };
 
+/* ===================== 🔄 수동 새로고침 (각 탭 버튼) =====================
+   클라우드(state.json) 최신 데이터를 당겨 포지션·리스크·DTE·인컴·배당을 갱신하고 모든 탭 재렌더.
+   자동 업데이트가 실패했을 때 사용자가 직접 최신화할 수 있는 백업 수단. */
+const Refresh = {
+  busy:false,
+  async now(btn){
+    if(this.busy)return; this.busy=true;
+    const old = btn?btn.innerHTML:null;
+    if(btn){ btn.innerHTML='⏳ 새로고침 중…'; btn.disabled=true; }
+    let hasTok=false;
+    try{ hasTok=(typeof CS!=='undefined' && CS.token && !!CS.token()); if(hasTok){ await CS.fetch(); } }catch(e){ console.log('refresh cloud',e); }
+    try{ IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); renderMacro(); QDTE.render(); WOS.refresh(); Risk.render(); DTE.render(); }catch(e){ console.log('refresh render',e); }
+    if(btn){ btn.innerHTML = hasTok ? '✅ 최신 데이터로 갱신됨' : '✅ 갱신됨 · 클라우드 토큰 없음(매매기록 탭에서 저장)';
+      setTimeout(function(){ btn.innerHTML=old; btn.disabled=false; }, 2500); }
+    this.busy=false;
+  },
+  injectButtons(){
+    document.querySelectorAll('section.tab').forEach(function(sec){
+      if(sec.querySelector('.refresh-bar')) return;
+      const bar=document.createElement('div');
+      bar.className='btnrow refresh-bar'; bar.style.marginBottom='10px';
+      bar.innerHTML='<button class="ghost" onclick="Refresh.now(this)">🔄 최신 데이터로 새로고침</button>'
+        +'<span class="small muted" style="margin-left:8px">자동 갱신 실패 시 눌러서 클라우드 최신값 반영</span>';
+      sec.insertBefore(bar, sec.firstChild);
+    });
+  }
+};
+
 /* ===================== 초기화(부팅) ===================== */
 document.getElementById('nav').addEventListener('click',function(e){
   const b=e.target.closest('button'); if(!b)return;
@@ -1655,7 +1683,7 @@ document.getElementById('indiAsOf2').textContent=asOf;
 if(!localStorage.getItem('isl_seeded_v1')) localStorage.setItem('isl_seeded_v1','1');
 
 Hist.snapshot();
-IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render(); DTE.render();
+IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render(); DTE.render(); Refresh.injectButtons();
 </script>
 </body>
 </html>
