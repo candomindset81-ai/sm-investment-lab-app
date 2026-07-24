@@ -966,6 +966,7 @@ const CS = {
       // ── 🛡️ 리스크 섹션을 앱에 저장하고 리스크 탭 렌더(독립) ──
       try{
         try{ if(s.roundhill){ localStorage.setItem('isl_roundhill_v1', JSON.stringify(s.roundhill)); } }catch(e){}
+        try{ if(s.income && s.income.log){ localStorage.setItem('isl_divlog_v1', JSON.stringify(s.income.log)); } }catch(e){}
         if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); if(typeof DTE!=='undefined'&&DTE.render) DTE.render(); }
       }catch(e){}
       let h='';
@@ -1606,7 +1607,23 @@ const DTE = {
     if(!r||!r.nav){ el.innerHTML='<span class="small muted">아직 데이터가 없습니다. 매매기록 탭에서 클라우드 토큰을 저장한 뒤 "☁️ 클라우드에서 새로고침"을 누르세요. 서버가 매일 새벽 자동 계산합니다.</span>'; return; }
     const by={}; r.nav.forEach(function(n){ by[n.sym]=n; });
     const RH=this.rh(); const rhf=(RH&&RH.funds)?RH.funds:{};
-    let h='<div class="src" style="margin-bottom:8px">클라우드 갱신: '+(r.updated||'-')+' · 매일 새벽 자동 · 총수익률=수정종가(분배금 재투자) 기준</div>';
+    let h='<div class="src" style="margin-bottom:8px">클라우드 갱신: '+(r.updated||'-')+' · 매일 새벽 자동 · Roundhill 공식 데이터 기준</div>';
+    // ── 💵 12개월 현금흐름 예측 + 🧾 세금 대시보드 (실데이터·기계적 계산) ──
+    try{
+      const inc=(typeof Income!=='undefined'&&Income.load)?Income.load():[];
+      const tax=(typeof Income!=='undefined'&&Income.tax)?(Income.tax()/100):0.15;
+      let wk=0; inc.forEach(function(x){ wk += (+x.sh||0)*(+x.dist||0); });
+      const annG=wk*52, annN=annG*(1-tax), moN=annN/12;
+      h+='<div class="card"><h3 style="margin:0 0 6px">💵 12개월 현금흐름 예측 <span class="small muted">(현재 분배금 유지 가정)</span></h3>'
+        +'<div class="kpi"><div class="box"><div class="l">주간</div><div class="v">$'+R.fmt(wk)+'</div></div>'
+        +'<div class="box"><div class="l">연 세전</div><div class="v">$'+R.fmt(annG)+'</div></div>'
+        +'<div class="box"><div class="l">연 세후 '+(tax*100).toFixed(0)+'%</div><div class="v">$'+R.fmt(annN)+'</div></div>'
+        +'<div class="box"><div class="l">월 세후</div><div class="v">$'+R.fmt(moN)+'</div></div></div>';
+      let log=[]; try{log=JSON.parse(localStorage.getItem('isl_divlog_v1'))||[];}catch(e){}
+      const yr=String(new Date().getFullYear()); let ytdG=0, cntW=0;
+      log.forEach(function(e){ if((e.date||'').slice(0,4)===yr){ ytdG+=(+e.amt||0); cntW++; } });
+      h+='<div class="src" style="margin-top:8px">🧾 <b>세금 대시보드</b> · '+yr+' 누적 수령 세전 <b>$'+R.fmt(ytdG)+'</b> ('+cntW+'주 기록) → 원천징수 '+(tax*100).toFixed(0)+'% 차감 후 <b>$'+R.fmt(ytdG*(1-tax))+'</b></div></div>';
+    }catch(e){ console.log('dte cashflow',e); }
     this.syms.forEach(function(sym){
       const n=by[sym]; if(!n)return;
       const sc=(n.score!=null?+n.score:50), col=DTE.col(sc), mark=sc>=70?'🔴':(sc>=45?'🟡':'🟢');
@@ -1632,8 +1649,13 @@ const DTE = {
           +'<tr><td>1개월</td><td style="text-align:right">'+DTE.trc(o.m1)+'</td><td>3개월</td><td style="text-align:right">'+DTE.trc(o.m3)+'</td></tr>'
           +'<tr><td>YTD</td><td style="text-align:right">'+DTE.trc(o.ytd)+'</td><td>1년</td><td style="text-align:right">'+DTE.trc(o.y1)+'</td></tr>'
           +'<tr><td><b>상장이후 누적</b></td><td style="text-align:right">'+DTE.trc(o.incep_cum)+'</td><td>상장이후(연)</td><td style="text-align:right">'+DTE.trc(o.incep_ann)+'</td></tr>'
-          +'</tbody></table>'
-          +'<div class="small muted">공식 NAV $'+(rf.nav!=null?rf.nav:'-')+' ('+(rf.nav_date||'')+' · 당일 '+(rf.nav_chg_pct!=null?((rf.nav_chg_pct>0?'+':'')+rf.nav_chg_pct+'%'):'-')+') · 30일 SEC수익률 '+(rf.sec_yield!=null?rf.sec_yield+'%':'-')+'</div></div>';
+          +'</tbody></table>';
+        if(rf.nav_decay && rf.nav_decay.m1!=null){ const nd=rf.nav_decay;
+          h+='<div class="small" style="margin-top:4px">📉 <b>NAV 감소율</b> (순수 기준가): 1M '+DTE.trc(nd.m1)+' · 3M '+DTE.trc(nd.m3)+' · 6M '+DTE.trc(nd.m6)+' · 12M '+DTE.trc(nd.m12)+'</div>';
+        }
+        h+='<div class="small muted">공식 NAV $'+(rf.nav!=null?rf.nav:'-')+' ('+(rf.nav_date||'')+' · 당일 '+(rf.nav_chg_pct!=null?((rf.nav_chg_pct>0?'+':'')+rf.nav_chg_pct+'%'):'-')+')'
+          +(rf.premdisc!=null?(' · 시장가 프리미엄/디스카운트 '+(rf.premdisc>0?'+':'')+rf.premdisc+'%'):'')
+          +' · 30일 SEC수익률 '+(rf.sec_yield!=null?rf.sec_yield+'%':'-')+'</div></div>';
       }
       h+='</div>';
     });
