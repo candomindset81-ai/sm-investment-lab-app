@@ -76,6 +76,7 @@
   <button data-tab="goals">🎯 목표</button>
   <button data-tab="notif">🔔 알림</button>
   <button data-tab="risk">🛡️ 리스크</button>
+  <button data-tab="dte">📈 DTE모니터</button>
   <button data-tab="advisor">🤖 어드바이저</button>
   <button data-tab="master">🧭 마스터</button>
   <button data-tab="log">매매기록</button>
@@ -522,6 +523,15 @@
   </div>
 </section>
 
+<section id="dte" class="tab">
+  <div class="card">
+    <h2>📈 DTE 모니터 <span class="tag">QDTE·XDTE·RDTE 종목별</span></h2>
+    <div class="note">종목별 <b>총수익률(분배금 재투자)</b>·NAV 추이·추정 ROC·배당 추이를 매일 서버가 계산해 표시합니다. 0DTE 커버드콜 ETF는 분배금률이 아니라 <b>총수익률</b>이 실제 성과 지표입니다.</div>
+    <div class="btnrow"><button class="act" onclick="CS.fetch()">☁️ 클라우드에서 새로고침</button></div>
+    <div id="dte_out" style="margin-top:12px"><span class="small muted">클라우드 데이터를 불러오는 중…</span></div>
+  </div>
+</section>
+
 <section id="advisor" class="tab">
   <div class="card">
     <h2>🤖 어드바이저 <span class="tag">규칙 기반</span></h2>
@@ -955,7 +965,7 @@ const CS = {
       }catch(e){}
       // ── 🛡️ 리스크 섹션을 앱에 저장하고 리스크 탭 렌더(독립) ──
       try{
-        if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); }
+        if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); if(typeof DTE!=='undefined'&&DTE.render) DTE.render(); }
       }catch(e){}
       let h='';
       if(synced>0){
@@ -1571,7 +1581,54 @@ const Risk = {
   }
 };
 
-const WOS = { refresh(){ [Income,Flow,Analytics,Goals,Notif,Advisor,Master,Risk].forEach(function(m){ try{m.render();}catch(e){console.log('WOS',e);} }); } };
+/* ===================== 📈 DTE 모니터 (종목별 상세 · 독립) =====================
+   Risk.load().nav (서버가 매일 계산·저장)에서 종목별 총수익률·NAV·ROC·배당을 읽어 표시. */
+const DTE = {
+  syms:['QDTE','XDTE','RDTE'],
+  col(sc){ return sc>=70?'#ff6b6b':(sc>=45?'#ffd24a':'#5ee2a0'); },
+  trc(x){ return x==null?'-':'<b style="color:'+(x>=0?'#5ee2a0':'#ff6b6b')+'">'+(x>0?'+':'')+x+'%</b>'; },
+  bars(hist){
+    if(!hist||!hist.length) return '';
+    const vals=hist.map(function(h){return +h[1];});
+    const w=Math.max(120,vals.length*16), H=44, pad=4, bw=(w-pad*2)/vals.length;
+    const lo=Math.min.apply(null,vals), hi=Math.max.apply(null,vals);
+    let b='';
+    vals.forEach(function(v,i){ const bh=hi>lo?((v-lo)/(hi-lo))*(H-10)+4:10; const x=pad+i*bw, y=H-bh;
+      const c=(i===vals.length-1)?'#5ee2a0':'#4ea1ff';
+      b+='<rect x="'+(x+1)+'" y="'+y+'" width="'+(bw-2)+'" height="'+bh+'" rx="1.5" fill="'+c+'"><title>'+hist[i][0]+' $'+v.toFixed(4)+'</title></rect>'; });
+    return '<svg viewBox="0 0 '+w+' '+H+'" style="width:100%;max-width:'+w+'px;height:auto;margin-top:4px">'+b+'</svg>';
+  },
+  render(){
+    const el=document.getElementById('dte_out'); if(!el)return;
+    const r=Risk.load();
+    if(!r||!r.nav){ el.innerHTML='<span class="small muted">아직 데이터가 없습니다. 매매기록 탭에서 클라우드 토큰을 저장한 뒤 "☁️ 클라우드에서 새로고침"을 누르세요. 서버가 매일 새벽 자동 계산합니다.</span>'; return; }
+    const by={}; r.nav.forEach(function(n){ by[n.sym]=n; });
+    let h='<div class="src" style="margin-bottom:8px">클라우드 갱신: '+(r.updated||'-')+' · 매일 새벽 자동 · 총수익률=수정종가(분배금 재투자) 기준</div>';
+    this.syms.forEach(function(sym){
+      const n=by[sym]; if(!n)return;
+      const sc=(n.score!=null?+n.score:50), col=DTE.col(sc), mark=sc>=70?'🔴':(sc>=45?'🟡':'🟢');
+      const vals=(n.hist||[]).map(function(x){return +x[1];});
+      let trend='-';
+      if(vals.length>=8){ const r4=vals.slice(-4).reduce(function(a,b){return a+b;},0)/4, p4=vals.slice(-8,-4).reduce(function(a,b){return a+b;},0)/4; const tp=p4?((r4/p4-1)*100):0; trend=(tp<-2?'▼ 하락세':(tp>2?'▲ 상승세':'– 횡보'))+' ('+(tp>0?'+':'')+tp.toFixed(1)+'%)'; }
+      h+='<div class="card" style="border-color:'+col+'">';
+      h+='<div style="display:flex;align-items:center;gap:10px"><div style="font-size:20px">'+mark+'</div><div style="font-size:18px;font-weight:800">'+sym+'</div>'
+        +'<div style="color:'+col+';font-weight:700">위험 '+sc+'/100</div>'
+        +(n.price!=null?'<div class="small muted" style="margin-left:auto">$'+(+n.price).toFixed(2)+' · '+(n.sh||0)+'주</div>':'')+'</div>';
+      h+='<div style="margin-top:8px"><div class="small muted">총수익률 (분배금 재투자)</div><table><tbody>'
+        +'<tr><td>1개월</td><td style="text-align:right">'+DTE.trc(n.tr_1m)+'</td><td>3개월</td><td style="text-align:right">'+DTE.trc(n.tr_3m)+'</td></tr>'
+        +'<tr><td>연초이후</td><td style="text-align:right">'+DTE.trc(n.tr_ytd)+'</td><td>상장이후</td><td style="text-align:right">'+DTE.trc(n.tr_incep)+'</td></tr>'
+        +'</tbody></table></div>';
+      h+='<div class="small" style="margin-top:6px">기준가(NAV) 연 '+DTE.trc(n.ann_price)+' · 총수익 연 '+DTE.trc(n.ann_total)
+        +' · 추정 ROC <b style="color:'+(n.roc>=70?'#ff6b6b':(n.roc>=40?'#ffd24a':'#5ee2a0'))+'">'+(n.roc!=null?n.roc:'-')+'%</b></div>';
+      h+='<div style="margin-top:8px"><div class="small muted">주간 분배금 · 최근 '+(n.dist!=null?'$'+(+n.dist).toFixed(4):'-')+' · 감소추세 '+trend+'</div>'+DTE.bars(n.hist)+'</div>';
+      h+='</div>';
+    });
+    h+='<div class="note" style="margin-top:8px">💡 0DTE 커버드콜 ETF는 분배금 상당액이 <b>원금반환(ROC)</b>입니다(Roundhill 최근 19a-1 기준 QDTE 추정 ROC 100%). 그래서 <b>분배금률이 아니라 총수익률(재투자)</b>이 실제 성과 지표예요. 참고용 · 투자 자문 아님.</div>';
+    el.innerHTML=h;
+  }
+};
+
+const WOS = { refresh(){ [Income,Flow,Analytics,Goals,Notif,Advisor,Master,Risk,DTE].forEach(function(m){ try{m.render();}catch(e){console.log('WOS',e);} }); } };
 
 /* ===================== 초기화(부팅) ===================== */
 document.getElementById('nav').addEventListener('click',function(e){
@@ -1598,7 +1655,7 @@ document.getElementById('indiAsOf2').textContent=asOf;
 if(!localStorage.getItem('isl_seeded_v1')) localStorage.setItem('isl_seeded_v1','1');
 
 Hist.snapshot();
-IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render();
+IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render(); DTE.render();
 </script>
 </body>
 </html>
