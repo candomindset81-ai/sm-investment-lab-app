@@ -77,6 +77,7 @@
   <button data-tab="notif">🔔 알림</button>
   <button data-tab="risk">🛡️ 리스크</button>
   <button data-tab="dte">📈 DTE모니터</button>
+  <button data-tab="pro">💹 인컴 Pro</button>
   <button data-tab="advisor">🤖 어드바이저</button>
   <button data-tab="master">🧭 마스터</button>
   <button data-tab="log">매매기록</button>
@@ -532,6 +533,35 @@
   </div>
 </section>
 
+<section id="pro" class="tab">
+  <div class="card">
+    <h2>💹 인컴 Pro <span class="tag">QDTE·XDTE·RDTE 전문 분석</span></h2>
+    <div class="note">전문 지표(YoC·CAGR·MDD·Sharpe 등)·배당 시뮬레이터·차트·내보내기. 실측 지표는 서버(Roundhill 일별 NAV·리스크)에서 매일 계산되고, 시뮬레이터는 <b>가정 기반 추정</b>입니다. 목표비중 QDTE 45 / XDTE 40 / RDTE 15.</div>
+    <div class="btnrow">
+      <button class="act" onclick="CS.fetch()">☁️ 클라우드에서 새로고침</button>
+      <button class="act" onclick="Pro.exportCSV()">⬇️ CSV</button>
+      <button class="act" onclick="Pro.exportXLS()">⬇️ Excel</button>
+      <button class="act" onclick="Pro.exportPNG()">⬇️ 차트 PNG</button>
+      <button class="act" onclick="window.print()">🖨️ PDF(인쇄)</button>
+    </div>
+    <div id="pro_sim_inputs" style="margin-top:12px">
+      <h3 style="margin:6px 0">🔮 배당 시뮬레이터 <span class="small muted">(가정 기반 추정 · 실측 아님)</span></h3>
+      <div class="kpi" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+        <div class="box"><div class="l">기간(년)</div><select id="pro_years" style="width:100%"><option>1</option><option>3</option><option selected>5</option><option>10</option></select></div>
+        <div class="box"><div class="l">기대 총수익 %/년</div><input id="pro_tr" type="number" value="12" step="0.5" style="width:100%"></div>
+        <div class="box"><div class="l">NAV 변화 %/년</div><input id="pro_nd" type="number" value="-5" step="0.5" style="width:100%"></div>
+        <div class="box"><div class="l">배당성장 %/년</div><input id="pro_dg" type="number" value="0" step="0.5" style="width:100%"></div>
+        <div class="box"><div class="l">세율 %</div><input id="pro_tax" type="number" value="15" step="1" style="width:100%"></div>
+        <div class="box"><div class="l">물가 %/년</div><input id="pro_infl" type="number" value="3" step="0.5" style="width:100%"></div>
+        <div class="box"><div class="l">환율 ₩/$</div><input id="pro_fx" type="number" value="1380" step="10" style="width:100%"></div>
+      </div>
+      <div class="btnrow"><button class="act" onclick="Pro.simulate()">▶️ 시뮬레이션 실행</button></div>
+    </div>
+    <div id="pro_out" style="margin-top:12px"><span class="small muted">클라우드 데이터를 불러오는 중…</span></div>
+    <div id="pro_sim_out" style="margin-top:12px"></div>
+  </div>
+</section>
+
 <section id="advisor" class="tab">
   <div class="card">
     <h2>🤖 어드바이저 <span class="tag">규칙 기반</span></h2>
@@ -969,6 +999,7 @@ const CS = {
         try{ if(s.estimates){ localStorage.setItem('isl_estimates_v1', JSON.stringify(s.estimates)); } }catch(e){}
         try{ if(s.income && s.income.log){ localStorage.setItem('isl_divlog_v1', JSON.stringify(s.income.log)); } }catch(e){}
         if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); if(typeof DTE!=='undefined'&&DTE.render) DTE.render(); }
+        try{ if(typeof Pro!=='undefined'&&Pro.render) Pro.render(); }catch(e){}
       }catch(e){}
       let h='';
       if(synced>0){
@@ -1741,7 +1772,7 @@ const Refresh = {
     if(btn){ btn.innerHTML='⏳ 새로고침 중…'; btn.disabled=true; }
     let hasTok=false;
     try{ hasTok=(typeof CS!=='undefined' && CS.token && !!CS.token()); if(hasTok){ await CS.fetch(); } }catch(e){ console.log('refresh cloud',e); }
-    try{ IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); renderMacro(); QDTE.render(); WOS.refresh(); Risk.render(); DTE.render(); }catch(e){ console.log('refresh render',e); }
+    try{ IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); renderMacro(); QDTE.render(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); }catch(e){ console.log('refresh render',e); }
     if(btn){ btn.innerHTML = hasTok ? '✅ 최신 데이터로 갱신됨' : '✅ 갱신됨 · 클라우드 토큰 없음(매매기록 탭에서 저장)';
       setTimeout(function(){ btn.innerHTML=old; btn.disabled=false; }, 2500); }
     this.busy=false;
@@ -1756,6 +1787,161 @@ const Refresh = {
       sec.insertBefore(bar, sec.firstChild);
     });
   }
+};
+
+/* ===================== 💹 인컴 Pro 모듈 ===================== */
+const Pro = {
+  syms:['QDTE','XDTE','RDTE'],
+  rh(){ try{return JSON.parse(localStorage.getItem('isl_roundhill_v1'))||null}catch(e){return null} },
+  fmt(x,d){ return (x==null||isNaN(x))?'-':Number(x).toLocaleString(undefined,{maximumFractionDigits:(d==null?0:d)}); },
+  data(){
+    const inc=(typeof Income!=='undefined'&&Income.load)?Income.load():[];
+    const tax=(typeof Income!=='undefined'&&Income.tax)?(Income.tax()/100):0.15;
+    const r=(typeof Risk!=='undefined'&&Risk.load)?Risk.load():null;
+    const by={}; if(r&&r.nav) r.nav.forEach(function(n){by[n.sym]=n;});
+    const RH=this.rh(); const rhf=(RH&&RH.funds)?RH.funds:{};
+    const rows=this.syms.map(function(sym){
+      const h=inc.find(function(x){return x.sym===sym;})||{};
+      const n=by[sym]||{}; const of=rhf[sym]||{};
+      const px=(of.nav!=null)?+of.nav:(n.price!=null?+n.price:(+h.avg||0));
+      const sh=+h.sh||0, avg=+h.avg||0, wk=+h.dist||0; const annDist=wk*52;
+      return {sym:sym, sh:sh, avg:avg, px:px, mv:sh*px, tw:(+h.tw||0), wk:wk, annDist:annDist,
+        yoc: avg? annDist/avg*100 : null, dy: px? annDist/px*100 : null,
+        tr:(n.ann_total!=null?+n.ann_total:null), pr:(n.ann_price!=null?+n.ann_price:null),
+        roc:(n.roc!=null?+n.roc:null), m:(of.metrics||null), decay:(of.nav_decay||null),
+        ror:(of.ror||null), premdisc:of.premdisc, sec:of.sec_yield,
+        hist:(n.hist||h.hist||[]) };
+    });
+    const tot=rows.reduce(function(a,b){return a+b.mv;},0);
+    rows.forEach(function(x){ x.cur = tot? x.mv/tot*100 : 0; });
+    return {rows:rows, tot:tot, tax:tax, inc:inc, updated:(r&&r.updated)||'-', rhup:((RH&&RH.updated)||'-')};
+  },
+  bars(hist, w, H){
+    if(!hist||!hist.length) return '<span class="small muted">-</span>';
+    const vals=hist.map(function(x){return +x[1];}); const mx=Math.max.apply(null,vals)||1;
+    const bw=w/vals.length; let b='';
+    vals.forEach(function(v,i){ const bh=Math.max(1,(v/mx)*(H-6)); const x=i*bw, y=H-bh;
+      const c=(i===vals.length-1)?'#5ee2a0':'#4ea1ff';
+      b+='<rect x="'+(x+1)+'" y="'+y+'" width="'+(bw-2)+'" height="'+bh+'" rx="1.5" fill="'+c+'"><title>'+hist[i][0]+' $'+v.toFixed(4)+'</title></rect>'; });
+    return '<svg viewBox="0 0 '+w+' '+H+'" style="width:100%;max-width:'+w+'px;height:auto">'+b+'</svg>';
+  },
+  pie(rows, tot){
+    // 목표비중 대비 현재비중 도넛 (SVG)
+    const cx=90, cy=90, R=78, r=44; let a=-Math.PI/2; const cols=['#4ea1ff','#5ee2a0','#ffd24a'];
+    let segs='';
+    rows.forEach(function(x,i){ const frac=tot?x.mv/tot:0; const a2=a+frac*Math.PI*2;
+      const x1=cx+R*Math.cos(a), y1=cy+R*Math.sin(a), x2=cx+R*Math.cos(a2), y2=cy+R*Math.sin(a2);
+      const xi2=cx+r*Math.cos(a2), yi2=cy+r*Math.sin(a2), xi1=cx+r*Math.cos(a);
+      const yi1=cy+r*Math.sin(a); const large=(a2-a)>Math.PI?1:0;
+      segs+='<path d="M'+x1+' '+y1+' A'+R+' '+R+' 0 '+large+' 1 '+x2+' '+y2+' L'+xi2+' '+yi2+' A'+r+' '+r+' 0 '+large+' 0 '+xi1+' '+yi1+' Z" fill="'+cols[i%3]+'"><title>'+x.sym+' '+(frac*100).toFixed(1)+'%</title></path>';
+      a=a2; });
+    let leg=''; rows.forEach(function(x,i){ leg+='<div style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="width:10px;height:10px;border-radius:2px;background:'+cols[i%3]+'"></span>'+x.sym+' '+x.cur.toFixed(1)+'% <span class="muted">/ 목표 '+x.tw+'%</span></div>'; });
+    return '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><svg id="pro_pie_svg" viewBox="0 0 180 180" style="width:180px;height:180px">'+segs+'</svg><div style="display:flex;flex-direction:column;gap:6px">'+leg+'</div></div>';
+  },
+  render(){
+    const el=document.getElementById('pro_out'); if(!el)return;
+    const d=this.data(); const rows=d.rows; this._last=d;
+    if(!d.tot){ el.innerHTML='<span class="small muted">아직 데이터가 없습니다. 매매기록 탭에서 클라우드 토큰을 저장한 뒤 "☁️ 클라우드에서 새로고침"을 누르세요.</span>'; return; }
+    let h='';
+    // ── 전문 지표 테이블 (실측) ──
+    h+='<div class="card"><h3 style="margin:0 0 6px">📐 전문 지표 <span class="small muted">(실측 · YoC/배당수익률=앱 입력, CAGR·MDD·Sharpe 등=Roundhill 일별 NAV 기준)</span></h3>';
+    h+='<table><thead><tr><th>종목</th><th>YoC</th><th>배당수익률</th><th>총수익(연)</th><th>NAV수익(연)</th><th>NAV CAGR</th><th>MaxDD</th><th>변동성</th><th>Sharpe</th><th>Sortino</th><th>Ulcer</th></tr></thead><tbody>';
+    rows.forEach(function(x){ const m=x.m||{};
+      h+='<tr><td><b>'+x.sym+'</b></td>'
+        +'<td>'+(x.yoc!=null?x.yoc.toFixed(1)+'%':'-')+'</td>'
+        +'<td>'+(x.dy!=null?x.dy.toFixed(1)+'%':'-')+'</td>'
+        +'<td style="color:'+(x.tr>=0?'#5ee2a0':'#ff6b6b')+'">'+(x.tr!=null?(x.tr>0?'+':'')+x.tr+'%':'-')+'</td>'
+        +'<td style="color:'+(x.pr>=0?'#5ee2a0':'#ff9d5c')+'">'+(x.pr!=null?(x.pr>0?'+':'')+x.pr+'%':'-')+'</td>'
+        +'<td>'+(m.cagr!=null?(m.cagr>0?'+':'')+m.cagr+'%':'-')+'</td>'
+        +'<td style="color:#ff9d5c">'+(m.max_drawdown!=null?m.max_drawdown+'%':'-')+'</td>'
+        +'<td>'+(m.volatility!=null?m.volatility+'%':'-')+'</td>'
+        +'<td>'+(m.sharpe!=null?m.sharpe:'-')+'</td>'
+        +'<td>'+(m.sortino!=null?m.sortino:'-')+'</td>'
+        +'<td>'+(m.ulcer!=null?m.ulcer:'-')+'</td></tr>';
+    });
+    // 포트폴리오 가중 YoC / 배당수익률
+    let wYoc=0,wDy=0,cost=0,annD=0; rows.forEach(function(x){ cost+=x.sh*x.avg; annD+=x.sh*x.annDist; });
+    const pYoc=cost?annD/cost*100:null, pDy=d.tot?annD/d.tot*100:null;
+    h+='<tr style="border-top:2px solid #2a3a55"><td><b>합계</b></td><td><b>'+(pYoc!=null?pYoc.toFixed(1)+'%':'-')+'</b></td><td><b>'+(pDy!=null?pDy.toFixed(1)+'%':'-')+'</b></td><td colspan="8" class="muted">YoC=연배당/평단 · 배당수익률=연배당/NAV · Sharpe/Sortino rf=0 · NAV(가격) 기준</td></tr>';
+    h+='</tbody></table><div class="src">CAGR·MaxDD·변동성·Sharpe·Sortino·Ulcer는 Roundhill 공식 일별 NAV(분배 제외·가격 기준) 시계열로 서버가 계산. 클라우드 갱신 '+d.rhup+'</div></div>';
+    // ── 차트: 배분 도넛 + 종목별 배당 추이 + NAV 감소율 ──
+    h+='<div class="card"><h3 style="margin:0 0 6px">📊 배분 · 배당 추이 · NAV 감소율</h3>';
+    h+='<div style="margin-bottom:10px"><div class="small muted" style="margin-bottom:4px">현재 배분 vs 목표(45/40/15)</div>'+this.pie(rows,d.tot)+'</div>';
+    h+='<table><thead><tr><th>종목</th><th>주간 배당 추이(최근)</th><th>NAV 감소율 1/3/6/12M</th></tr></thead><tbody>';
+    rows.forEach(function(x){ const dc=x.decay||{};
+      const nav=['m1','m3','m6','m12'].map(function(k){ const v=dc[k]; return v==null?'-':((v>0?'+':'')+v+'%'); }).join(' · ');
+      h+='<tr><td><b>'+x.sym+'</b></td><td style="min-width:160px">'+Pro.bars(x.hist,160,34)+'</td><td>'+nav+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+    el.innerHTML=h;
+  },
+  simulate(){
+    const out=document.getElementById('pro_sim_out'); if(!out)return;
+    const d=this._last||this.data(); if(!d.tot){ out.innerHTML='<span class="small muted">데이터가 없어 시뮬레이션할 수 없습니다.</span>'; return; }
+    const Y=+(document.getElementById('pro_years').value)||5;
+    const tr=+(document.getElementById('pro_tr').value)||0;
+    const nd=+(document.getElementById('pro_nd').value)||0;
+    const dg=+(document.getElementById('pro_dg').value)||0;
+    const tax=(+(document.getElementById('pro_tax').value)||0)/100;
+    const infl=+(document.getElementById('pro_infl').value)||0;
+    const fx=+(document.getElementById('pro_fx').value)||1;
+    // 정규화된 합성 보유(전 포트폴리오 = 1주): P=총평가금, D=연배당(합), cost=총원가
+    let S=1, P=d.tot, D=0, cost=0; d.rows.forEach(function(x){ D+=x.sh*x.annDist; cost+=x.sh*x.avg; });
+    const series=[]; let cumNet=0;
+    for(let y=1;y<=Y;y++){
+      const gross=S*D; const net=gross*(1-tax); cumNet+=net;
+      S += P? net/P : 0;                 // 세후 배당 재투자(현재가 기준)
+      const value=S*P;                   // 재투자 반영 평가금(가격변동 전)
+      P *= (1+nd/100); D *= (1+dg/100);  // 다음 해 NAV·배당 변화
+      const real=value/Math.pow(1+infl/100,y);
+      const trBench=d.tot*Math.pow(1+tr/100,y);
+      series.push({y:y, value:value, gross:gross, net:net, cumNet:cumNet, shares:S, yoc:cost?gross/cost*100:null, real:real, krw:value*fx, trBench:trBench});
+    }
+    this._sim=series;
+    let h='<div class="card" style="border-color:#3a6ea5"><h3 style="margin:0 0 4px">🔮 시뮬레이션 결과 <span class="small muted">('+Y+'년 · 가정 기반 추정 · 실측 아님)</span></h3>';
+    h+='<div class="src" style="margin-bottom:8px">가정: 기대 총수익 '+tr+'%/년, NAV '+nd+'%/년, 배당성장 '+dg+'%/년, 세율 '+(tax*100).toFixed(0)+'%, 물가 '+infl+'%/년, 환율 '+Pro.fmt(fx)+'₩/$. 세후 배당은 현재가로 재투자(복리) 가정.</div>';
+    h+='<table><thead><tr><th>연차</th><th>평가금 $</th><th>세전 배당 $</th><th>세후 배당 $</th><th>누적 세후 $</th><th>YoC</th><th>실질(물가반영) $</th><th>원화 ₩</th></tr></thead><tbody>';
+    series.forEach(function(s){ h+='<tr><td>'+s.y+'년</td><td><b>'+Pro.fmt(s.value)+'</b></td><td>'+Pro.fmt(s.gross)+'</td><td>'+Pro.fmt(s.net)+'</td><td>'+Pro.fmt(s.cumNet)+'</td><td>'+(s.yoc!=null?s.yoc.toFixed(1)+'%':'-')+'</td><td>'+Pro.fmt(s.real)+'</td><td>₩'+Pro.fmt(s.krw)+'</td></tr>'; });
+    h+='</tbody></table>';
+    // 수입 성장 라인 차트(세후 배당)
+    h+='<div style="margin-top:10px"><div class="small muted" style="margin-bottom:4px">연 세후 배당 성장 (막대) · 마지막해 총수익 가정 벤치 $'+Pro.fmt(series[series.length-1].trBench)+'</div>';
+    const w=Math.max(240,series.length*46), H=90, mx=Math.max.apply(null,series.map(function(s){return s.net;}))||1; let bars='';
+    series.forEach(function(s,i){ const bh=Math.max(2,(s.net/mx)*(H-16)); const bw=w/series.length; const x=i*bw, yv=H-bh;
+      bars+='<rect x="'+(x+3)+'" y="'+yv+'" width="'+(bw-6)+'" height="'+bh+'" rx="2" fill="#5ee2a0"><title>'+s.y+'년 세후 $'+Pro.fmt(s.net)+'</title></rect>';
+      bars+='<text x="'+(x+bw/2)+'" y="'+(H-2)+'" fill="#8aa" font-size="9" text-anchor="middle">'+s.y+'y</text>'; });
+    h+='<svg id="pro_sim_svg" viewBox="0 0 '+w+' '+H+'" style="width:100%;max-width:'+w+'px;height:auto">'+bars+'</svg></div>';
+    h+='<div class="src">⚠️ 시뮬레이션은 입력한 가정이 그대로 지속된다고 볼 때의 <b>추정</b>입니다. 실제 결과와 다를 수 있습니다. 투자 자문이 아닙니다.</div></div>';
+    out.innerHTML=h;
+  },
+  exportCSV(){
+    const d=this._last||this.data(); if(!d.tot){ alert('데이터가 없습니다.'); return; }
+    let csv='Symbol,Shares,AvgCost,Price,MarketValue,CurrentWeight%,TargetWeight%,WeeklyDist,AnnualDist,YoC%,DistYield%,TotalReturnAnn%,NAVReturnAnn%,NAV_CAGR%,MaxDD%,Volatility%,Sharpe,Sortino,Ulcer\n';
+    d.rows.forEach(function(x){ const m=x.m||{};
+      csv+=[x.sym,x.sh,x.avg,x.px,x.mv.toFixed(2),x.cur.toFixed(1),x.tw,x.wk,x.annDist.toFixed(4),(x.yoc!=null?x.yoc.toFixed(1):''),(x.dy!=null?x.dy.toFixed(1):''),(x.tr!=null?x.tr:''),(x.pr!=null?x.pr:''),(m.cagr!=null?m.cagr:''),(m.max_drawdown!=null?m.max_drawdown:''),(m.volatility!=null?m.volatility:''),(m.sharpe!=null?m.sharpe:''),(m.sortino!=null?m.sortino:''),(m.ulcer!=null?m.ulcer:'')].join(',')+'\n';
+    });
+    if(this._sim){ csv+='\nYear,Value,GrossDiv,NetDiv,CumNet,YoC%,RealValue,KRW\n';
+      this._sim.forEach(function(s){ csv+=[s.y,s.value.toFixed(2),s.gross.toFixed(2),s.net.toFixed(2),s.cumNet.toFixed(2),(s.yoc!=null?s.yoc.toFixed(1):''),s.real.toFixed(2),s.krw.toFixed(0)].join(',')+'\n'; }); }
+    this._dl(csv,'text/csv;charset=utf-8','income_pro.csv');
+  },
+  exportXLS(){
+    const d=this._last||this.data(); if(!d.tot){ alert('데이터가 없습니다.'); return; }
+    let t='<table border="1"><tr><th>Symbol</th><th>Shares</th><th>AvgCost</th><th>Price</th><th>MarketValue</th><th>Cur%</th><th>Tgt%</th><th>YoC%</th><th>DistYield%</th><th>TotRet%</th><th>NAVRet%</th><th>CAGR%</th><th>MaxDD%</th><th>Vol%</th><th>Sharpe</th><th>Sortino</th><th>Ulcer</th></tr>';
+    d.rows.forEach(function(x){ const m=x.m||{}; t+='<tr><td>'+x.sym+'</td><td>'+x.sh+'</td><td>'+x.avg+'</td><td>'+x.px+'</td><td>'+x.mv.toFixed(2)+'</td><td>'+x.cur.toFixed(1)+'</td><td>'+x.tw+'</td><td>'+(x.yoc!=null?x.yoc.toFixed(1):'')+'</td><td>'+(x.dy!=null?x.dy.toFixed(1):'')+'</td><td>'+(x.tr!=null?x.tr:'')+'</td><td>'+(x.pr!=null?x.pr:'')+'</td><td>'+(m.cagr!=null?m.cagr:'')+'</td><td>'+(m.max_drawdown!=null?m.max_drawdown:'')+'</td><td>'+(m.volatility!=null?m.volatility:'')+'</td><td>'+(m.sharpe!=null?m.sharpe:'')+'</td><td>'+(m.sortino!=null?m.sortino:'')+'</td><td>'+(m.ulcer!=null?m.ulcer:'')+'</td></tr>'; });
+    t+='</table>';
+    this._dl('<html><head><meta charset="utf-8"></head><body>'+t+'</body></html>','application/vnd.ms-excel','income_pro.xls');
+  },
+  exportPNG(){
+    const svg=document.getElementById('pro_pie_svg'); if(!svg){ alert('먼저 데이터를 불러오세요.'); return; }
+    try{
+      const xml=new XMLSerializer().serializeToString(svg);
+      const img=new Image(); const svg64='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(xml)));
+      img.onload=function(){ const c=document.createElement('canvas'); c.width=360; c.height=360;
+        const ctx=c.getContext('2d'); ctx.fillStyle='#0e1626'; ctx.fillRect(0,0,360,360); ctx.drawImage(img,0,0,360,360);
+        c.toBlob(function(bl){ const u=URL.createObjectURL(bl); const a=document.createElement('a'); a.href=u; a.download='income_allocation.png'; a.click(); setTimeout(function(){URL.revokeObjectURL(u);},1000); }); };
+      img.src=svg64;
+    }catch(e){ alert('PNG 생성 실패: '+e); }
+  },
+  _dl(content,mime,name){ try{ const bl=new Blob([content],{type:mime}); const u=URL.createObjectURL(bl); const a=document.createElement('a'); a.href=u; a.download=name; a.click(); setTimeout(function(){URL.revokeObjectURL(u);},1000); }catch(e){ alert('내보내기 실패: '+e); } }
 };
 
 /* ===================== 초기화(부팅) ===================== */
@@ -1783,7 +1969,7 @@ document.getElementById('indiAsOf2').textContent=asOf;
 if(!localStorage.getItem('isl_seeded_v1')) localStorage.setItem('isl_seeded_v1','1');
 
 Hist.snapshot();
-IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render(); DTE.render(); Refresh.injectButtons();
+IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); Refresh.injectButtons();
 </script>
 </body>
 </html>
