@@ -546,14 +546,14 @@
       <h3 style="margin:6px 0">🔮 배당 시뮬레이터 <span class="small muted">(가정 기반 추정 · 실측 아님)</span></h3>
       <div class="kpi" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
         <div class="box"><div class="l">기간(년)</div><select id="pro_years" style="width:100%"><option>1</option><option>3</option><option selected>5</option><option>10</option></select></div>
-        <div class="box"><div class="l">기대 총수익 %/년</div><input id="pro_tr" type="number" value="12" step="0.5" style="width:100%"></div>
-        <div class="box"><div class="l">NAV 변화 %/년</div><input id="pro_nd" type="number" value="-5" step="0.5" style="width:100%"></div>
+        <div class="box"><div class="l">NAV 변화 %/년</div><input id="pro_nd" type="number" value="-12" step="0.5" style="width:100%"></div>
         <div class="box"><div class="l">배당성장 %/년</div><input id="pro_dg" type="number" value="0" step="0.5" style="width:100%"></div>
         <div class="box"><div class="l">세율 %</div><input id="pro_tax" type="number" value="15" step="1" style="width:100%"></div>
         <div class="box"><div class="l">물가 %/년</div><input id="pro_infl" type="number" value="3" step="0.5" style="width:100%"></div>
         <div class="box"><div class="l">환율 ₩/$</div><input id="pro_fx" type="number" value="1380" step="10" style="width:100%"></div>
+        <div class="box"><div class="l">월 인출 목표 $</div><input id="pro_sim_floor" type="number" value="700" step="50" style="width:100%"></div>
       </div>
-      <div class="btnrow"><button class="act" onclick="Pro.simulate()">▶️ 시뮬레이션 실행</button></div>
+      <div class="btnrow"><button class="act" onclick="Pro.simulate()">▶️ 시뮬레이션 실행 (3가지 재투자 방식)</button></div>
     </div>
     <div id="pro_out" style="margin-top:12px"><span class="small muted">클라우드 데이터를 불러오는 중…</span></div>
     <div id="pro_sim_out" style="margin-top:12px"></div>
@@ -1897,39 +1897,53 @@ const Pro = {
   simulate(){
     const out=document.getElementById('pro_sim_out'); if(!out)return;
     const d=this._last||this.data(); if(!d.tot){ out.innerHTML='<span class="small muted">데이터가 없어 시뮬레이션할 수 없습니다.</span>'; return; }
+    const self=this; const gv=function(id){ const e=document.getElementById(id); return e?(+e.value||0):0; };
     const Y=+(document.getElementById('pro_years').value)||5;
-    const tr=+(document.getElementById('pro_tr').value)||0;
-    const nd=+(document.getElementById('pro_nd').value)||0;
-    const dg=+(document.getElementById('pro_dg').value)||0;
-    const tax=(+(document.getElementById('pro_tax').value)||0)/100;
-    const infl=+(document.getElementById('pro_infl').value)||0;
-    const fx=+(document.getElementById('pro_fx').value)||1;
-    // 정규화된 합성 보유(전 포트폴리오 = 1주): P=총평가금, D=연배당(합), cost=총원가
-    let S=1, P=d.tot, D=0, cost=0; d.rows.forEach(function(x){ D+=x.sh*x.annDist; cost+=x.sh*x.avg; });
-    const series=[]; let cumNet=0;
-    for(let y=1;y<=Y;y++){
-      const gross=S*D; const net=gross*(1-tax); cumNet+=net;
-      S += P? net/P : 0;                 // 세후 배당 재투자(현재가 기준)
-      const value=S*P;                   // 재투자 반영 평가금(가격변동 전)
-      P *= (1+nd/100); D *= (1+nd/100)*(1+dg/100);  // NAV 하락 시 분배금도 비례 감소(수익률 유지) + 배당성장
-      const real=value/Math.pow(1+infl/100,y);
-      const trBench=d.tot*Math.pow(1+tr/100,y);
-      series.push({y:y, value:value, gross:gross, net:net, cumNet:cumNet, shares:S, yoc:cost?gross/cost*100:null, real:real, krw:value*fx, trBench:trBench});
+    const nd=gv('pro_nd'), dg=gv('pro_dg'), tax=gv('pro_tax')/100, infl=gv('pro_infl'), fx=gv('pro_fx')||1;
+    const floorMo=gv('pro_sim_floor')||700; const floorYr=floorMo*12;
+    // 합성 1단위: P=총평가금, D=연배당(합)  · 분배금은 NAV에 비례(수익률 일정) 가정
+    let baseD=0; d.rows.forEach(function(x){ baseD+=x.sh*x.annDist; });
+    function run(mode){
+      let S=1, P=d.tot, D=baseD, cumTake=0; const rows=[];
+      for(var y=1;y<=Y;y++){
+        var gross=S*D, net=gross*(1-tax), take=0, reinv=0;
+        if(mode==='full'){ reinv=net; }
+        else if(mode==='none'){ take=net; }
+        else { take=Math.min(net, floorYr); reinv=Math.max(0, net-floorYr); }  // 초과분만 재투자
+        cumTake+=take; S += P? reinv/P : 0; var value=S*P;
+        P *= (1+nd/100); D *= (1+nd/100)*(1+dg/100);
+        rows.push({y:y, value:value, net:net, take:take, cumTake:cumTake, moTake:take/12, moPot:net/12, real:value/Math.pow(1+infl/100,y), krw:value*fx});
+      }
+      return rows;
     }
-    this._sim=series;
-    let h='<div class="card" style="border-color:#3a6ea5"><h3 style="margin:0 0 4px">🔮 시뮬레이션 결과 <span class="small muted">('+Y+'년 · 가정 기반 추정 · 실측 아님)</span></h3>';
-    h+='<div class="src" style="margin-bottom:8px">가정: 기대 총수익 '+tr+'%/년, NAV '+nd+'%/년, 배당성장 '+dg+'%/년, 세율 '+(tax*100).toFixed(0)+'%, 물가 '+infl+'%/년, 환율 '+Pro.fmt(fx)+'₩/$. 세후 배당은 현재가로 재투자(복리), 분배금은 NAV에 비례해 변동(수익률 일정) 가정.</div>';
-    h+='<table><thead><tr><th>연차</th><th>평가금 $</th><th>세전 배당 $</th><th>세후 배당 $</th><th>누적 세후 $</th><th>YoC</th><th>실질(물가반영) $</th><th>원화 ₩</th></tr></thead><tbody>';
-    series.forEach(function(s){ h+='<tr><td>'+s.y+'년</td><td><b>'+Pro.fmt(s.value)+'</b></td><td>'+Pro.fmt(s.gross)+'</td><td>'+Pro.fmt(s.net)+'</td><td>'+Pro.fmt(s.cumNet)+'</td><td>'+(s.yoc!=null?s.yoc.toFixed(1)+'%':'-')+'</td><td>'+Pro.fmt(s.real)+'</td><td>₩'+Pro.fmt(s.krw)+'</td></tr>'; });
+    const modes=[
+      {k:'full', n:'① 전액 재투자', c:'#5ee2a0'},
+      {k:'floor', n:'② 초과분만 재투자 (월 $'+self.fmt(floorMo)+' 수령)', c:'#4ea1ff'},
+      {k:'none', n:'③ 재투자 안 함 (전액 수령)', c:'#ff9d5c'}
+    ];
+    const res={}; modes.forEach(function(m){ res[m.k]=run(m.k); });
+    this._sim=res;
+    const last=function(a){return a[a.length-1];};
+    let h='<div class="card" style="border-color:#3a6ea5"><h3 style="margin:0 0 4px">🔮 재투자 방식별 시뮬레이션 <span class="small muted">('+Y+'년 · 추정 · 실측 아님)</span></h3>';
+    h+='<div class="src" style="margin-bottom:8px">가정: NAV '+nd+'%/년, 배당성장 '+dg+'%/년, 세율 '+(tax*100).toFixed(0)+'%, 물가 '+infl+'%/년, 환율 '+self.fmt(fx)+'₩/$, 월 인출목표 $'+self.fmt(floorMo)+'. 분배금은 NAV에 비례(수익률 일정), 재투자분은 현재가로 복리.</div>';
+    // 방식별 요약 비교
+    h+='<table><thead><tr><th>방식</th><th>'+Y+'년 자산</th><th>월 실수령</th><th>누적 수령(세후)</th><th>월배당 잠재력</th></tr></thead><tbody>';
+    modes.forEach(function(m){ const L=last(res[m.k]);
+      h+='<tr><td style="color:'+m.c+'"><b>'+m.n+'</b></td><td><b>$'+self.fmt(L.value)+'</b></td><td>$'+self.fmt(L.moTake)+'</td><td>$'+self.fmt(L.cumTake)+'</td><td class="muted">$'+self.fmt(L.moPot)+'</td></tr>';
+    });
     h+='</tbody></table>';
-    // 수입 성장 라인 차트(세후 배당)
-    h+='<div style="margin-top:10px"><div class="small muted" style="margin-bottom:4px">연 세후 배당 성장 (막대) · 마지막해 총수익 가정 벤치 $'+Pro.fmt(series[series.length-1].trBench)+'</div>';
-    const w=Math.max(240,series.length*46), H=90, mx=Math.max.apply(null,series.map(function(s){return s.net;}))||1; let bars='';
-    series.forEach(function(s,i){ const bh=Math.max(2,(s.net/mx)*(H-16)); const bw=w/series.length; const x=i*bw, yv=H-bh;
-      bars+='<rect x="'+(x+3)+'" y="'+yv+'" width="'+(bw-6)+'" height="'+bh+'" rx="2" fill="#5ee2a0"><title>'+s.y+'년 세후 $'+Pro.fmt(s.net)+'</title></rect>';
-      bars+='<text x="'+(x+bw/2)+'" y="'+(H-2)+'" fill="#8aa" font-size="9" text-anchor="middle">'+s.y+'y</text>'; });
-    h+='<svg id="pro_sim_svg" viewBox="0 0 '+w+' '+H+'" style="width:100%;max-width:'+w+'px;height:auto">'+bars+'</svg></div>';
-    h+='<div class="src">⚠️ 시뮬레이션은 입력한 가정이 그대로 지속된다고 볼 때의 <b>추정</b>입니다. 실제 결과와 다를 수 있습니다. 투자 자문이 아닙니다.</div></div>';
+    // 연도별 자산 추이(3방식)
+    h+='<div style="margin-top:10px"><div class="small muted" style="margin-bottom:4px">연도별 평가금</div>';
+    h+='<table><thead><tr><th>연차</th><th style="color:#5ee2a0">①전액재투자</th><th style="color:#4ea1ff">②초과분재투자</th><th style="color:#ff9d5c">③재투자안함</th></tr></thead><tbody>';
+    for(var i=0;i<Y;i++){ h+='<tr><td>'+res.full[i].y+'년</td><td>$'+self.fmt(res.full[i].value)+'</td><td>$'+self.fmt(res.floor[i].value)+'</td><td>$'+self.fmt(res.none[i].value)+'</td></tr>'; }
+    h+='</tbody></table></div>';
+    // 초과분 재투자(현 전략) 상세
+    const fl=res.floor;
+    h+='<div style="margin-top:10px"><div class="small muted" style="margin-bottom:4px">②초과분만 재투자 상세 (현 전략)</div>';
+    h+='<table><thead><tr><th>연차</th><th>자산 $</th><th>세후배당 $</th><th>실수령 $</th><th>재투자 $</th><th>월수령 $</th><th>원화 ₩</th></tr></thead><tbody>';
+    fl.forEach(function(s){ const reinv=s.net-s.take; h+='<tr><td>'+s.y+'년</td><td><b>'+self.fmt(s.value)+'</b></td><td>'+self.fmt(s.net)+'</td><td>'+self.fmt(s.take)+'</td><td>'+self.fmt(reinv)+'</td><td>$'+self.fmt(s.moTake)+'</td><td>₩'+self.fmt(s.krw)+'</td></tr>'; });
+    h+='</tbody></table></div>';
+    h+='<div class="src">⚠️ 입력 가정이 그대로 지속된다고 볼 때의 <b>추정</b>입니다. 실제와 다를 수 있으며 투자 자문이 아닙니다. ③재투자 안 함은 NAV 침식으로 자산·배당이 함께 감소합니다.</div></div>';
     out.innerHTML=h;
   },
   clamp(x,lo,hi){ return Math.max(lo,Math.min(hi,x)); },
