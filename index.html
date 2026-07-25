@@ -183,6 +183,11 @@
     <div id="vr_dash" style="margin-top:10px"></div>
   </div>
   <div class="card">
+    <h3>📈 최대·최소 밴드 그래프 <span class="tag" id="vr_band_sym">TQQQ</span></h3>
+    <div class="note">라오어 VR 방식 — 평가금이 목표 V의 <b>최소(V×0.85)</b>선에 닿으면 매수 신호. 종목 선택은 아래 VR 계산기의 종목과 연동됩니다. 앱 열 때 주 1회 자동 기록.</div>
+    <div id="vr_band" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
     <h2>VR 계산기 <span class="tag">밸류리밸런싱 · VERIFIED</span></h2>
     <div class="note">계산은 <b>기준가(전일 종가)</b> 기준. <b>종목별로 상태가 따로 저장</b>됩니다. 적립식 · 거치식 · 인출식 지원.</div>
     <h3>① 설정</h3>
@@ -896,6 +901,7 @@ const VR = {
     R.set('vr_price',MKT[sym]?MKT[sym].prevClose:0);
     this.calc();
     try{ this.dashboard(); }catch(e){ console.log('vr dash',e); }
+    try{ this.renderBand(); }catch(e){ console.log('vr band',e); }
   },
   dashboard(){
     const el=document.getElementById('vr_dash'); if(!el)return;
@@ -954,6 +960,58 @@ const VR = {
     }
     el.innerHTML=h || '<div class="muted small">VR 포지션 데이터가 없습니다. 매매기록 탭에서 클라우드 새로고침하거나 평단·보유수량을 입력하세요.</div>';
   },
+  BANDKEY:'isl_vrband_v1',
+  bandHist(){ try{return JSON.parse(localStorage.getItem(this.BANDKEY))||{}}catch(e){return{}} },
+  weekKey(d){ const dt=new Date(d); const on=new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate())); const day=on.getUTCDay()||7; on.setUTCDate(on.getUTCDate()+4-day); const ys=new Date(Date.UTC(on.getUTCFullYear(),0,1)); const wk=Math.ceil((((on-ys)/86400000)+1)/7); return on.getUTCFullYear()+'-W'+(wk<10?'0'+wk:wk); },
+  recordBand(){
+    const store=this.store(); const band=(R.n('vr_band')||15)/100; const all=this.bandHist();
+    const today=(new Date()).toISOString().slice(0,10); const wk=this.weekKey(today);
+    ['tqqq','upro'].forEach(function(sym){
+      const st=store[sym]||{}; const V=+st.pv||0; const ps=+st.ps||0;
+      const px=(typeof MKT!=='undefined'&&MKT[sym])?+MKT[sym].prevClose:0;
+      if(V<=0||px<=0) return;
+      const evalv=ps*px, lo=V*(1-band), up=V*(1+band), buy=evalv<=lo;
+      const arr=all[sym]||[]; const lastp=arr[arr.length-1];
+      const rec={wk:wk,date:today,eval:Math.round(evalv),lo:Math.round(lo),up:Math.round(up),V:Math.round(V),buy:buy};
+      if(lastp&&lastp.wk===wk){ arr[arr.length-1]=rec; } else { arr.push(rec); }
+      all[sym]=arr.slice(-80);
+    });
+    try{ localStorage.setItem(this.BANDKEY,JSON.stringify(all)); }catch(e){}
+  },
+  bandChart(sym){
+    const arr=(this.bandHist()[sym]||[]);
+    if(arr.length===0) return '<div class="muted small">아직 기록이 없습니다. 앱을 열 때마다 주 1포인트씩 자동 기록되어 평가금·최소·최대 밴드가 그려집니다. (클라우드 새로고침 시 최신 V·보유수량 반영)</div>';
+    const W=680,H=300,pl=52,pr=96,pt=20,pb=40; const n=arr.length;
+    let ys=[]; arr.forEach(function(d){ ys.push(d.eval,d.lo,d.up); });
+    let mn=Math.min.apply(null,ys), mx=Math.max.apply(null,ys); if(mn===mx){mn*=0.95;mx*=1.05;}
+    const padY=(mx-mn)*0.1||1; mn=Math.max(0,mn-padY); mx=mx+padY;
+    const X=i=> n<=1?(pl+(W-pl-pr)/2):pl+(W-pl-pr)*i/(n-1);
+    const Y=v=> pt+(H-pt-pb)*(1-(v-mn)/(mx-mn));
+    const poly=function(key,color,dash){ const pts=arr.map(function(d,i){return X(i).toFixed(1)+','+Y(d[key]).toFixed(1);}).join(' ');
+      return '<polyline fill="none" stroke="'+color+'" stroke-width="'+(dash?2:3)+'"'+(dash?' stroke-dasharray="7 5"':'')+' points="'+pts+'"/>'; };
+    // 격자 + Y라벨
+    let grid=''; const steps=5; for(let s=0;s<=steps;s++){ const v=mn+(mx-mn)*s/steps; const y=Y(v);
+      grid+='<line x1="'+pl+'" y1="'+y.toFixed(1)+'" x2="'+(W-pr)+'" y2="'+y.toFixed(1)+'" stroke="#2e3a52" stroke-width="1"/>'
+        +'<text x="'+(pl-6)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="#93a1bd">'+Math.round(v).toLocaleString()+'</text>'; }
+    // X라벨(주차) — 4개 간격
+    let xlab=''; arr.forEach(function(d,i){ if(i%4===0||i===n-1){ xlab+='<text x="'+X(i).toFixed(1)+'" y="'+(H-14)+'" text-anchor="middle" font-size="10" fill="#93a1bd">'+i+'주차</text>'; } });
+    // 매수발생 화살표 + 목록
+    let arrows='', buys=[]; arr.forEach(function(d,i){ if(d.buy){ buys.push(i); const x=X(i), y=Y(d.eval);
+      arrows+='<path d="M'+x+' '+(y+26)+' L'+(x-5)+' '+(y+36)+' L'+(x+5)+' '+(y+36)+' Z" fill="#a97bff"/><line x1="'+x+'" y1="'+(y+36)+'" x2="'+x+'" y2="'+(y+48)+'" stroke="#a97bff" stroke-width="2.5"/>'; } });
+    // 현재 평가금 박스
+    const cur=arr[n-1].eval;
+    const box='<rect x="'+(W-pr+4)+'" y="'+pt+'" width="86" height="22" rx="4" fill="none" stroke="#ff5a4d" stroke-width="1.5"/>'
+      +'<text x="'+(W-pr+47)+'" y="'+(pt+15)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#ff5a4d">$'+cur.toLocaleString()+'</text>';
+    // 범례
+    const leg='<g font-size="11"><line x1="'+(W-pr+4)+'" y1="'+(pt+40)+'" x2="'+(W-pr+22)+'" y2="'+(pt+40)+'" stroke="#ff5a4d" stroke-width="3"/><text x="'+(W-pr+26)+'" y="'+(pt+44)+'" fill="#cbd5e6">평가금</text>'
+      +'<line x1="'+(W-pr+4)+'" y1="'+(pt+58)+'" x2="'+(W-pr+22)+'" y2="'+(pt+58)+'" stroke="#cbd5e6" stroke-width="2" stroke-dasharray="7 5"/><text x="'+(W-pr+26)+'" y="'+(pt+62)+'" fill="#cbd5e6">최소</text>'
+      +'<line x1="'+(W-pr+4)+'" y1="'+(pt+76)+'" x2="'+(W-pr+22)+'" y2="'+(pt+76)+'" stroke="#93a1bd" stroke-width="2" stroke-dasharray="7 5"/><text x="'+(W-pr+26)+'" y="'+(pt+80)+'" fill="#93a1bd">최대</text></g>';
+    const svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+grid+poly('up','#93a1bd',true)+poly('lo','#cbd5e6',true)+poly('eval','#ff5a4d',false)+arrows+xlab+box+leg+'</svg>';
+    const buyList=buys.length?('↑ 매수발생 — '+buys.map(function(i){return i+'주차';}).join(' · ')):'매수발생 없음(평가금이 최소밴드에 닿은 주 없음)';
+    return svg+'<div style="margin-top:6px;font-size:12px;color:#a97bff;font-weight:600">'+buyList+'</div>'
+      +'<div class="src">최소=목표 V×(1−밴드), 최대=V×(1+밴드). 평가금이 <b>최소</b>선에 닿으면 매수 신호. 앱 열 때/클라우드 새로고침 시 주 1회 자동 기록됩니다.</div>';
+  },
+  renderBand(){ const el=document.getElementById('vr_band'); if(!el)return; try{ this.recordBand(); }catch(e){} const sym=R.s('vr_sym'); const tag=document.getElementById('vr_band_sym'); if(tag)tag.textContent=sym.toUpperCase(); el.innerHTML=this.bandChart(sym); },
   read(){return {sym:R.s('vr_sym'),G:R.n('vr_G'),band:R.n('vr_band')/100,pool:R.n('vr_pool')/100,fee:R.n('vr_fee'),
     dep:R.n('vr_dep'),wd:R.n('vr_wd'),mult:R.n('vr_mult'),pv:R.n('vr_pv'),pp:R.n('vr_pp'),ps:R.n('vr_ps'),price:R.n('vr_price')};},
   _last:null,
