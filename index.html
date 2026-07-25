@@ -1911,14 +1911,14 @@ const Pro = {
       const gross=S*D; const net=gross*(1-tax); cumNet+=net;
       S += P? net/P : 0;                 // 세후 배당 재투자(현재가 기준)
       const value=S*P;                   // 재투자 반영 평가금(가격변동 전)
-      P *= (1+nd/100); D *= (1+dg/100);  // 다음 해 NAV·배당 변화
+      P *= (1+nd/100); D *= (1+nd/100)*(1+dg/100);  // NAV 하락 시 분배금도 비례 감소(수익률 유지) + 배당성장
       const real=value/Math.pow(1+infl/100,y);
       const trBench=d.tot*Math.pow(1+tr/100,y);
       series.push({y:y, value:value, gross:gross, net:net, cumNet:cumNet, shares:S, yoc:cost?gross/cost*100:null, real:real, krw:value*fx, trBench:trBench});
     }
     this._sim=series;
     let h='<div class="card" style="border-color:#3a6ea5"><h3 style="margin:0 0 4px">🔮 시뮬레이션 결과 <span class="small muted">('+Y+'년 · 가정 기반 추정 · 실측 아님)</span></h3>';
-    h+='<div class="src" style="margin-bottom:8px">가정: 기대 총수익 '+tr+'%/년, NAV '+nd+'%/년, 배당성장 '+dg+'%/년, 세율 '+(tax*100).toFixed(0)+'%, 물가 '+infl+'%/년, 환율 '+Pro.fmt(fx)+'₩/$. 세후 배당은 현재가로 재투자(복리) 가정.</div>';
+    h+='<div class="src" style="margin-bottom:8px">가정: 기대 총수익 '+tr+'%/년, NAV '+nd+'%/년, 배당성장 '+dg+'%/년, 세율 '+(tax*100).toFixed(0)+'%, 물가 '+infl+'%/년, 환율 '+Pro.fmt(fx)+'₩/$. 세후 배당은 현재가로 재투자(복리), 분배금은 NAV에 비례해 변동(수익률 일정) 가정.</div>';
     h+='<table><thead><tr><th>연차</th><th>평가금 $</th><th>세전 배당 $</th><th>세후 배당 $</th><th>누적 세후 $</th><th>YoC</th><th>실질(물가반영) $</th><th>원화 ₩</th></tr></thead><tbody>';
     series.forEach(function(s){ h+='<tr><td>'+s.y+'년</td><td><b>'+Pro.fmt(s.value)+'</b></td><td>'+Pro.fmt(s.gross)+'</td><td>'+Pro.fmt(s.net)+'</td><td>'+Pro.fmt(s.cumNet)+'</td><td>'+(s.yoc!=null?s.yoc.toFixed(1)+'%':'-')+'</td><td>'+Pro.fmt(s.real)+'</td><td>₩'+Pro.fmt(s.krw)+'</td></tr>'; });
     h+='</tbody></table>';
