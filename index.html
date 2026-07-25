@@ -219,25 +219,6 @@
     <div id="vr_out"></div>
     <div id="vr_audit" class="audit"></div>
   </div>
-  <div class="card">
-    <h3>📊 평단 vs 시장가 (시계열)</h3>
-    <div class="note">선택한 종목의 시장가와 VR 평균단가를 시간에 걸쳐 비교합니다. “→ 다음 사이클 상태 반영”을 누르면 평단이 갱신됩니다.</div>
-    <div id="vr_chart" style="margin-top:8px"></div>
-  </div>
-  <div class="card">
-    <h3>💰 QDTE 인컴 → UPRO</h3>
-    <div class="note">QDTE 분배금을 모아 UPRO VR 매수 자금으로 쓰는 트래커. 받은 분배금을 적립하면 누적되고, "→ UPRO VR 적립액으로"를 누르면 UPRO VR 매수 자금이 됩니다.</div>
-    <div class="grid yellow" style="margin-top:8px">
-      <label class="f">QDTE 보유 수량(참고)<input id="qd_sh" type="number" step="1" value="0"></label>
-      <label class="f">금액($) — 적립/차감<input id="qd_in" type="number" step="0.01" value=""></label>
-    </div>
-    <div class="btnrow">
-      <button class="ghost" onclick="QDTE.add()">분배금 적립 (+)</button>
-      <button class="ghost" onclick="QDTE.use()">사용 차감 (−)</button>
-      <button class="act" onclick="QDTE.toUpro()">→ UPRO VR 적립액으로</button>
-    </div>
-    <div id="qd_out" style="margin-top:10px"></div>
-  </div>
 </section>
 
 <section id="indi" class="tab">
@@ -976,7 +957,7 @@ const VR = {
   read(){return {sym:R.s('vr_sym'),G:R.n('vr_G'),band:R.n('vr_band')/100,pool:R.n('vr_pool')/100,fee:R.n('vr_fee'),
     dep:R.n('vr_dep'),wd:R.n('vr_wd'),mult:R.n('vr_mult'),pv:R.n('vr_pv'),pp:R.n('vr_pp'),ps:R.n('vr_ps'),price:R.n('vr_price')};},
   _last:null,
-  renderChart(){ document.getElementById('vr_chart').innerHTML = renderLineChart(Hist.get()['vr'+R.s('vr_sym')]||[]); },
+  renderChart(){ const el=document.getElementById('vr_chart'); if(!el)return; el.innerHTML = renderLineChart(Hist.get()['vr'+R.s('vr_sym')]||[]); },
   calc(){
     const p=this.read(); const o=VRengine.calc(p); this._last={p,o}; this.saveState();
     const cls = o.buyShares>0?'buy':(o.sellShares>0?'sell':'hold');
