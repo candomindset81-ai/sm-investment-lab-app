@@ -1987,6 +1987,51 @@ const Pro = {
     let leg=''; rows.forEach(function(x,i){ leg+='<div style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="width:10px;height:10px;border-radius:2px;background:'+cols[i%3]+'"></span>'+x.sym+' '+x.cur.toFixed(1)+'% <span class="muted">/ 목표 '+x.tw+'%</span></div>'; });
     return '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><svg id="pro_pie_svg" viewBox="0 0 180 180" style="width:180px;height:180px">'+segs+'</svg><div style="display:flex;flex-direction:column;gap:6px">'+leg+'</div></div>';
   },
+  lineSVG(rows){
+    // 최근 12주 주당 배당 추이 (종목별 선그래프)
+    const cols={QDTE:'#22c58b',XDTE:'#ffd24a',RDTE:'#4ea1ff'};
+    const series=rows.map(function(x){ return {sym:x.sym, v:(x.hist||[]).slice(-12).map(function(p){return +p[1];})}; }).filter(function(s){return s.v.length;});
+    if(!series.length) return '<span class="small muted">배당 이력이 아직 부족합니다.</span>';
+    const W=640,H=240,pl=44,pr=90,pt=14,pb=26;
+    let all=[]; series.forEach(function(s){ all=all.concat(s.v); });
+    let mn=Math.min.apply(null,all), mx=Math.max.apply(null,all); if(mn===mx){mn*=0.95;mx*=1.05;}
+    const pad=(mx-mn)*0.12||0.01; mn-=pad; mx+=pad;
+    const n=Math.max.apply(null,series.map(function(s){return s.v.length;}));
+    const X=function(i){ return n<=1?pl:pl+(W-pl-pr)*i/(n-1); };
+    const Y=function(v){ return pt+(H-pt-pb)*(1-(v-mn)/(mx-mn)); };
+    let grid=''; [mn,(mn+mx)/2,mx].forEach(function(v){ const y=Y(v);
+      grid+='<line x1="'+pl+'" y1="'+y.toFixed(1)+'" x2="'+(W-pr)+'" y2="'+y.toFixed(1)+'" stroke="#22304a" stroke-width="1"/>'
+        +'<text x="'+(pl-6)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="#93a1bd">$'+v.toFixed(3)+'</text>'; });
+    let lines='',leg='',ly=pt+8;
+    series.forEach(function(s){ const c=cols[s.sym]||'#8fb8ff';
+      const off=n-s.v.length; const pts=s.v.map(function(v,i){return X(off+i).toFixed(1)+','+Y(v).toFixed(1);}).join(' ');
+      lines+='<polyline fill="none" stroke="'+c+'" stroke-width="2.5" points="'+pts+'"/>';
+      s.v.forEach(function(v,i){ lines+='<circle cx="'+X(off+i).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="2.6" fill="'+c+'"><title>'+s.sym+' $'+v.toFixed(4)+'</title></circle>'; });
+      leg+='<line x1="'+(W-pr+8)+'" y1="'+ly+'" x2="'+(W-pr+26)+'" y2="'+ly+'" stroke="'+c+'" stroke-width="3"/><text x="'+(W-pr+30)+'" y="'+(ly+4)+'" font-size="11" fill="#cbd5e6">'+s.sym+'</text>'; ly+=18; });
+    const xl='<text x="'+pl+'" y="'+(H-8)+'" font-size="10" fill="#93a1bd">12주 전</text><text x="'+(W-pr)+'" y="'+(H-8)+'" text-anchor="end" font-size="10" fill="#93a1bd">최근</text>';
+    return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+grid+lines+leg+xl+'</svg>';
+  },
+  barSVG(rows){
+    // 종목별 핵심 지표 막대: TTM수익률·NAV12개월·총수익 YTD
+    const met=rows.map(function(x){ const of=(x.ror||{}); return {sym:x.sym,
+      ttm:(x.dy!=null?x.dy:null), nav:((x.decay||{}).m12!=null?x.decay.m12:null), tr:(of.ytd!=null?of.ytd:x.tr)}; });
+    const W=640,H=230,pl=40,pr=14,pt=16,pb=40; const groups=met.length, gw=(W-pl-pr)/groups, bw=gw/3.4;
+    let vals=[]; met.forEach(function(m){ [m.ttm,m.nav,m.tr].forEach(function(v){ if(v!=null)vals.push(v); }); });
+    let mn=Math.min(0,Math.min.apply(null,vals)), mx=Math.max(0,Math.max.apply(null,vals)); if(mn===mx)mx+=1;
+    const pad=(mx-mn)*0.15||1; mx+=pad; if(mn<0)mn-=pad;
+    const Y=function(v){ return pt+(H-pt-pb)*(1-(v-mn)/(mx-mn)); }; const y0=Y(0);
+    const series=[{k:'ttm',c:'#22c58b',n:'TTM수익률'},{k:'nav',c:'#ff6b6b',n:'NAV12개월'},{k:'tr',c:'#4ea1ff',n:'총수익YTD'}];
+    let bars='';
+    met.forEach(function(m,gi){ const gx=pl+gi*gw;
+      series.forEach(function(s,si){ const v=m[s.k]; if(v==null)return; const x=gx+gw/2+(si-1)*bw-bw/2; const y=Y(v);
+        const top=Math.min(y,y0), hgt=Math.abs(y-y0);
+        bars+='<rect x="'+x.toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+(bw-2).toFixed(1)+'" height="'+Math.max(1,hgt).toFixed(1)+'" rx="1.5" fill="'+s.c+'"><title>'+m.sym+' '+s.n+' '+v.toFixed(1)+'%</title></rect>'
+          +'<text x="'+(x+bw/2-1).toFixed(1)+'" y="'+(v>=0?top-2:top+hgt+9).toFixed(1)+'" text-anchor="middle" font-size="8" fill="#9fb0c8">'+Math.round(v)+'</text>'; });
+      bars+='<text x="'+(gx+gw/2).toFixed(1)+'" y="'+(H-14)+'" text-anchor="middle" font-size="11" fill="#e6edf7">'+m.sym+'</text>'; });
+    bars+='<line x1="'+pl+'" y1="'+y0.toFixed(1)+'" x2="'+(W-pr)+'" y2="'+y0.toFixed(1)+'" stroke="#5a6a85" stroke-width="1"/>';
+    let leg=''; series.forEach(function(s,i){ leg+='<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:11px"><span style="width:10px;height:10px;border-radius:2px;background:'+s.c+'"></span>'+s.n+'</span>'; });
+    return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+bars+'</svg><div style="margin-top:4px">'+leg+'</div>';
+  },
   render(){
     const el=document.getElementById('pro_out'); if(!el)return;
     const d=this.data(); const rows=d.rows; this._last=d;
@@ -2016,7 +2061,9 @@ const Pro = {
     // ── 차트: 배분 도넛 + 종목별 배당 추이 + NAV 감소율 ──
     h+='<div class="card"><h3 style="margin:0 0 6px">📊 배분 · 배당 추이 · NAV 감소율</h3>';
     const tgtStr=rows.map(function(x){return x.tw;}).join('/');
-    h+='<div style="margin-bottom:10px"><div class="small muted" style="margin-bottom:4px">현재 배분 vs 목표('+tgtStr+')</div>'+this.pie(rows,d.tot)+'</div>';
+    h+='<div style="margin-bottom:10px"><div class="small muted" style="margin-bottom:4px">🥧 현재 배분 vs 목표('+tgtStr+')</div>'+this.pie(rows,d.tot)+'</div>';
+    h+='<div style="margin-bottom:10px"><div class="small muted" style="margin-bottom:4px">📈 최근 12주 주당 배당 추이</div>'+this.lineSVG(rows)+'</div>';
+    h+='<div style="margin-bottom:10px"><div class="small muted" style="margin-bottom:4px">📊 종목별 핵심 지표 (TTM수익률·NAV12개월·총수익YTD, %)</div>'+this.barSVG(rows)+'</div>';
     h+='<table><thead><tr><th>종목</th><th>주간 배당 추이(최근)</th><th>NAV 감소율 1/3/6/12M</th></tr></thead><tbody>';
     rows.forEach(function(x){ const dc=x.decay||{};
       const nav=['m1','m3','m6','m12'].map(function(k){ const v=dc[k]; return v==null?'-':((v>0?'+':'')+v+'%'); }).join(' · ');
