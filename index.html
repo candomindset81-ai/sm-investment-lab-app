@@ -951,16 +951,19 @@ const VR = {
             var ideal=Math.max(0,Math.min(Math.round(need/r.px),maxUp));
             var poolLim=Math.min(need,(r.pool||0)*poolRatio,Math.max(0,r.pool||0));
             var poolSh=Math.floor(Math.max(0,poolLim)/r.px);
-            if(ideal>0) rec='🔵 LOC 매수 <b>$'+r.px.toFixed(2)+'</b> · 이상적 <b>'+ideal+'주</b> ($'+money(ideal*r.px)+')'+(poolSh>0?(' · 실제 '+poolSh+'주'):' · Pool부족→실제 0주');
-            else rec='🔵 매수신호지만 1주($'+r.px.toFixed(2)+')면 상단 $'+money(up)+' 초과 → 이상적 <b>0주</b>·적립 권장';
+            if(ideal>0){
+              rec='📍 <b>LOC 매수</b> · 지정가 <b>$'+r.px.toFixed(2)+'</b> · <b>'+ideal+'주</b> ($'+money(ideal*r.px)+')';
+              if(poolSh<ideal) rec+='<br><span class="muted">※ Pool 한도상 실제 '+poolSh+'주'+(poolSh===0?'(대기)':'')+'</span>';
+              rec+='<br><span class="muted">마감가 ≤ 지정가면 그 종가로 체결</span>';
+            } else rec='매수신호지만 1주($'+r.px.toFixed(2)+')면 상단 $'+money(up)+' 초과 → 이상적 <b>0주</b>·적립 권장';
           } else if(r.evalv<=up){
             var trig=r.ps? lo/r.ps : 0, needT=r.V*band;
             var idealT=trig? Math.max(0,Math.min(Math.round(needT/trig),Math.floor((up-lo)/trig))):0;
-            rec='💧 매수 발동가 <b>$'+trig.toFixed(2)+'/주</b> 이하로 내려오면 이상적 <b>'+idealT+'주</b> 매수';
+            rec='📍 <b>LOC 매수 예약</b> · 지정가 <b>$'+trig.toFixed(2)+'</b> · <b>'+idealT+'주</b><br><span class="muted">마감가가 $'+trig.toFixed(2)+' 이하로 내려오면 자동 체결</span>';
           } else {
-            rec='🔺 상단 초과 — 예약 매도 사다리(아래 VR 계산기) 참고';
+            rec='🔺 상단 초과 — 예약 매도(LOC) 사다리는 아래 VR 계산기 참고';
           }
-          h+='<div class="small" style="margin-top:5px;padding:5px 8px;background:#182338;border-radius:6px;color:#cde">'+rec+'</div>';
+          h+='<div class="small" style="margin-top:5px;padding:6px 9px;background:#182338;border-radius:6px;color:#cde;line-height:1.5">'+rec+'<div style="color:#7f8ba3;margin-top:3px">LOC=종가 지정가 주문(마감가가 지정가 이하일 때만 그 종가로 체결)</div></div>';
         }
       }
       h+='</div>';
