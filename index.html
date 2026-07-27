@@ -347,8 +347,8 @@
     <p class="src">💡 LOC=종가 체결 지정가. 매수가가 현재가보다 높아 보여도 정상(상한선이라 종가로 매수). T가 발동값(20분할=19) 넘으면 소진 → 리버스 모드.</p>
   </div>
   <div class="card">
-    <h2>③ VR (TQQQ · UPRO) — 매일 밴드 체크 · 2주 금요일 적립</h2>
-    <p class="small"><b>매일 전일 종가로 밴드 체크</b>: 목표 평가금(V) ±15% 밴드를 <b>벗어날 때만</b> 사고팝니다(밴드 안이면 관망). <b>정기 적립·리밸런싱은 2주 금요일</b> — 텔레그램에 "🗓️ 2주 적립일" 안내가 뜨면 TQQQ +$250 · UPRO +$100 적립 후 반영. (일정: 07/31 → 08/14 → 08/28 …)</p>
+    <h2>③ VR (TQQQ · UPRO) — 2주 GTC 예약형</h2>
+    <p class="small"><b>2주(격주) 시작에 GTC 주문을 걸어두는 방식</b>: 하단밴드 가격(V×0.85÷보유주수)에 <b>매수 GTC</b>, 상단밴드 가격(V×1.15÷보유주수)에 <b>매도 GTC</b>를 계산된 주수(평가금을 V로 되돌리는 양)로 걸고 <b>2주간 유지</b>합니다. 그 사이 밴드에 닿으면 자동 체결, 안 닿으면 그대로 두고 <b>2주 후 V·주수를 재계산해 갱신</b>합니다. 무한매수법(SOXL)처럼 매일 매매하지 않아요. 같은 2주 금요일에 정기 적립(TQQQ +$250 · UPRO +$100)도 반영. (일정: 07/31 → 08/14 → 08/28 …)</p>
     <table>
       <thead><tr><th>상황</th><th>행동</th></tr></thead>
       <tbody>
@@ -943,21 +943,24 @@ const VR = {
           +'<div style="position:relative;height:10px;background:linear-gradient(90deg,#1f4a33,#22304a,#54471a);border-radius:5px;margin-top:3px">'
           +'<div style="position:absolute;left:'+posPct.toFixed(0)+'%;top:-3px;width:3px;height:16px;background:#fff;border-radius:2px"></div></div>'
           +'<div class="small muted" style="margin-top:2px">평가금 $'+money(r.evalv)+' · 목표 V $'+money(r.V)+' · Pool $'+money(r.pool)+'</div></div>';
-        // 📋 라오어 기본공식 일일 LOC 주문: 하단밴드 가격에 매수, 상단밴드 가격에 매도 → 평가금을 V로 복귀
+        // 📊 라오어 VR: 2주(격주)마다 밴드 확인 → 벗어난 만큼 평가금을 V로 되돌림(밴드 안이면 관망)
         if(r.px>0 && r.ps>0){
           var poolRatio=0.7;
+          var vrSt=(r.evalv<lo)?'🔵 하단 이탈(매수 GTC 체결권)':(r.evalv>up?'🔺 상단 초과(매도 GTC 체결권)':'⚪ 밴드 내(GTC 대기)');
           var buyPx=lo/r.ps, sellPx=up/r.ps;
           var nBuy=Math.round(r.ps*band/(1-band)), nSell=Math.round(r.ps*band/(1+band));
-          var poolUsable=(r.pool>0)?Math.min(r.pool, r.pool*poolRatio):0;
-          var nBuyPool=buyPx>0?Math.floor(poolUsable/buyPx):0;
-          var st=(r.evalv<lo)?'하단 이탈 → 매수 대기':(r.evalv>up?'상단 초과 → 매도 대기':'밴드 내(관망)');
-          var buyLine=(nBuy>0)?('🔵 <b>매수 LOC</b> · 지정가 <b>$'+buyPx.toFixed(2)+'</b> · <b>'+nBuy+'주</b>'+(nBuyPool<nBuy?(' <span class="muted">· Pool상 실제 '+nBuyPool+'주</span>'):'')):'🔵 매수 LOC · 수량 0 → 적립으로 축적';
-          var sellLine=(nSell>0)?('🔺 <b>매도 LOC</b> · 지정가 <b>$'+sellPx.toFixed(2)+'</b> · <b>'+nSell+'주</b>'):'🔺 매도 LOC · 수량 0';
+          var poolUsable=(r.pool>0)?Math.min(r.pool, r.pool*poolRatio):0, nBuyPool=buyPx>0?Math.floor(poolUsable/buyPx):0;
+          var buyLine=(nBuy>0)?('🔵 <b>매수 GTC</b> · $'+buyPx.toFixed(2)+' · <b>'+nBuy+'주</b> <span class="muted">(하단밴드 닿으면 체결'+(nBuyPool<nBuy?(' · Pool상 '+nBuyPool+'주'):'')+')</span>'):'🔵 매수 GTC · 0주 → 적립으로 축적';
+          var sellLine=(nSell>0)?('🔺 <b>매도 GTC</b> · $'+sellPx.toFixed(2)+' · <b>'+nSell+'주</b> <span class="muted">(상단밴드 닿으면 체결)</span>'):'🔺 매도 GTC · 0주';
+          // 다음 2주-금요일 갱신일 (앵커 2026-07-17)
+          var vanchor=new Date(Date.UTC(2026,6,17)), vt=new Date(), vtd=new Date(Date.UTC(vt.getUTCFullYear(),vt.getUTCMonth(),vt.getUTCDate()));
+          var vnx=new Date(vanchor); while(vnx<vtd){ vnx.setUTCDate(vnx.getUTCDate()+14); }
+          var vnxs=vnx.toISOString().slice(0,10), visDay=(vnx.getTime()===vtd.getTime());
           h+='<div class="small" style="margin-top:5px;padding:6px 9px;background:#182338;border-radius:6px;color:#cde;line-height:1.6">'
-            +'<div style="color:#9fb0c8;margin-bottom:2px">'+st+' · 목표 V $'+money(r.V)+'</div>'
-            +'<div style="font-weight:600;margin-bottom:2px">📋 라오어 일일 LOC 주문</div>'
+            +'<div style="color:#9fb0c8;margin-bottom:2px">상태: <b>'+vrSt+'</b> · 목표 V $'+money(r.V)+'</div>'
+            +'<div style="font-weight:600">📌 2주 GTC 예약 '+(visDay?'<span style="color:#ffd24a">(오늘 갱신일)</span>':'<span class="muted">(다음 갱신 '+vnxs+')</span>')+'</div>'
             +'<div>'+buyLine+'</div><div>'+sellLine+'</div>'
-            +'<div style="color:#7f8ba3;margin-top:3px">마감가 ≤ 매수지정가 → 매수 / ≥ 매도지정가 → 매도. 둘 다 평가금을 V로 되돌림 (LOC=종가 지정가).</div>'
+            +'<div style="color:#7f8ba3;margin-top:3px">GTC=취소 전 유효. 2주 걸어두고 밴드 닿으면 자동 체결, 안 닿으면 유지 → 2주 후 V·주수 재계산.</div>'
             +'</div>';
         }
       }
