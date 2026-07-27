@@ -943,6 +943,25 @@ const VR = {
           +'<div style="position:relative;height:10px;background:linear-gradient(90deg,#1f4a33,#22304a,#54471a);border-radius:5px;margin-top:3px">'
           +'<div style="position:absolute;left:'+posPct.toFixed(0)+'%;top:-3px;width:3px;height:16px;background:#fff;border-radius:2px"></div></div>'
           +'<div class="small muted" style="margin-top:2px">평가금 $'+money(r.evalv)+' · 목표 V $'+money(r.V)+' · Pool $'+money(r.pool)+'</div></div>';
+        // 💡 '살 수 있었다면 얼마에 몇 주' — 이상적 매수가·수량(Pool 무시) + 실제(Pool 한도)
+        if(r.px>0 && r.ps>0){
+          var poolRatio=0.7; var rec='';
+          if(r.evalv<lo){
+            var need=r.V-r.evalv, maxUp=Math.floor((up-r.evalv)/r.px);
+            var ideal=Math.max(0,Math.min(Math.round(need/r.px),maxUp));
+            var poolLim=Math.min(need,(r.pool||0)*poolRatio,Math.max(0,r.pool||0));
+            var poolSh=Math.floor(Math.max(0,poolLim)/r.px);
+            if(ideal>0) rec='🔵 LOC 매수 <b>$'+r.px.toFixed(2)+'</b> · 이상적 <b>'+ideal+'주</b> ($'+money(ideal*r.px)+')'+(poolSh>0?(' · 실제 '+poolSh+'주'):' · Pool부족→실제 0주');
+            else rec='🔵 매수신호지만 1주($'+r.px.toFixed(2)+')면 상단 $'+money(up)+' 초과 → 이상적 <b>0주</b>·적립 권장';
+          } else if(r.evalv<=up){
+            var trig=r.ps? lo/r.ps : 0, needT=r.V*band;
+            var idealT=trig? Math.max(0,Math.min(Math.round(needT/trig),Math.floor((up-lo)/trig))):0;
+            rec='💧 매수 발동가 <b>$'+trig.toFixed(2)+'/주</b> 이하로 내려오면 이상적 <b>'+idealT+'주</b> 매수';
+          } else {
+            rec='🔺 상단 초과 — 예약 매도 사다리(아래 VR 계산기) 참고';
+          }
+          h+='<div class="small" style="margin-top:5px;padding:5px 8px;background:#182338;border-radius:6px;color:#cde">'+rec+'</div>';
+        }
       }
       h+='</div>';
     });
