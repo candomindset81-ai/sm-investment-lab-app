@@ -1042,13 +1042,15 @@ const VR = {
       arrows+='<path d="M'+x+' '+(y+26)+' L'+(x-5)+' '+(y+36)+' L'+(x+5)+' '+(y+36)+' Z" fill="#a97bff"/><line x1="'+x+'" y1="'+(y+36)+'" x2="'+x+'" y2="'+(y+48)+'" stroke="#a97bff" stroke-width="2.5"/>'; } });
     // 현재 평가금 박스
     const cur=arr[n-1].eval;
-    const box='<rect x="'+(W-pr+4)+'" y="'+pt+'" width="86" height="22" rx="4" fill="none" stroke="#ff5a4d" stroke-width="1.5"/>'
-      +'<text x="'+(W-pr+47)+'" y="'+(pt+15)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#ff5a4d">$'+cur.toLocaleString()+'</text>';
+    // 최신 평가금 파란 점 (가장 최근 금요일)
+    const lastDot='<circle cx="'+X(n-1).toFixed(1)+'" cy="'+Y(cur).toFixed(1)+'" r="6" fill="#4ea1ff" stroke="#fff" stroke-width="2"><title>최신 '+(isSrv?(arr[n-1].date+' · '):'')+'평가금 $'+cur.toLocaleString()+'</title></circle>';
+    const box='<rect x="'+(W-pr+4)+'" y="'+pt+'" width="86" height="22" rx="4" fill="rgba(78,161,255,0.12)" stroke="#4ea1ff" stroke-width="1.5"/>'
+      +'<text x="'+(W-pr+47)+'" y="'+(pt+15)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#4ea1ff">$'+cur.toLocaleString()+'</text>';
     // 범례
     const leg='<g font-size="11"><line x1="'+(W-pr+4)+'" y1="'+(pt+40)+'" x2="'+(W-pr+22)+'" y2="'+(pt+40)+'" stroke="#ff5a4d" stroke-width="3"/><text x="'+(W-pr+26)+'" y="'+(pt+44)+'" fill="#cbd5e6">평가금</text>'
       +'<line x1="'+(W-pr+4)+'" y1="'+(pt+58)+'" x2="'+(W-pr+22)+'" y2="'+(pt+58)+'" stroke="#cbd5e6" stroke-width="2" stroke-dasharray="7 5"/><text x="'+(W-pr+26)+'" y="'+(pt+62)+'" fill="#cbd5e6">최소</text>'
       +'<line x1="'+(W-pr+4)+'" y1="'+(pt+76)+'" x2="'+(W-pr+22)+'" y2="'+(pt+76)+'" stroke="#93a1bd" stroke-width="2" stroke-dasharray="7 5"/><text x="'+(W-pr+26)+'" y="'+(pt+80)+'" fill="#93a1bd">최대</text></g>';
-    const svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+grid+poly('up','#93a1bd',true)+poly('lo','#cbd5e6',true)+poly('eval','#ff5a4d',false)+arrows+xlab+box+leg+'</svg>';
+    const svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+grid+poly('up','#93a1bd',true)+poly('lo','#cbd5e6',true)+poly('eval','#ff5a4d',false)+arrows+xlab+lastDot+box+leg+'</svg>';
     const buyLbl=function(i){ return isSrv?((arr[i].date||'').slice(5)):(i+'주차'); };
     const buyList=buys.length?('↑ 매수신호 주 — '+buys.map(buyLbl).join(' · ')):'매수신호 없음(평가금이 최소밴드에 닿은 주 없음)';
     const rng=isSrv?(arr[0].date+' ~ '+arr[n-1].date):'';
