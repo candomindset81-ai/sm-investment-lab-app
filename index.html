@@ -1748,7 +1748,7 @@ const Advisor = {
     const flowLine=fstat?(fstat.reached?'목표 달성 → 분배 규칙(그로스/인컴) 적용.':'목표 미달 → 배당·현금 전액 인컴 재투자 우선.'):'';
     let worst='';
     if(pd&&pd.tot){ let after=0; pd.rows.forEach(function(x){ const vol=(x.m||{}).volatility||18; const beta=1+(vol-18)/60; after+=x.mv*(1+(-55*beta)/100); }); worst='최악(2008 −55%) 시 평가금 ≈ $'+R.fmt(after)+' ('+((after/pd.tot-1)*100).toFixed(0)+'%)'; }
-    let dh='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-weight:800;color:'+rc+'">'+regime+'</span>'+(score!=null?('<span class="small muted">리스크 점수 '+score+(vix!=null?(' · VIX '+vix):'')+'</span>'):'')+'</div>';
+    let dh='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-weight:800;color:'+rc+'">'+regime+'</span>'+(score!=null?('<span class="small muted">리스크 점수 '+(+score).toFixed(0)+(vix!=null?(' · VIX '+(+vix).toFixed(1)):'')+'</span>'):'')+'</div>';
     dh+='<div style="background:#16202f;border-left:3px solid '+rc+';padding:8px 12px;border-radius:6px;line-height:1.6">'+tip+'</div>';
     dh+='<div style="margin-top:8px;font-size:13px;line-height:1.8">';
     if(wkNet>0) dh+='· 이번 주 예상 배당(세후) ≈ <b>$'+R.fmt(wkNet)+'</b>'+(topPick?(' → 우선 재투자: <b>'+topPick+'</b>(저비중·NAV건전성 반영)'):'')+'<br>';
