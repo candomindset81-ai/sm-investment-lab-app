@@ -1009,9 +1009,18 @@ const VR = {
     });
     try{ localStorage.setItem(this.BANDKEY,JSON.stringify(all)); }catch(e){}
   },
+  srvHist(){ try{return JSON.parse(localStorage.getItem('isl_vrband_srv_v1'))||{}}catch(e){return{}} },
   bandChart(sym){
-    const arr=(this.bandHist()[sym]||[]);
-    if(arr.length===0) return '<div class="muted small">아직 기록이 없습니다. 앱을 열 때마다 주 1포인트씩 자동 기록되어 평가금·최소·최대 밴드가 그려집니다. (클라우드 새로고침 시 최신 V·보유수량 반영)</div>';
+    // 1순위: 서버가 만든 1년치(주간) 시계열, 없으면 앱 로컬 주간 기록
+    let arr=[], isSrv=false;
+    const srv=this.srvHist()[sym];
+    if(srv&&srv.rows&&srv.rows.length>=4){
+      isSrv=true;
+      arr=srv.rows.map(function(r){ return {date:r.date, eval:r.eval, lo:srv.lo, up:srv.up, V:srv.V, buy:r.eval<=srv.lo}; });
+    } else {
+      arr=(this.bandHist()[sym]||[]);
+    }
+    if(arr.length===0) return '<div class="muted small">아직 기록이 없습니다. 매매기록 탭에서 클라우드 새로고침을 하면 서버가 만든 <b>최근 1년치(주간)</b> 밴드 그래프가 표시됩니다. (매주 자동 갱신)</div>';
     const W=680,H=300,pl=52,pr=96,pt=20,pb=40; const n=arr.length;
     let ys=[]; arr.forEach(function(d){ ys.push(d.eval,d.lo,d.up); });
     let mn=Math.min.apply(null,ys), mx=Math.max.apply(null,ys); if(mn===mx){mn*=0.95;mx*=1.05;}
@@ -1024,8 +1033,9 @@ const VR = {
     let grid=''; const steps=5; for(let s=0;s<=steps;s++){ const v=mn+(mx-mn)*s/steps; const y=Y(v);
       grid+='<line x1="'+pl+'" y1="'+y.toFixed(1)+'" x2="'+(W-pr)+'" y2="'+y.toFixed(1)+'" stroke="#2e3a52" stroke-width="1"/>'
         +'<text x="'+(pl-6)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="#93a1bd">'+Math.round(v).toLocaleString()+'</text>'; }
-    // X라벨(주차) — 4개 간격
-    let xlab=''; arr.forEach(function(d,i){ if(i%4===0||i===n-1){ xlab+='<text x="'+X(i).toFixed(1)+'" y="'+(H-14)+'" text-anchor="middle" font-size="10" fill="#93a1bd">'+i+'주차</text>'; } });
+    // X라벨 — 서버 시계열은 날짜(월/일), 로컬은 주차. 라벨 개수 ~8개로 자동 간격.
+    let xlab=''; const xstep=Math.max(1,Math.round(n/8));
+    arr.forEach(function(d,i){ if(i%xstep===0||i===n-1){ const lbl=isSrv?((d.date||'').slice(5)):(i+'주차'); xlab+='<text x="'+X(i).toFixed(1)+'" y="'+(H-14)+'" text-anchor="middle" font-size="10" fill="#93a1bd">'+lbl+'</text>'; } });
     // 매수발생 화살표 + 목록
     let arrows='', buys=[]; arr.forEach(function(d,i){ if(d.buy){ buys.push(i); const x=X(i), y=Y(d.eval);
       arrows+='<path d="M'+x+' '+(y+26)+' L'+(x-5)+' '+(y+36)+' L'+(x+5)+' '+(y+36)+' Z" fill="#a97bff"/><line x1="'+x+'" y1="'+(y+36)+'" x2="'+x+'" y2="'+(y+48)+'" stroke="#a97bff" stroke-width="2.5"/>'; } });
@@ -1038,9 +1048,13 @@ const VR = {
       +'<line x1="'+(W-pr+4)+'" y1="'+(pt+58)+'" x2="'+(W-pr+22)+'" y2="'+(pt+58)+'" stroke="#cbd5e6" stroke-width="2" stroke-dasharray="7 5"/><text x="'+(W-pr+26)+'" y="'+(pt+62)+'" fill="#cbd5e6">최소</text>'
       +'<line x1="'+(W-pr+4)+'" y1="'+(pt+76)+'" x2="'+(W-pr+22)+'" y2="'+(pt+76)+'" stroke="#93a1bd" stroke-width="2" stroke-dasharray="7 5"/><text x="'+(W-pr+26)+'" y="'+(pt+80)+'" fill="#93a1bd">최대</text></g>';
     const svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+grid+poly('up','#93a1bd',true)+poly('lo','#cbd5e6',true)+poly('eval','#ff5a4d',false)+arrows+xlab+box+leg+'</svg>';
-    const buyList=buys.length?('↑ 매수발생 — '+buys.map(function(i){return i+'주차';}).join(' · ')):'매수발생 없음(평가금이 최소밴드에 닿은 주 없음)';
+    const buyLbl=function(i){ return isSrv?((arr[i].date||'').slice(5)):(i+'주차'); };
+    const buyList=buys.length?('↑ 매수신호 주 — '+buys.map(buyLbl).join(' · ')):'매수신호 없음(평가금이 최소밴드에 닿은 주 없음)';
+    const note=isSrv
+      ? ('최근 <b>'+n+'주(약 1년)</b> 실제 주간종가 기준 · 매주 서버 자동 갱신. 최소=V×(1−밴드), 최대=V×(1+밴드), 평가금이 최소선에 닿으면 매수신호. <span class="muted">과거 주는 현재 보유주수·현재 V 기준 근사(가격 흐름 반영).</span>')
+      : '최소=목표 V×(1−밴드), 최대=V×(1+밴드). 평가금이 <b>최소</b>선에 닿으면 매수 신호. 클라우드 새로고침 시 서버 1년치가 표시됩니다.';
     return svg+'<div style="margin-top:6px;font-size:12px;color:#a97bff;font-weight:600">'+buyList+'</div>'
-      +'<div class="src">최소=목표 V×(1−밴드), 최대=V×(1+밴드). 평가금이 <b>최소</b>선에 닿으면 매수 신호. 앱 열 때/클라우드 새로고침 시 주 1회 자동 기록됩니다.</div>';
+      +'<div class="src">'+note+'</div>';
   },
   renderBand(){ const el=document.getElementById('vr_band'); if(!el)return; try{ this.recordBand(); }catch(e){} const sym=R.s('vr_sym'); const tag=document.getElementById('vr_band_sym'); if(tag)tag.textContent=sym.toUpperCase(); el.innerHTML=this.bandChart(sym); },
   read(){return {sym:R.s('vr_sym'),G:R.n('vr_G'),band:R.n('vr_band')/100,pool:R.n('vr_pool')/100,fee:R.n('vr_fee'),
@@ -1181,6 +1195,8 @@ const CS = {
         try{ if(s.estimates){ localStorage.setItem('isl_estimates_v1', JSON.stringify(s.estimates)); } }catch(e){}
         try{ if(s.income && s.income.log){ localStorage.setItem('isl_divlog_v1', JSON.stringify(s.income.log)); } }catch(e){}
         if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); if(typeof DTE!=='undefined'&&DTE.render) DTE.render(); }
+        // 서버가 만든 VR 밴드 1년치(주간) 시계열 저장 → bandChart 가 사용
+        if(s.vr_band_hist){ try{ localStorage.setItem('isl_vrband_srv_v1', JSON.stringify(s.vr_band_hist)); if(typeof VR!=='undefined'&&VR.renderBand) VR.renderBand(); }catch(e){} }
         try{ if(typeof Pro!=='undefined'&&Pro.render) Pro.render(); }catch(e){}
       }catch(e){}
       let h='';
