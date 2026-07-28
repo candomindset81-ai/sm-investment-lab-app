@@ -1016,7 +1016,8 @@ const VR = {
     const srv=this.srvHist()[sym];
     if(srv&&srv.rows&&srv.rows.length>=4){
       isSrv=true;
-      arr=srv.rows.map(function(r){ return {date:r.date, eval:r.eval, lo:srv.lo, up:srv.up, V:srv.V, buy:r.eval<=srv.lo}; });
+      arr=srv.rows.map(function(r){ var lo=(r.lo!=null?r.lo:srv.lo), up=(r.up!=null?r.up:srv.up);
+        return {date:r.date, eval:r.eval, lo:lo, up:up, V:(r.V!=null?r.V:srv.V), buy:(r.buy!=null?r.buy:(r.eval<=lo))}; });
     } else {
       arr=(this.bandHist()[sym]||[]);
     }
@@ -1050,8 +1051,9 @@ const VR = {
     const svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+grid+poly('up','#93a1bd',true)+poly('lo','#cbd5e6',true)+poly('eval','#ff5a4d',false)+arrows+xlab+box+leg+'</svg>';
     const buyLbl=function(i){ return isSrv?((arr[i].date||'').slice(5)):(i+'주차'); };
     const buyList=buys.length?('↑ 매수신호 주 — '+buys.map(buyLbl).join(' · ')):'매수신호 없음(평가금이 최소밴드에 닿은 주 없음)';
+    const rng=isSrv?(arr[0].date+' ~ '+arr[n-1].date):'';
     const note=isSrv
-      ? ('최근 <b>'+n+'주(약 1년)</b> 실제 주간종가 기준 · 매주 서버 자동 갱신. 최소=V×(1−밴드), 최대=V×(1+밴드), 평가금이 최소선에 닿으면 매수신호. <span class="muted">과거 주는 현재 보유주수·현재 V 기준 근사(가격 흐름 반영).</span>')
+      ? ('최근 <b>'+n+'주(매주 금요일)</b> · <b>'+rng+'</b> — 모두 <u>과거</u>입니다(미래 아님). 매주 금요일마다 자동 갱신. 밴드(최소·최대)는 목표 V가 적립·성장으로 커져 <b>우상향</b>합니다. 평가금이 최소선에 닿으면 매수신호. <span class="muted">과거 주는 현재 보유주수·적립반영 추정 V 기준 근사(가격 흐름 반영).</span>')
       : '최소=목표 V×(1−밴드), 최대=V×(1+밴드). 평가금이 <b>최소</b>선에 닿으면 매수 신호. 클라우드 새로고침 시 서버 1년치가 표시됩니다.';
     return svg+'<div style="margin-top:6px;font-size:12px;color:#a97bff;font-weight:600">'+buyList+'</div>'
       +'<div class="src">'+note+'</div>';
