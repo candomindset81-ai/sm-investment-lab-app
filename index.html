@@ -958,7 +958,7 @@ const VR = {
           var sellLine=(nSell>0)
             ?('🔺 <b>매도 GTC</b> · $'+sellPx.toFixed(2)+' · <b>'+nSell+'주</b> <span class="muted">(상단밴드 닿으면 체결)</span>')
             :('🔺 <b>매도 GTC</b> · $'+sellPx.toFixed(2)+' · <b>0주</b> <span class="muted">(동일 사유 · '+minPs+'주+부터)</span>');
-          var noteLine=(nBuy===0&&nSell===0)?('<div style="color:#ffd24a;margin-top:2px">↳ 지금은 적립 단계 — '+r.sym.toUpperCase()+'가 '+minPs+'주 이상 모이면 GTC 주수가 잡힙니다.</div>'):'';
+          var noteLine=(nBuy===0&&nSell===0)?('<div style="color:#ffd24a;margin-top:2px">↳ 지금은 적립 단계 — '+r.n+'가 '+minPs+'주 이상 모이면 GTC 주수가 잡힙니다.</div>'):'';
           // 다음 2주-금요일 갱신일 (앵커 2026-07-17)
           var vanchor=new Date(Date.UTC(2026,6,17)), vt=new Date(), vtd=new Date(Date.UTC(vt.getUTCFullYear(),vt.getUTCMonth(),vt.getUTCDate()));
           var vnx=new Date(vanchor); while(vnx<vtd){ vnx.setUTCDate(vnx.getUTCDate()+14); }
