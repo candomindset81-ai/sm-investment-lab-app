@@ -950,8 +950,15 @@ const VR = {
           var buyPx=lo/r.ps, sellPx=up/r.ps;
           var nBuy=Math.round(r.ps*band/(1-band)), nSell=Math.round(r.ps*band/(1+band));
           var poolUsable=(r.pool>0)?Math.min(r.pool, r.pool*poolRatio):0, nBuyPool=buyPx>0?Math.floor(poolUsable/buyPx):0;
-          var buyLine=(nBuy>0)?('🔵 <b>매수 GTC</b> · $'+buyPx.toFixed(2)+' · <b>'+nBuy+'주</b> <span class="muted">(하단밴드 닿으면 체결'+(nBuyPool<nBuy?(' · Pool상 '+nBuyPool+'주'):'')+')</span>'):'🔵 매수 GTC · 0주 → 적립으로 축적';
-          var sellLine=(nSell>0)?('🔺 <b>매도 GTC</b> · $'+sellPx.toFixed(2)+' · <b>'+nSell+'주</b> <span class="muted">(상단밴드 닿으면 체결)</span>'):'🔺 매도 GTC · 0주';
+          var minPs=Math.max(Math.ceil(0.5*(1-band)/band), Math.ceil(0.5*(1+band)/band));  // GTC 1주↑ 잡히는 최소 보유주수
+          // 가격은 항상 표시(TQQQ·UPRO 동일). 수량 0이면 사유·기준 안내.
+          var buyLine=(nBuy>0)
+            ?('🔵 <b>매수 GTC</b> · $'+buyPx.toFixed(2)+' · <b>'+nBuy+'주</b> <span class="muted">(하단밴드 닿으면 체결'+(nBuyPool<nBuy?(' · Pool상 '+nBuyPool+'주'):'')+')</span>')
+            :('🔵 <b>매수 GTC</b> · $'+buyPx.toFixed(2)+' · <b>0주</b> <span class="muted">('+r.ps+'주라 밴드 복귀분&lt;1주 · '+minPs+'주+ 보유 시 1주↑)</span>');
+          var sellLine=(nSell>0)
+            ?('🔺 <b>매도 GTC</b> · $'+sellPx.toFixed(2)+' · <b>'+nSell+'주</b> <span class="muted">(상단밴드 닿으면 체결)</span>')
+            :('🔺 <b>매도 GTC</b> · $'+sellPx.toFixed(2)+' · <b>0주</b> <span class="muted">(동일 사유 · '+minPs+'주+부터)</span>');
+          var noteLine=(nBuy===0&&nSell===0)?('<div style="color:#ffd24a;margin-top:2px">↳ 지금은 적립 단계 — '+r.sym.toUpperCase()+'가 '+minPs+'주 이상 모이면 GTC 주수가 잡힙니다.</div>'):'';
           // 다음 2주-금요일 갱신일 (앵커 2026-07-17)
           var vanchor=new Date(Date.UTC(2026,6,17)), vt=new Date(), vtd=new Date(Date.UTC(vt.getUTCFullYear(),vt.getUTCMonth(),vt.getUTCDate()));
           var vnx=new Date(vanchor); while(vnx<vtd){ vnx.setUTCDate(vnx.getUTCDate()+14); }
@@ -959,7 +966,7 @@ const VR = {
           h+='<div class="small" style="margin-top:5px;padding:6px 9px;background:#182338;border-radius:6px;color:#cde;line-height:1.6">'
             +'<div style="color:#9fb0c8;margin-bottom:2px">상태: <b>'+vrSt+'</b> · 목표 V $'+money(r.V)+'</div>'
             +'<div style="font-weight:600">📌 2주 GTC 예약 '+(visDay?'<span style="color:#ffd24a">(오늘 갱신일)</span>':'<span class="muted">(다음 갱신 '+vnxs+')</span>')+'</div>'
-            +'<div>'+buyLine+'</div><div>'+sellLine+'</div>'
+            +'<div>'+buyLine+'</div><div>'+sellLine+'</div>'+noteLine
             +'<div style="color:#7f8ba3;margin-top:3px">GTC=취소 전 유효. 2주 걸어두고 밴드 닿으면 자동 체결, 안 닿으면 유지 → 2주 후 V·주수 재계산.</div>'
             +'</div>';
         }
