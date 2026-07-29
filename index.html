@@ -387,7 +387,7 @@
 
 <section id="income" class="tab hub">
   <div class="card">
-    <h2>💰 인컴 엔진 <span class="tag">QDTE · XDTE · RDTE</span></h2>
+    <h2>💰 인컴 엔진 <span class="tag">QDTE · XDTE · JEPQ</span></h2>
     <div class="note">주간 배당 ETF 보유를 입력하면 평가금·비중·주/월/연 배당·Yield on Cost를 계산합니다. 기존 매매 전략(VR·무한매수법)과 <b>완전히 독립된 모듈</b>이며, 데이터는 이 브라우저에만 저장됩니다.</div>
     <div class="grid">
       <label class="f">배당 세율(%)<input id="wi_tax" type="number" step="0.1" value="15" onchange="Income.setTax()"></label>
@@ -468,7 +468,7 @@
   </div>
   <div class="card">
     <h3>⚡ 알파(SOXL) 수익 → 인컴 배분</h3>
-    <div class="note">무한매수법으로 <b>실현한 수익</b>을 세후로 환산해 인컴 엔진(QDTE·XDTE·RDTE)에 <b>목표 비중대로</b> 배분합니다. 사이클 종료·부분 익절 때마다 사용하세요.</div>
+    <div class="note">무한매수법으로 <b>실현한 수익</b>을 세후로 환산해 인컴 엔진(QDTE·XDTE·JEPQ)에 <b>목표 비중대로</b> 배분합니다. 사이클 종료·부분 익절 때마다 사용하세요.</div>
     <div class="grid yellow">
       <label class="f">실현 수익(세전 $)<input id="af_gross" type="number" step="0.01" value=""></label>
       <label class="f">양도세율(%)<input id="af_tax" type="number" step="0.1" value="22"></label>
@@ -506,7 +506,7 @@
 
 <section id="risk" class="tab">
   <div class="card">
-    <h2>🛡️ 리스크 대시보드 <span class="tag">QDTE·XDTE·RDTE</span></h2>
+    <h2>🛡️ 리스크 대시보드 <span class="tag">QDTE·XDTE·JEPQ</span></h2>
     <div class="note">시장 리스크·배당 지속성을 매일 자동 평가해 <b>신호등·추천</b>으로 보여줍니다. 클라우드(state.json)의 <b>risk</b> 섹션을 읽어 표시하며, 기존 매매 로직과 완전히 분리된 독립 참고용입니다. 실제 리스크 점수는 매일 필리핀 새벽 서버가 계산합니다.</div>
     <div class="btnrow"><button class="act" onclick="CS.fetch()">☁️ 클라우드에서 새로고침</button></div>
     <div id="risk_out" style="margin-top:12px"><span class="small muted">클라우드 리스크 데이터를 불러오는 중… (매매기록 탭에서 토큰이 저장돼 있어야 합니다)</span></div>
@@ -515,7 +515,7 @@
 
 <section id="dte" class="tab hub">
   <div class="card">
-    <h2>📈 DTE 모니터 <span class="tag">QDTE·XDTE·RDTE 종목별</span></h2>
+    <h2>📈 DTE 모니터 <span class="tag">QDTE·XDTE·JEPQ 종목별</span></h2>
     <div class="note">종목별 <b>총수익률(분배금 재투자)</b>·NAV 추이·추정 ROC·배당 추이를 매일 서버가 계산해 표시합니다. 0DTE 커버드콜 ETF는 분배금률이 아니라 <b>총수익률</b>이 실제 성과 지표입니다.</div>
     <div class="btnrow"><button class="act" onclick="CS.fetch()">☁️ 클라우드에서 새로고침</button></div>
     <div id="dte_out" style="margin-top:12px"><span class="small muted">클라우드 데이터를 불러오는 중…</span></div>
@@ -524,8 +524,8 @@
 
 <section id="pro" class="tab hub">
   <div class="card">
-    <h2>💹 인컴 Pro <span class="tag">QDTE·XDTE·RDTE 전문 분석</span></h2>
-    <div class="note">전문 지표(YoC·CAGR·MDD·Sharpe 등)·배당 시뮬레이터·차트·내보내기. 실측 지표는 서버(Roundhill 일별 NAV·리스크)에서 매일 계산되고, 시뮬레이터는 <b>가정 기반 추정</b>입니다. 목표비중 QDTE 45 / XDTE 40 / RDTE 15.</div>
+    <h2>💹 인컴 Pro <span class="tag">QDTE·XDTE·JEPQ 전문 분석</span></h2>
+    <div class="note">전문 지표(YoC·CAGR·MDD·Sharpe 등)·배당 시뮬레이터·차트·내보내기. 실측 지표는 서버(Roundhill 일별 NAV·리스크)에서 매일 계산되고, 시뮬레이터는 <b>가정 기반 추정</b>입니다. 목표비중 QDTE 34 / XDTE 33 / JEPQ 33. <b>JEPQ는 월배당·JPMorgan</b>이라 Roundhill 공식 NAV·주간 지표는 QDTE·XDTE만 제공됩니다.</div>
     <div class="btnrow">
       <button class="act" onclick="CS.fetch()">☁️ 클라우드에서 새로고침</button>
       <button class="act" onclick="Pro.exportCSV()">⬇️ CSV</button>
@@ -578,11 +578,11 @@
     </div>
     <div class="btnrow"><button class="act" onclick="Pro.optimize()">💡 배분 추천</button></div>
     <div id="pro_opt_out"></div>
-    <h3 style="margin:12px 0 6px">🎛️ What-if 시뮬레이터 <span class="small muted">(QDTE·XDTE·RDTE 비중 조정 · 즉시 비교)</span></h3>
+    <h3 style="margin:12px 0 6px">🎛️ What-if 시뮬레이터 <span class="small muted">(QDTE·XDTE·JEPQ 비중 조정 · 즉시 비교)</span></h3>
     <div class="kpi" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
-      <div class="box"><div class="l">QDTE 비중 %</div><input id="pro_wi_qdte" type="number" value="45" step="5" style="width:100%"></div>
-      <div class="box"><div class="l">XDTE 비중 %</div><input id="pro_wi_xdte" type="number" value="40" step="5" style="width:100%"></div>
-      <div class="box"><div class="l">RDTE 비중 %</div><input id="pro_wi_rdte" type="number" value="15" step="5" style="width:100%"></div>
+      <div class="box"><div class="l">QDTE 비중 %</div><input id="pro_wi_qdte" type="number" value="34" step="1" style="width:100%"></div>
+      <div class="box"><div class="l">XDTE 비중 %</div><input id="pro_wi_xdte" type="number" value="33" step="1" style="width:100%"></div>
+      <div class="box"><div class="l">JEPQ 비중 %</div><input id="pro_wi_jepq" type="number" value="33" step="1" style="width:100%"></div>
       <div class="box"><div class="l">월 추가투자 $</div><input id="pro_wi_add" type="number" value="500" step="100" style="width:100%"></div>
     </div>
     <div class="btnrow"><button class="act" onclick="Pro.whatif()">🎛️ 비교 실행</button></div>
@@ -593,7 +593,7 @@
 
   <div class="card" style="border:1px solid #6a5acd;background:rgba(106,90,205,0.06)">
     <h3 style="margin:0 0 6px;color:#a99bff">🔀 $700을 어디에 재투자? · 인컴 재투자 vs VR 성장</h3>
-    <div class="src" style="margin-bottom:8px"><b>방식 A</b> 인컴 재투자(QDTE·XDTE·RDTE) &nbsp;|&nbsp; <b>방식 B</b> VR 성장 적립 — 2주마다 TQQQ $250 + UPRO $100 (= 월 $700)</div>
+    <div class="src" style="margin-bottom:8px"><b>방식 A</b> 인컴 재투자(QDTE·XDTE·JEPQ) &nbsp;|&nbsp; <b>방식 B</b> VR 성장 적립 — 2주마다 TQQQ $250 + UPRO $100 (= 월 $700)</div>
     <table><thead><tr><th>항목</th><th>A · 인컴 재투자</th><th>B · VR 성장(TQQQ·UPRO)</th></tr></thead><tbody>
       <tr><td>성장 동력</td><td>분배금 복리(주식 수↑)</td><td>나스닥·S&P <b>3배 레버리지</b> 상승</td></tr>
       <tr><td>기대 성격</td><td>총수익 ~연 14%(프리미엄 의존)</td><td>강세장 매우 높음 · 약세장 급락</td></tr>
@@ -1398,8 +1398,8 @@ function resetAll(){
    ※ 주당 금액은 매주 변동합니다. 실제 수령액으로 덮어쓰는 것을 권장합니다. */
 const DIST = {
   asOf:'2026-07-19', nextEx:'2026-07-23', payDay:'금요일', exDay:'목요일',
-  perShare:{ QDTE:0.2089, XDTE:0.0900, RDTE:0.1656 },
-  src:{ QDTE:'차기 선언액(7/23 배당락)', XDTE:'최근 실지급(7/16 배당락)', RDTE:'분배율 기반 추정' }
+  perShare:{ QDTE:0.2089, XDTE:0.0900, JEPQ:0.1015 },
+  src:{ QDTE:'차기 선언액(7/23 배당락)', XDTE:'최근 실지급(7/16 배당락)', JEPQ:'월배당 $0.44 주간환산(÷4.33)' }
 };
 
 /* ===================== WOS: 인컴 엔진 ===================== */
@@ -1410,7 +1410,7 @@ const Income = {
   loadDiv(){ try{return JSON.parse(localStorage.getItem(this.DKEY))||[]}catch(e){return[]} },
   saveDiv(a){ localStorage.setItem(this.DKEY,JSON.stringify(a)); },
   tax(){ const t=parseFloat(localStorage.getItem(this.TKEY)); return isNaN(t)?15:t; },
-  seedDefaults(){ if(localStorage.getItem('wos_income_seed2'))return; if(this.load().length===0){ this.save([{sym:'QDTE',sh:0,avg:0,px:0,dist:0,tw:50},{sym:'XDTE',sh:0,avg:0,px:0,dist:0,tw:30},{sym:'RDTE',sh:0,avg:0,px:0,dist:0,tw:20}]); } localStorage.setItem('wos_income_seed2','1'); },
+  seedDefaults(){ if(localStorage.getItem('wos_income_seed3'))return; if(this.load().length===0){ this.save([{sym:'QDTE',sh:0,avg:0,px:0,dist:0,tw:34},{sym:'XDTE',sh:0,avg:0,px:0,dist:0,tw:33},{sym:'JEPQ',sh:0,avg:0,px:0,dist:0,tw:33}]); } localStorage.setItem('wos_income_seed3','1'); },
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
   totals(){ let mv=0,cost=0,wk=0; this.load().forEach(r=>{ mv+=r.sh*r.px; cost+=r.sh*r.avg; wk+=r.sh*r.dist; }); return {mv:mv,cost:cost,wk:wk,yr:wk*52,mo:wk*52/12}; },
   add(){ const sym=R.s('wi_sym').trim().toUpperCase(); if(!sym){alert('종목을 입력하세요');return;}
@@ -1685,7 +1685,7 @@ const AlphaFlow = {
 const BuyPlan = {
   calc(){ const amt=R.n('bp_amt'); const out=document.getElementById('bp_out'); const mode=(document.getElementById('bp_mode')||{}).value||'equal';
     if(isNaN(amt)||amt<=0){ alert('투자 금액을 입력하세요'); return; }
-    const a=Income.load(); if(a.length===0){ if(out)out.innerHTML='<div class="muted small">먼저 ① 보유 입력에서 종목·현재가를 추가하세요 (예: QDTE·XDTE·RDTE).</div>'; return; }
+    const a=Income.load(); if(a.length===0){ if(out)out.innerHTML='<div class="muted small">먼저 ① 보유 입력에서 종목·현재가를 추가하세요 (예: QDTE·XDTE·JEPQ).</div>'; return; }
     let weights=a.map(function(r){ if(mode==='equal')return 1; if(mode==='current')return r.sh*r.px; return (r.tw||0); });
     let sum=weights.reduce(function(s,x){return s+x;},0);
     let note=(mode==='equal'?'동일 비중':(mode==='current'?'현재 비중':'목표 비중'));
@@ -1864,7 +1864,7 @@ const Risk = {
 /* ===================== 📈 DTE 모니터 (종목별 상세 · 독립) =====================
    Risk.load().nav (서버가 매일 계산·저장)에서 종목별 총수익률·NAV·ROC·배당을 읽어 표시. */
 const DTE = {
-  syms:['QDTE','XDTE','RDTE'],
+  syms:['QDTE','XDTE','JEPQ'],
   col(sc){ return sc>=70?'#ff6b6b':(sc>=45?'#ffd24a':'#5ee2a0'); },
   trc(x){ return x==null?'-':'<b style="color:'+(x>=0?'#5ee2a0':'#ff6b6b')+'">'+(x>0?'+':'')+x+'%</b>'; },
   bars(hist){
@@ -2037,7 +2037,7 @@ const Refresh = {
 
 /* ===================== 💹 인컴 Pro 모듈 ===================== */
 const Pro = {
-  syms:['QDTE','XDTE','RDTE'],
+  syms:['QDTE','XDTE','JEPQ'],
   rh(){ try{return JSON.parse(localStorage.getItem('isl_roundhill_v1'))||null}catch(e){return null} },
   fmt(x,d){ return (x==null||isNaN(x))?'-':Number(x).toLocaleString(undefined,{maximumFractionDigits:(d==null?0:d)}); },
   data(){
@@ -2104,7 +2104,7 @@ const Pro = {
   },
   lineSVG(rows){
     // 최근 12주 주당 배당 추이 (종목별 선그래프)
-    const cols={QDTE:'#22c58b',XDTE:'#ffd24a',RDTE:'#4ea1ff'};
+    const cols={QDTE:'#22c58b',XDTE:'#ffd24a',JEPQ:'#4ea1ff'};
     const series=rows.map(function(x){ return {sym:x.sym, v:(x.hist||[]).slice(-12).map(function(p){return +p[1];})}; }).filter(function(s){return s.v.length;});
     if(!series.length) return '<span class="small muted">배당 이력이 아직 부족합니다.</span>';
     const W=640,H=240,pl=44,pr=90,pt=14,pb=26;
@@ -2309,9 +2309,9 @@ const Pro = {
     // 각 ETF 배당수익률(연) = 연배당/현재가
     const dy={}; d.rows.forEach(function(x){ dy[x.sym]=x.px?x.annDist/x.px:0; });
     const gv=function(id){ const e=document.getElementById(id); return e?(+e.value||0):0; };
-    let wq=Math.max(0,gv('pro_wi_qdte')), wx=Math.max(0,gv('pro_wi_xdte')), wr=Math.max(0,gv('pro_wi_rdte'));
-    let sum=wq+wx+wr; if(sum<=0){ wq=45; wx=40; wr=15; sum=100; }
-    const wN={QDTE:wq/sum, XDTE:wx/sum, RDTE:wr/sum};
+    let wq=Math.max(0,gv('pro_wi_qdte')), wx=Math.max(0,gv('pro_wi_xdte')), wr=Math.max(0,gv('pro_wi_jepq'));
+    let sum=wq+wx+wr; if(sum<=0){ wq=34; wx=33; wr=33; sum=100; }
+    const wN={QDTE:wq/sum, XDTE:wx/sum, JEPQ:wr/sum};
     const addMo=Math.max(0,gv('pro_wi_add'));
     // 시나리오A: 3종목 비중을 입력값(정규화)으로 재배분 → 각 ETF 배당수익률로 월 세후 배당
     let waMoNet=0; const per=d.rows.map(function(x){ const val=d.tot*(wN[x.sym]||0); const mo=val*(dy[x.sym]||0)*(1-tax)/12; waMoNet+=mo;
@@ -2320,7 +2320,7 @@ const Pro = {
     // 시나리오B: 월 addMo 추가투자 1년 → 현재 블렌드 수익률로 추가 배당
     const blendYield=d.tot?baseAnnGross/d.tot:0; const addMoNet=addMo*12*blendYield*(1-tax)/12;
     let h='<div class="card" style="border-color:#6a5acd;margin-top:8px"><h3 style="margin:0 0 4px">🎛️ What-if 결과 <span class="small muted">(추정)</span></h3>';
-    h+='<div class="src" style="margin-bottom:6px">입력 비중 정규화 → QDTE '+per[0].w.toFixed(0)+'% · XDTE '+per[1].w.toFixed(0)+'% · RDTE '+per[2].w.toFixed(0)+'% (합계 100%)</div>';
+    h+='<div class="src" style="margin-bottom:6px">입력 비중 정규화 → QDTE '+per[0].w.toFixed(0)+'% · XDTE '+per[1].w.toFixed(0)+'% · JEPQ '+per[2].w.toFixed(0)+'% (합계 100%)</div>';
     // 종목별 조정 결과
     h+='<table><thead><tr><th>종목</th><th>조정 비중</th><th>배당수익률</th><th>평가금</th><th>월 세후 배당</th></tr></thead><tbody>';
     per.forEach(function(p){ h+='<tr><td><b>'+p.sym+'</b></td><td>'+p.w.toFixed(1)+'%</td><td>'+p.dy.toFixed(1)+'%</td><td>$'+self.fmt(p.val)+'</td><td>$'+self.fmt(p.mo)+'</td></tr>'; });
