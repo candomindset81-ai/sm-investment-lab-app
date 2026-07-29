@@ -1137,19 +1137,32 @@ const CS = {
       let synced=0, changes=[];
       try{
         if(s.income && s.income.holdings){
-          const app=Income.load();
+          // 클라우드(state.json)가 단일 원본 → 앱 보유목록을 서버와 완전히 일치(신규 추가·매도 제거·갱신).
+          const app=Income.load(); const bySym={}; app.forEach(function(x){bySym[x.sym]=x;});
+          const merged=[]; let incChanged=false;
           s.income.holdings.forEach(function(c){
-            const r=app.find(function(x){return x.sym===c.sym;});
-            if(!r) return;
-            const d=[];
-            if(c.sh!=null && +r.sh!==+c.sh){ d.push(r.sh+'주 → '+c.sh+'주'); r.sh=+c.sh; }
-            if(c.avg!=null && +r.avg!==+c.avg){ d.push('평단 '+(+r.avg).toFixed(4)+' → '+(+c.avg).toFixed(4)); r.avg=+c.avg; }
-            if(c.dist!=null && +r.dist!==+c.dist){ d.push('분배금 '+(+r.dist).toFixed(4)+' → '+(+c.dist).toFixed(4)); r.dist=+c.dist; }
-            if(c.tw!=null && +r.tw!==+c.tw){ d.push('목표비중 '+(r.tw||0)+'% → '+c.tw+'%'); r.tw=+c.tw; }
-            if(d.length){ synced++; changes.push(c.sym+': '+d.join(' · ')); }
+            const r=bySym[c.sym];
+            const row={ sym:c.sym,
+              sh:(c.sh!=null?+c.sh:(r?+r.sh:0)),
+              avg:(c.avg!=null?+c.avg:(r?+r.avg:0)),
+              dist:(c.dist!=null?+c.dist:(r?+r.dist:0)),
+              tw:(c.tw!=null?+c.tw:(r?+r.tw:0)),
+              px:(r&&r.px!=null&&+r.px>0)?+r.px:(c.px!=null?+c.px:0),   // 앱 시세 우선, 없으면 서버값
+              hist:(c.hist&&c.hist.length)?c.hist:((r&&r.hist)||[]) };
+            if(!r){ synced++; incChanged=true; changes.push(c.sym+': 신규 편입 '+row.sh+'주(목표 '+row.tw+'%)'); }
+            else { const d=[];
+              if(+r.sh!==row.sh)d.push(r.sh+'→'+row.sh+'주');
+              if(+r.avg!==row.avg)d.push('평단 '+(+r.avg).toFixed(2)+'→'+row.avg.toFixed(2));
+              if(+r.dist!==row.dist)d.push('분배 '+(+r.dist).toFixed(4)+'→'+row.dist.toFixed(4));
+              if((+r.tw||0)!==row.tw)d.push('비중 '+(r.tw||0)+'→'+row.tw+'%');
+              if(d.length){ synced++; incChanged=true; changes.push(c.sym+': '+d.join(' · ')); }
+            }
+            merged.push(row);
           });
-          if(synced>0){
-            Income.save(app);
+          // 서버에 없는(매도된) 종목 제거
+          app.forEach(function(x){ if(!s.income.holdings.some(function(c){return c.sym===x.sym;})){ synced++; incChanged=true; changes.push(x.sym+': 보유목록에서 제거(매도 반영)'); } });
+          if(incChanged || merged.length!==app.length){
+            Income.save(merged);
             try{ if(typeof Income.render==='function') Income.render(); }catch(e){}
             try{ if(typeof WOS!=='undefined' && WOS.refresh) WOS.refresh(); }catch(e){}
           }
