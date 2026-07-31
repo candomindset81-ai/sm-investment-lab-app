@@ -1224,14 +1224,15 @@ const CS = {
       if(s.ib) h+='<tr><td>⚡ '+s.ib.label+'</td><td>T='+s.ib.T+' · '+s.ib.sh+'주 · 평단 $'+R.fmt(s.ib.avg)+' · 현금 $'+R.fmt(s.ib.cash)+'</td></tr>';
       (s.vr||[]).forEach(function(v){ h+='<tr><td>'+(v.sym==='tqqq'?'🟢':'🟡')+' '+v.label+'</td><td>V $'+R.fmt(v.V)+' · '+v.ps+'주 · Pool $'+R.fmt(v.poolAvail)+'</td></tr>'; });
       if(s.income && s.income.holdings){
-        let wk=0;
+        let yr=0;
         s.income.holdings.forEach(function(c){
-          wk += (+c.sh||0)*(+c.dist||0);
-          h+='<tr><td>💰 '+c.sym+'</td><td>'+(c.sh||0)+'주 · 평단 $'+(+c.avg||0).toFixed(4)+' · 주당 $'+(+c.dist||0).toFixed(4)+'</td></tr>';
+          const fN=(c.freq==='monthly')?12:52; yr += (+c.sh||0)*(+c.dist||0)*fN;
+          const lbl=(c.freq==='monthly')?'월배당':'주배당';
+          h+='<tr><td>💰 '+c.sym+'</td><td>'+(c.sh||0)+'주 · 평단 $'+(+c.avg||0).toFixed(2)+' · 주당 '+lbl+' $'+(+c.dist||0).toFixed(4)+'</td></tr>';
         });
         const tax=(+s.income.tax_pct||0)/100, tgt=+s.income.target_monthly_net||700;
-        const moNet=wk*52/12*(1-tax), prog=tgt>0?(moNet/tgt*100):0;
-        h+='<tr><td>🎯 인컴 목표</td><td>주간 $'+R.fmt(wk)+' · 월 세후 $'+R.fmt(moNet)+' · <b>'+prog.toFixed(1)+'%</b> / $'+R.fmt(tgt)+'</td></tr>';
+        const moNet=yr/12*(1-tax), prog=tgt>0?(moNet/tgt*100):0;
+        h+='<tr><td>🎯 인컴 목표</td><td>월 세후 $'+R.fmt(moNet)+' · <b>'+prog.toFixed(1)+'%</b> / $'+R.fmt(tgt)+'</td></tr>';
       }
       h+='</tbody></table><div class="src">클라우드 갱신: '+(s.updated||'-')+' · 확인 '+new Date().toLocaleString()+'</div>';
       if(out)out.innerHTML=h;
@@ -1411,8 +1412,9 @@ function resetAll(){
    ※ 주당 금액은 매주 변동합니다. 실제 수령액으로 덮어쓰는 것을 권장합니다. */
 const DIST = {
   asOf:'2026-07-19', nextEx:'2026-07-23', payDay:'금요일', exDay:'목요일',
-  perShare:{ QDTE:0.2089, XDTE:0.0900, JEPQ:0.1015 },
-  src:{ QDTE:'차기 선언액(7/23 배당락)', XDTE:'최근 실지급(7/16 배당락)', JEPQ:'월배당 $0.44 주간환산(÷4.33)' }
+  perShare:{ QDTE:0.2089, XDTE:0.0900, JEPQ:0.44 },
+  freq:{ QDTE:'weekly', XDTE:'weekly', JEPQ:'monthly' },
+  src:{ QDTE:'차기 선언액(7/23 배당락)', XDTE:'최근 실지급(7/16 배당락)', JEPQ:'월배당 최근 $0.44(월 지급)' }
 };
 
 /* ===================== WOS: 인컴 엔진 ===================== */
@@ -1425,7 +1427,8 @@ const Income = {
   tax(){ const t=parseFloat(localStorage.getItem(this.TKEY)); return isNaN(t)?15:t; },
   seedDefaults(){ if(localStorage.getItem('wos_income_seed3'))return; if(this.load().length===0){ this.save([{sym:'QDTE',sh:0,avg:0,px:0,dist:0,tw:34},{sym:'XDTE',sh:0,avg:0,px:0,dist:0,tw:33},{sym:'JEPQ',sh:0,avg:0,px:0,dist:0,tw:33}]); } localStorage.setItem('wos_income_seed3','1'); },
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
-  totals(){ let mv=0,cost=0,wk=0; this.load().forEach(r=>{ mv+=r.sh*r.px; cost+=r.sh*r.avg; wk+=r.sh*r.dist; }); return {mv:mv,cost:cost,wk:wk,yr:wk*52,mo:wk*52/12}; },
+  freqN(r){ return (r&&r.freq==='monthly')?12:52; },   // 연 지급 횟수: 월배당 12 / 주배당 52
+  totals(){ let mv=0,cost=0,yr=0; this.load().forEach(r=>{ mv+=r.sh*r.px; cost+=r.sh*r.avg; yr+=r.sh*(+r.dist||0)*Income.freqN(r); }); return {mv:mv,cost:cost,wk:yr/52,yr:yr,mo:yr/12}; },
   add(){ const sym=R.s('wi_sym').trim().toUpperCase(); if(!sym){alert('종목을 입력하세요');return;}
     const row={sym:sym, sh:R.n('wi_sh')||0, avg:R.n('wi_avg')||0, px:R.n('wi_px')||0, dist:R.n('wi_dist')||0, tw:R.n('wi_tw')||0};
     const a=this.load(); const i=a.findIndex(x=>x.sym===sym); if(i>=0)a[i]=row; else a.push(row); this.save(a);
@@ -1477,11 +1480,11 @@ const Income = {
     el.innerHTML=h;
   },
   fillDist(){ const a=this.load(); let n=0;
-    a.forEach(function(r){ const d=DIST.perShare[r.sym]; if(d){ r.dist=d; n++; } });
+    a.forEach(function(r){ const d=DIST.perShare[r.sym]; if(d){ r.dist=d; if(DIST.freq&&DIST.freq[r.sym]) r.freq=DIST.freq[r.sym]; n++; } });
     this.save(a); WOS.refresh();
-    alert(n+'개 종목의 주당 주간배당을 채웠습니다 (기준일 '+DIST.asOf+').\n※ 주당 금액은 매주 변동하니 실제 수령액으로 조정하세요.');
+    alert(n+'개 종목의 주당 배당을 채웠습니다 (기준일 '+DIST.asOf+').\n※ QDTE·XDTE=주배당, JEPQ=월배당. 실제 수령액으로 조정하세요.');
   },
-  logWeek(){ const a=this.load().filter(function(r){return (r.sh||0)>0 && (r.dist||0)>0;});
+  logWeek(){ const a=this.load().filter(function(r){return (r.sh||0)>0 && (r.dist||0)>0 && r.freq!=='monthly';});
     if(a.length===0){ alert('보유수량과 주당 주간배당이 입력된 종목이 없습니다.'); return; }
     const d=prompt('배당 지급일(YYYY-MM-DD)을 입력하세요', today());
     if(!d) return;
@@ -1498,8 +1501,9 @@ const Income = {
     if(a.length===0){ document.getElementById('wi_table').innerHTML='<div class="muted small">위에서 보유 종목을 추가하세요 (예: QDTE · 100주 · 평단 $45 · 현재가 $46 · 주당 주간배당 $0.25).</div>'; }
     else {
       let h='<table><thead><tr><th>종목</th><th>수량</th><th>평단</th><th>현재가</th><th>평가금</th><th>비중</th><th>주배당</th><th>월배당</th><th>연배당</th><th>YoC</th><th>목표%</th><th></th></tr></thead><tbody>';
-      a.forEach(r=>{ const mv=r.sh*r.px, cost=r.sh*r.avg, wk=r.sh*r.dist, yr=wk*52, mo=yr/12, w=t.mv>0?mv/t.mv:0, yoc=cost>0?yr/cost:0;
-        h+='<tr><td><b>'+r.sym+'</b></td><td>'+r.sh+'</td><td>$'+R.fmt(r.avg)+'</td><td>$'+R.fmt(r.px)+'</td><td>$'+R.fmt(mv)+'</td><td>'+R.pct(w)+'</td><td>$'+R.fmt(wk)+'</td><td>$'+R.fmt(mo)+'</td><td>$'+R.fmt(yr)+'</td><td>'+R.pct(yoc)+'</td><td>'+(r.tw||0)+'%</td><td><button class="ghost" style="padding:2px 8px" onclick="Income.edit(\''+r.sym+'\')">수정</button> <button class="danger" style="padding:2px 8px" onclick="Income.del(\''+r.sym+'\')">×</button></td></tr>'; });
+      a.forEach(r=>{ const fN=Income.freqN(r); const mv=r.sh*r.px, cost=r.sh*r.avg, yr=r.sh*(+r.dist||0)*fN, wk=yr/52, mo=yr/12, w=t.mv>0?mv/t.mv:0, yoc=cost>0?yr/cost:0;
+        const fb=(r.freq==='monthly')?' <span class="tag" style="background:#1a2b40;color:#4ea1ff">월</span>':'';
+        h+='<tr><td><b>'+r.sym+'</b>'+fb+'</td><td>'+r.sh+'</td><td>$'+R.fmt(r.avg)+'</td><td>$'+R.fmt(r.px)+'</td><td>$'+R.fmt(mv)+'</td><td>'+R.pct(w)+'</td><td>$'+R.fmt(wk)+'</td><td>$'+R.fmt(mo)+'</td><td>$'+R.fmt(yr)+'</td><td>'+R.pct(yoc)+'</td><td>'+(r.tw||0)+'%</td><td><button class="ghost" style="padding:2px 8px" onclick="Income.edit(\''+r.sym+'\')">수정</button> <button class="danger" style="padding:2px 8px" onclick="Income.del(\''+r.sym+'\')">×</button></td></tr>'; });
       h+='</tbody><tfoot><tr style="font-weight:700"><td>합계</td><td></td><td></td><td></td><td>$'+R.fmt(t.mv)+'</td><td>100%</td><td>$'+R.fmt(t.wk)+'</td><td>$'+R.fmt(t.mo)+'</td><td>$'+R.fmt(t.yr)+'</td><td></td><td></td><td></td></tr></tfoot></table>';
       h+='<div class="kpi" style="margin-top:12px">'
         +'<div class="box"><div class="l">월 배당(세전)</div><div class="v">$'+R.fmt(t.mo)+'</div></div>'
@@ -1904,8 +1908,8 @@ const DTE = {
     try{
       const inc=(typeof Income!=='undefined'&&Income.load)?Income.load():[];
       const tax=(typeof Income!=='undefined'&&Income.tax)?(Income.tax()/100):0.15;
-      let wk=0; inc.forEach(function(x){ wk += (+x.sh||0)*(+x.dist||0); });
-      const annG=wk*52, annN=annG*(1-tax), moN=annN/12;
+      let annG=0; inc.forEach(function(x){ const fN=(x.freq==='monthly')?12:52; annG += (+x.sh||0)*(+x.dist||0)*fN; });
+      const annN=annG*(1-tax), moN=annN/12;
       h+='<div class="card"><h3 style="margin:0 0 6px">💵 12개월 현금흐름 예측 <span class="small muted">(현재 분배금 유지 가정)</span></h3>'
         +'<div class="kpi"><div class="box"><div class="l">주간</div><div class="v">$'+R.fmt(wk)+'</div></div>'
         +'<div class="box"><div class="l">연 세전</div><div class="v">$'+R.fmt(annG)+'</div></div>'
@@ -2063,8 +2067,8 @@ const Pro = {
       const h=inc.find(function(x){return x.sym===sym;})||{};
       const n=by[sym]||{}; const of=rhf[sym]||{};
       const px=(of.nav!=null)?+of.nav:(n.price!=null?+n.price:(+h.avg||0));
-      const sh=+h.sh||0, avg=+h.avg||0, wk=+h.dist||0; const annDist=wk*52;
-      return {sym:sym, sh:sh, avg:avg, px:px, mv:sh*px, tw:(+h.tw||0), wk:wk, annDist:annDist,
+      const sh=+h.sh||0, avg=+h.avg||0, per=+h.dist||0; const fN=(h.freq==='monthly')?12:52; const annDist=per*fN; const wk=annDist/52;
+      return {sym:sym, sh:sh, avg:avg, px:px, mv:sh*px, tw:(+h.tw||0), wk:wk, per:per, freq:(h.freq||'weekly'), annDist:annDist,
         yoc: avg? annDist/avg*100 : null, dy: px? annDist/px*100 : null,
         tr:(n.ann_total!=null?+n.ann_total:null), pr:(n.ann_price!=null?+n.ann_price:null),
         roc:(n.roc!=null?+n.roc:null), m:(of.metrics||null), decay:(of.nav_decay||null),
