@@ -1199,6 +1199,9 @@ const CS = {
               vrChanged=true; synced++;
               changes.push('📈 VR '+c.sym.toUpperCase()+': '+c.ps+'주 · V $'+R.fmt(c.V)+' · Pool $'+R.fmt(c.poolAvail));
             }
+            // 평단(avg) 동기화 → VR 대시보드 손익 계산(Hist.vrPos)
+            if(c.avg!=null){ try{ const vp=(typeof Hist!=='undefined'&&Hist.vrPos)?(Hist.vrPos(c.sym)||{}):{};
+              if(+vp.avg!==+c.avg || +vp.shares!==+c.ps){ Hist.setVrPos(c.sym,{avg:+c.avg, shares:+c.ps, costBasis:+(+c.ps*+c.avg).toFixed(2)}); synced++; changes.push('📈 VR '+c.sym.toUpperCase()+' 평단 $'+(+c.avg).toFixed(4)); } }catch(e){} }
           });
           if(vrChanged){
             localStorage.setItem(VR.STKEY, JSON.stringify(st));
