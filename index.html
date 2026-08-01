@@ -357,7 +357,7 @@
         <tr><td>평가금이 상단 위 (급등)</td><td style="color:#ff9d9d">매도</td></tr>
       </tbody>
     </table>
-    <p class="small">적립액(자동): <b>TQQQ 2주 $400</b> (UPRO 중단). 전략 단계는 "전략 구분"에서 전환: <b>적립식</b>($200,000까지) → <b>거치식</b> → <b>인출식</b>(목표 도달 시).</p>
+    <p class="small">적립액(자동): <b>TQQQ 2주 $350</b> (UPRO 중단). 전략 단계는 "전략 구분"에서 전환: <b>적립식</b>($200,000까지) → <b>거치식</b> → <b>인출식</b>(목표 도달 시).</p>
   </div>
   <div class="card">
     <h2>④ 부가 기능 · 백업</h2>
@@ -593,7 +593,7 @@
 
   <div class="card" style="border:1px solid #6a5acd;background:rgba(106,90,205,0.06)">
     <h3 style="margin:0 0 6px;color:#a99bff">🔀 $700을 어디에 재투자? · 인컴 재투자 vs VR 성장</h3>
-    <div class="src" style="margin-bottom:8px"><b>방식 A</b> 인컴 재투자(QDTE·XDTE·JEPQ) &nbsp;|&nbsp; <b>방식 B</b> VR 성장 적립 — 2주마다 TQQQ $400 (UPRO 중단)</div>
+    <div class="src" style="margin-bottom:8px"><b>방식 A</b> 인컴 재투자(QDTE·XDTE·JEPQ) &nbsp;|&nbsp; <b>방식 B</b> VR 성장 적립 — 2주마다 TQQQ $350 (UPRO 중단)</div>
     <table><thead><tr><th>항목</th><th>A · 인컴 재투자</th><th>B · VR 성장(TQQQ·UPRO)</th></tr></thead><tbody>
       <tr><td>성장 동력</td><td>분배금 복리(주식 수↑)</td><td>나스닥·S&P <b>3배 레버리지</b> 상승</td></tr>
       <tr><td>기대 성격</td><td>총수익 ~연 14%(프리미엄 의존)</td><td>강세장 매우 높음 · 약세장 급락</td></tr>
@@ -894,7 +894,7 @@ const VR = {
   STKEY:'isl_vr_state_v1',
   store(){ try{return JSON.parse(localStorage.getItem(this.STKEY))||{}}catch(e){return{}} },
   loadState(sym){ return this.store()[sym]||null; },
-  DEFDEP:{tqqq:400},
+  DEFDEP:{tqqq:350},
   saveState(){ const s=this.store(); s[R.s('vr_sym')]={pv:R.n('vr_pv'),pp:R.n('vr_pp'),ps:R.n('vr_ps'),type:R.s('vr_type'),mult:R.n('vr_mult'),dep:R.n('vr_dep')}; localStorage.setItem(this.STKEY,JSON.stringify(s)); },
   loadSym(){
     const sym=R.s('vr_sym'); const st=this.loadState(sym)||{};
