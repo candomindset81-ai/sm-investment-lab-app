@@ -66,24 +66,20 @@
 <div class="disclaimer">⚠️ <b>위험 고지</b> — 본 도구는 <b>계산·기록·교육용</b>이며 투자 권유·수익 보장·자동매매가 아닙니다. TQQQ·SOXL 등 3배 레버리지 ETF는 원금의 상당 부분 또는 전부를 잃을 수 있습니다. 모든 결과는 <b>주문 초안</b>이며 실제 거래 전 원문 공식과 증권사 주문 조건을 직접 확인하세요.</div>
 
 <nav id="nav">
-  <button data-tab="dash" class="active">대시보드</button>
+  <button data-tab="dash" class="active">🧭 대시보드</button>
   <button data-tab="infinite">무한매수법</button>
   <button data-tab="vr">VR</button>
   <button data-tab="indi">지표</button>
   <button data-tab="income">💰 인컴 허브</button>
-  <button data-tab="flow">🔀 자본흐름</button>
   <button data-tab="analytics">📊 분석</button>
-  <button data-tab="goals">🎯 목표</button>
   <button data-tab="notif">🔔 알림</button>
   <button data-tab="risk">🛡️ 리스크</button>
-  <button data-tab="advisor">🤖 어드바이저</button>
-  <button data-tab="master">🧭 마스터</button>
   <button data-tab="log">매매기록</button>
   <button data-tab="guide">가이드</button>
 </nav>
 
 <main>
-<section id="dash" class="tab active">
+<section id="dash" class="tab active dashg">
   <div class="card">
     <h2>대시보드</h2>
     <div class="note">각 전략 탭에서 “기록 저장”을 누르면 여기 누적 상황이 표시됩니다. 데이터는 이 브라우저에만 저장됩니다.</div>
@@ -437,7 +433,7 @@
   </div>
 </section>
 
-<section id="goals" class="tab">
+<section id="goals" class="tab active dashg">
   <div class="card">
     <h2>🎯 목표 트래커</h2>
     <div class="note">월 배당 소득 목표까지의 진행률과 예상 달성일을 계산합니다. 예상 달성일은 아래 가정(월 적립·배당 재투자)에 따른 <b>추정치</b>입니다.</div>
@@ -451,7 +447,7 @@
   </div>
 </section>
 
-<section id="flow" class="tab">
+<section id="flow" class="tab anag">
   <div class="card">
     <h2>🔀 자본흐름 관리 <span class="tag">Rule Engine</span></h2>
     <div class="note">배당·현금을 규칙에 따라 배분합니다. 월 세후 배당이 <b>목표 미만</b>이면 전액 인컴 재투자. <b>목표 이상</b>이면 매월 <b>목표액을 VR(성장)</b>로, <b>초과분을 인컴</b>에 재투자.</div>
@@ -478,13 +474,13 @@
   </div>
 </section>
 
-<section id="analytics" class="tab">
+<section id="analytics" class="tab anag">
   <div class="card">
     <h2>📊 분석 엔진</h2>
     <div class="note">자산 배분·레버리지 리스크·배당 분석. 값은 인컴 입력 + 앱 포지션·시세 기준입니다.</div>
     <div id="wa_out"></div>
   </div>
-  <div class="card">
+  <div class="card" style="display:none"><!-- 시뮬레이터 통합: Pro '배당 시뮬레이터'로 일원화 -->
     <h3>🔮 시나리오 (시장 변동 시)</h3>
     <div class="note">3배 레버리지(VR·SOXL)는 시장 변동의 약 3배, 인컴(DTE)은 약 1배로 움직인다고 가정한 추정입니다.</div>
     <div id="wa_scenario"></div>
@@ -513,7 +509,7 @@
   </div>
 </section>
 
-<section id="dte" class="tab hub">
+<section id="dte" class="tab" style="display:none">
   <div class="card">
     <h2>📈 DTE 모니터 <span class="tag">QDTE·XDTE·JEPQ 종목별</span></h2>
     <div class="note">종목별 <b>총수익률(분배금 재투자)</b>·NAV 추이·추정 ROC·배당 추이를 매일 서버가 계산해 표시합니다. 0DTE 커버드콜 ETF는 분배금률이 아니라 <b>총수익률</b>이 실제 성과 지표입니다.</div>
@@ -561,7 +557,7 @@
   </div>
 </section>
 
-<section id="advisor" class="tab">
+<section id="advisor" class="tab anag">
   <div class="card">
     <h2>🤖 어드바이저 <span class="tag">규칙 기반</span></h2>
     <div class="note">인컴·자본흐름·분석·목표·알림 데이터를 종합해 <b>우선순위 있는 행동 제안</b>을 자동 생성합니다. LLM 없이 결정론적 규칙으로 동작하며, 투자 자문이 아닌 참고용입니다.</div>
@@ -578,6 +574,7 @@
     </div>
     <div class="btnrow"><button class="act" onclick="Pro.optimize()">💡 배분 추천</button></div>
     <div id="pro_opt_out"></div>
+    <div style="display:none"><!-- 시뮬레이터 통합: Pro '배당 시뮬레이터'로 일원화 -->
     <h3 style="margin:12px 0 6px">🎛️ What-if 시뮬레이터 <span class="small muted">(QDTE·XDTE·JEPQ 비중 조정 · 즉시 비교)</span></h3>
     <div class="kpi" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
       <div class="box"><div class="l">QDTE 비중 %</div><input id="pro_wi_qdte" type="number" value="34" step="1" style="width:100%"></div>
@@ -587,6 +584,7 @@
     </div>
     <div class="btnrow"><button class="act" onclick="Pro.whatif()">🎛️ 비교 실행</button></div>
     <div id="pro_wi_out"></div>
+    </div><!-- /What-if 숨김 -->
   </div>
 
   <div id="ad_stress_out"></div>
@@ -612,7 +610,7 @@
   </div>
 </section>
 
-<section id="master" class="tab">
+<section id="master" class="tab active dashg">
   <div class="card">
     <h2>🧭 마스터 대시보드</h2>
     <div class="note">인컴·그로스·알파 엔진과 목표·현금흐름을 한눈에. 그로스(VR)·알파(SOXL) 평가금은 앱에 저장된 포지션·시세 기준(참고용)입니다.</div>
@@ -2478,6 +2476,8 @@ document.getElementById('nav').addEventListener('click',function(e){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');
   if(b.dataset.tab==='income'){ document.querySelectorAll('section.hub').forEach(x=>x.classList.add('active')); }
+  else if(b.dataset.tab==='dash'){ document.querySelectorAll('section.dashg').forEach(x=>x.classList.add('active')); }         // 대시보드+마스터+목표 통합
+  else if(b.dataset.tab==='analytics'){ document.querySelectorAll('section.anag').forEach(x=>x.classList.add('active')); }    // 분석+자본흐름+어드바이저 통합
   else { const el=document.getElementById(b.dataset.tab); if(el) el.classList.add('active'); }
 });
 document.getElementById('ib_preset').addEventListener('change',()=>IB.applyPreset());
@@ -2499,6 +2499,25 @@ if(!localStorage.getItem('isl_seeded_v1')) localStorage.setItem('isl_seeded_v1',
 
 Hist.snapshot();
 IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); Refresh.injectButtons();
+
+/* ===== 매일 자동 최신화 ===== 앱 열 때(토큰 있으면) 클라우드(state.json)를 자동으로 당겨와 전 탭 갱신.
+   + 탭에 돌아올 때(visibilitychange) 최대 30분마다 재동기화. 서버가 매일 갱신한 데이터가 자동 반영됨. */
+(function(){
+  function hasTok(){ try{ return typeof CS!=='undefined' && CS.token && !!CS.token(); }catch(e){ return false; } }
+  function autoFetch(force){
+    if(!hasTok()) return;
+    try{
+      var last=+localStorage.getItem('isl_autofetch_ts')||0;
+      if(!force && (Date.now()-last)<1800000) return;   // 30분 쓰로틀
+      localStorage.setItem('isl_autofetch_ts', Date.now());
+      if(typeof Refresh!=='undefined' && Refresh.now) Refresh.now();
+    }catch(e){ console.log('autoFetch', e); }
+  }
+  setTimeout(function(){ autoFetch(true); }, 500);     // 열자마자 1회
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState==='visible') autoFetch(false);
+  });
+})();
 </script>
 </body>
 </html>
