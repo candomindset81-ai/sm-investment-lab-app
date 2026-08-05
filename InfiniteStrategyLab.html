@@ -184,7 +184,7 @@
   </div>
   <div class="card">
     <h3>📈 최대·최소 밴드 그래프 <span class="tag" id="vr_band_sym">TQQQ</span></h3>
-    <div class="note">라오어 VR 방식 — 평가금이 목표 V의 <b>최소(V×0.85)</b>선에 닿으면 매수 신호. 종목 선택은 아래 VR 계산기의 종목과 연동됩니다. 앱 열 때 주 1회 자동 기록.</div>
+    <div class="note">라오어 VR 방식 — 평가금이 목표 V의 <b>최소(V×0.85)</b>선에 닿으면 매수 신호. 종목 선택은 아래 VR 계산기의 종목과 연동됩니다. 서버가 <b>매 거래일 자동 갱신</b>(앱 열면 오늘 값도 기록).</div>
     <div id="vr_band" style="margin-top:8px"></div>
   </div>
   <div class="card">
@@ -1004,16 +1004,16 @@ const VR = {
   weekKey(d){ const dt=new Date(d); const on=new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate())); const day=on.getUTCDay()||7; on.setUTCDate(on.getUTCDate()+4-day); const ys=new Date(Date.UTC(on.getUTCFullYear(),0,1)); const wk=Math.ceil((((on-ys)/86400000)+1)/7); return on.getUTCFullYear()+'-W'+(wk<10?'0'+wk:wk); },
   recordBand(){
     const store=this.store(); const band=(R.n('vr_band')||15)/100; const all=this.bandHist();
-    const today=(new Date()).toISOString().slice(0,10); const wk=this.weekKey(today);
+    const today=(new Date()).toISOString().slice(0,10);
     ['tqqq'].forEach(function(sym){
       const st=store[sym]||{}; const V=+st.pv||0; const ps=+st.ps||0;
       const px=(typeof MKT!=='undefined'&&MKT[sym])?+MKT[sym].prevClose:0;
       if(V<=0||px<=0) return;
       const evalv=ps*px, lo=V*(1-band), up=V*(1+band), buy=evalv<=lo;
       const arr=all[sym]||[]; const lastp=arr[arr.length-1];
-      const rec={wk:wk,date:today,eval:Math.round(evalv),lo:Math.round(lo),up:Math.round(up),V:Math.round(V),buy:buy};
-      if(lastp&&lastp.wk===wk){ arr[arr.length-1]=rec; } else { arr.push(rec); }
-      all[sym]=arr.slice(-80);
+      const rec={date:today,eval:Math.round(evalv),lo:Math.round(lo),up:Math.round(up),V:Math.round(V),buy:buy};
+      if(lastp&&lastp.date===today){ arr[arr.length-1]=rec; } else { arr.push(rec); }   // 하루 1회 기록(같은 날 갱신)
+      all[sym]=arr.slice(-260);
     });
     try{ localStorage.setItem(this.BANDKEY,JSON.stringify(all)); }catch(e){}
   },
@@ -1029,7 +1029,7 @@ const VR = {
     } else {
       arr=(this.bandHist()[sym]||[]);
     }
-    if(arr.length===0) return '<div class="muted small">아직 기록이 없습니다. 매매기록 탭에서 클라우드 새로고침을 하면 서버가 만든 <b>최근 1년치(주간)</b> 밴드 그래프가 표시됩니다. (매주 자동 갱신)</div>';
+    if(arr.length===0) return '<div class="muted small">아직 기록이 없습니다. 매매기록 탭에서 클라우드 새로고침을 하면 서버가 만든 <b>최근 1년치(일별)</b> 밴드 그래프가 표시됩니다. (매 거래일 자동 갱신)</div>';
     const W=680,H=300,pl=52,pr=96,pt=20,pb=40; const n=arr.length;
     let ys=[]; arr.forEach(function(d){ ys.push(d.eval,d.lo,d.up); });
     let mn=Math.min.apply(null,ys), mx=Math.max.apply(null,ys); if(mn===mx){mn*=0.95;mx*=1.05;}
@@ -1059,12 +1059,15 @@ const VR = {
       +'<line x1="'+(W-pr+4)+'" y1="'+(pt+58)+'" x2="'+(W-pr+22)+'" y2="'+(pt+58)+'" stroke="#cbd5e6" stroke-width="2" stroke-dasharray="7 5"/><text x="'+(W-pr+26)+'" y="'+(pt+62)+'" fill="#cbd5e6">최소</text>'
       +'<line x1="'+(W-pr+4)+'" y1="'+(pt+76)+'" x2="'+(W-pr+22)+'" y2="'+(pt+76)+'" stroke="#93a1bd" stroke-width="2" stroke-dasharray="7 5"/><text x="'+(W-pr+26)+'" y="'+(pt+80)+'" fill="#93a1bd">최대</text></g>';
     const svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+grid+poly('up','#93a1bd',true)+poly('lo','#cbd5e6',true)+poly('eval','#ff5a4d',false)+arrows+xlab+lastDot+box+leg+'</svg>';
-    const buyLbl=function(i){ return isSrv?((arr[i].date||'').slice(5)):(i+'주차'); };
-    const buyList=buys.length?('↑ 매수신호 주 — '+buys.map(buyLbl).join(' · ')):'매수신호 없음(평가금이 최소밴드에 닿은 주 없음)';
+    const buyLbl=function(i){ return (arr[i]&&arr[i].date)?arr[i].date.slice(5):(i+''); };
+    let buyList;
+    if(buys.length){ const shown=buys.slice(-24).map(buyLbl); const more=buys.length-shown.length;
+      buyList='↑ 매수신호일 — '+shown.join(' · ')+(more>0?(' … 외 '+more+'일'):'')+' (총 '+buys.length+'일)'; }
+    else { buyList='매수신호 없음(평가금이 최소밴드에 닿은 날 없음)'; }
     const rng=isSrv?(arr[0].date+' ~ '+arr[n-1].date):'';
     const note=isSrv
-      ? ('최근 <b>'+n+'주(매주 금요일)</b> · <b>'+rng+'</b> — 모두 <u>과거</u>입니다(미래 아님). 매주 금요일마다 자동 갱신. 밴드(최소·최대)는 목표 V가 적립·성장으로 커져 <b>우상향</b>합니다. 평가금이 최소선에 닿으면 매수신호. <span class="muted">과거 주는 현재 보유주수·적립반영 추정 V 기준 근사(가격 흐름 반영).</span>')
-      : '최소=목표 V×(1−밴드), 최대=V×(1+밴드). 평가금이 <b>최소</b>선에 닿으면 매수 신호. 클라우드 새로고침 시 서버 1년치가 표시됩니다.';
+      ? ('최근 <b>'+n+'거래일</b> · <b>'+rng+'</b> — 모두 <u>과거</u>입니다(미래 아님). <b>매 거래일 자동 갱신</b>. 밴드(최소·최대)는 목표 V가 적립·성장으로 커져 <b>우상향</b>합니다. 평가금이 최소선에 닿으면 매수신호. <span class="muted">과거 시점은 현재 보유주수·적립반영 추정 V 기준 근사(가격 흐름 반영).</span>')
+      : '최소=목표 V×(1−밴드), 최대=V×(1+밴드). 평가금이 <b>최소</b>선에 닿으면 매수 신호. 클라우드 새로고침 시 서버 1년치(일별)가 표시됩니다.';
     return svg+'<div style="margin-top:6px;font-size:12px;color:#a97bff;font-weight:600">'+buyList+'</div>'
       +'<div class="src">'+note+'</div>';
   },
