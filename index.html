@@ -151,8 +151,8 @@
   </div>
 
   <div class="card">
-    <h3>📊 평단 vs 시장가 (시계열)</h3>
-    <div class="note">앱을 열 때마다 시장가·평단이 하루 1포인트씩 자동 기록됩니다. 매수를 반영하면 평단이 갱신됩니다.</div>
+    <h3>📊 종합 분석 (실제가·평단·매수신호·수익률)</h3>
+    <div class="note">실제 1년 일별 종가(매일 자동 갱신) 위에 내 평단·별매수가·매도목표선과 매수신호를 표시하고, 아래에 평단 대비 수익률 추이를 보여줍니다. 계산기 값을 바꾸면 즉시 반영됩니다.</div>
     <div id="ib_chart" style="margin-top:8px"></div>
   </div>
 
@@ -726,6 +726,115 @@ function renderLineChart(data){
     +'<div style="display:flex;gap:18px;margin-top:6px;font-size:12px"><span style="color:#8fb8ff">■ 시장가</span><span style="color:#ffcf7a">■ 평단</span></div>';
 }
 
+/* ===== 무한매수법 종합 분석 차트 (실제 1년 가격 + 평단/별매수/매도선 + 매수신호 + 수익률) ===== */
+function renderIBChart(sym, p, o){
+  const srv = (typeof VR!=='undefined' && VR.srvHist) ? VR.srvHist()[sym] : null;
+  if(!srv || !srv.rows || srv.rows.length<5){
+    // 실제 가격 히스토리가 없는 심볼(예: SOXL)은 기존 스냅샷 차트로 대체
+    return renderLineChart((typeof Hist!=='undefined'?(Hist.get()[sym]||[]):[]));
+  }
+  const rows = srv.rows.filter(function(r){return r&&r.px!=null;});
+  const n = rows.length; if(n<5) return renderLineChart((Hist.get()[sym]||[]));
+  const avg=+p.avg||0, shares=+p.shares||0, cash=+p.cash||0, N=+p.N||0, T=+p.T||0, fs=+p.fs||0;
+  const curPx = rows[n-1].px;
+  const starPt = (o&&o.starPoint!=null)?+o.starPoint:((avg>0&&o&&o.starPct!=null)?avg*(1+o.starPct):null); // 별지점(익절선)
+  const desig   = (avg>0)? avg*(1+fs) : null;                        // 지정가 전량매도 목표
+  const evalNow = shares*curPx, cost=shares*avg, pl=(avg>0)?shares*(curPx-avg):0, plpct=(avg>0)?(curPx/avg-1):null;
+
+  // ── KPI 요약 ──
+  const phase = T===0?'첫 매수':(T<N/2?'전반전':'후반전');
+  const plColor = pl>=0?'#22c55e':'#ff5a4d';
+  let kpi='<div class="kpi" style="margin-bottom:10px">'
+    +'<div class="box"><div class="l">회차 T / N</div><div class="v">'+R.fmt(T,1)+' / '+N+'</div></div>'
+    +'<div class="box"><div class="l">현재가(실제)</div><div class="v">$'+R.fmt(curPx)+'</div></div>'
+    +'<div class="box"><div class="l">평단</div><div class="v">'+(avg>0?('$'+R.fmt(avg)):'–')+'</div></div>'
+    +'<div class="box"><div class="l">평가금 / 투입원금</div><div class="v">$'+R.fmt(evalNow)+' <span class="small muted">/ $'+R.fmt(cost)+'</span></div></div>'
+    +'<div class="box"><div class="l">평가손익</div><div class="v" style="color:'+plColor+'">'+(avg>0?((pl>=0?'+':'')+'$'+R.fmt(pl)+' ('+(plpct>=0?'+':'')+(plpct*100).toFixed(2)+'%)'):'–')+'</div></div>'
+    +'<div class="box"><div class="l">예수금(잔여)</div><div class="v">$'+R.fmt(cash)+'</div></div>'
+    +'<div class="box"><div class="l">국면 / 별지점(익절)</div><div class="v">'+phase+' <span class="small muted">/ '+(starPt?('$'+R.fmt(starPt)):'–')+'</span></div></div>'
+    +'</div>';
+
+  // ── 좌표계 (가격 패널 + 수익률 패널 공유 X) ──
+  const W=720, pl_=54, pr=78, pTop=16, pBot=232, rTop=258, rBot=322, H=344;
+  const X=i=> n<=1?(pl_+(W-pl_-pr)/2):pl_+(W-pl_-pr)*i/(n-1);
+  // 가격 y범위: 실제가 + 표시할 기준선 포함
+  let pv=rows.map(function(r){return r.px;});
+  if(avg>0) pv.push(avg);
+  if(starPt) pv.push(starPt);
+  if(desig) pv.push(desig);
+  let pmn=Math.min.apply(null,pv), pmx=Math.max.apply(null,pv); if(pmn===pmx){pmn*=0.98;pmx*=1.02;}
+  const ppad=(pmx-pmn)*0.08||1; pmn-=ppad; pmx+=ppad;
+  const yP=v=> pTop+(pBot-pTop)*(1-(v-pmn)/(pmx-pmn));
+
+  // 가격 격자 + Y라벨
+  let grid=''; for(let s=0;s<=4;s++){ const v=pmn+(pmx-pmn)*s/4, y=yP(v);
+    grid+='<line x1="'+pl_+'" y1="'+y.toFixed(1)+'" x2="'+(W-pr)+'" y2="'+y.toFixed(1)+'" stroke="#2e3a52" stroke-width="1"/>'
+      +'<text x="'+(pl_-6)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="#93a1bd">$'+v.toFixed(0)+'</text>'; }
+
+  // 실제 가격선
+  const pxPts=rows.map(function(r,i){return X(i).toFixed(1)+','+yP(r.px).toFixed(1);}).join(' ');
+  const pxLine='<polyline fill="none" stroke="#3b82f6" stroke-width="2.5" points="'+pxPts+'"/>';
+
+  // 기준선(수평) + 우측 라벨
+  const refLine=function(v,color,label){ if(v==null||v<pmn||v>pmx) return '';
+    const y=yP(v).toFixed(1);
+    return '<line x1="'+pl_+'" y1="'+y+'" x2="'+(W-pr)+'" y2="'+y+'" stroke="'+color+'" stroke-width="1.6" stroke-dasharray="6 4"/>'
+      +'<text x="'+(W-pr+4)+'" y="'+(+y+3)+'" font-size="9.5" fill="'+color+'">'+label+' $'+R.fmt(v,1)+'</text>'; };
+  const refs = refLine(avg,'#f59e0b','평단') + refLine(starPt,'#a97bff','별지점') + refLine(desig,'#22c55e','매도목표');
+
+  // 익절 도달일 마커: 실제가가 별지점(익절선) 이상으로 올라간 날 ▲ (무한매수법은 매일 매수하므로 '매수신호'가 아닌 '익절 도달'을 표시)
+  let arrows='', hits=[];
+  if(starPt){ rows.forEach(function(r,i){ if(r.px>=starPt){ hits.push(i); const x=X(i), y=yP(r.px);
+    arrows+='<path d="M'+x.toFixed(1)+' '+(y-8).toFixed(1)+' L'+(x-4).toFixed(1)+' '+(y-16).toFixed(1)+' L'+(x+4).toFixed(1)+' '+(y-16).toFixed(1)+' Z" fill="#22c55e"/>'; } }); }
+
+  // 최신가 점
+  const lastDot='<circle cx="'+X(n-1).toFixed(1)+'" cy="'+yP(curPx).toFixed(1)+'" r="5" fill="#3b82f6" stroke="#fff" stroke-width="2"><title>'+rows[n-1].date+' · $'+R.fmt(curPx)+'</title></circle>';
+
+  // ── 수익률(%) 패널 ── (평단 대비)
+  let retSvg='', xlab='';
+  const xstep=Math.max(1,Math.round(n/8)), xgap=Math.ceil(xstep*0.6);
+  rows.forEach(function(r,i){ const isLast=(i===n-1); if(isLast||(i%xstep===0&&(n-1-i)>=xgap)){
+    xlab+='<text x="'+X(i).toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle" font-size="9.5" fill="#93a1bd">'+(r.date||'').slice(5)+'</text>'; } });
+  if(avg>0){
+    const rr=rows.map(function(r){return (r.px/avg-1)*100;});
+    let rmn=Math.min.apply(null,rr), rmx=Math.max.apply(null,rr); rmn=Math.min(rmn,0); rmx=Math.max(rmx,0); if(rmn===rmx){rmn-=1;rmx+=1;}
+    const yR=v=> rTop+(rBot-rTop)*(1-(v-rmn)/(rmx-rmn));
+    const y0=yR(0).toFixed(1);
+    // 0% 기준선
+    retSvg+='<line x1="'+pl_+'" y1="'+y0+'" x2="'+(W-pr)+'" y2="'+y0+'" stroke="#5b6b86" stroke-width="1"/>'
+      +'<text x="'+(pl_-6)+'" y="'+(+y0+3)+'" text-anchor="end" font-size="9.5" fill="#93a1bd">0%</text>';
+    // 영역(면적) — 위/아래 색 구분
+    const base=rows.map(function(r,i){return X(i).toFixed(1)+','+yR(Math.max(0,(r.px/avg-1)*100)).toFixed(1);});
+    const area='<polyline fill="none" stroke="#f59e0b" stroke-width="2" points="'+rows.map(function(r,i){return X(i).toFixed(1)+','+yR((r.px/avg-1)*100).toFixed(1);}).join(' ')+'"/>';
+    retSvg+=area;
+    // 현재 수익률 라벨
+    const curR=(curPx/avg-1)*100;
+    retSvg+='<text x="'+(W-pr+4)+'" y="'+(yR(curR).toFixed(1))+'" font-size="10" fill="'+(curR>=0?'#22c55e':'#ff5a4d')+'">'+(curR>=0?'+':'')+curR.toFixed(1)+'%</text>';
+    retSvg+='<text x="'+pl_+'" y="'+(rTop-4)+'" font-size="10" fill="#93a1bd">평단 대비 수익률(%)</text>';
+  } else {
+    retSvg+='<text x="'+pl_+'" y="'+((rTop+rBot)/2)+'" font-size="11" fill="#93a1bd">평단($)을 입력하면 수익률·익절선·손익이 표시됩니다.</text>';
+  }
+
+  const svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+grid+refs+pxLine+arrows+lastDot+retSvg+xlab+'</svg>';
+
+  // 범례 + 요약 노트
+  const rng=rows[0].date+' ~ '+rows[n-1].date;
+  const leg='<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:6px;font-size:12px">'
+    +'<span style="color:#8fb8ff">■ 실제가</span><span style="color:#ffcf7a">┈ 평단</span>'
+    +'<span style="color:#a97bff">┈ 별지점(익절)</span><span style="color:#7ee0a8">┈ 매도목표 ▲도달</span></div>';
+  const sig = (avg>0 && starPt)
+    ? ('현재가 $'+R.fmt(curPx)+' vs 평단 $'+R.fmt(avg)+' → <b style="color:'+plColor+'">'+(plpct>=0?'+':'')+(plpct*100).toFixed(1)+'%</b>. '
+       +'익절선(별지점 $'+R.fmt(starPt)+') 도달 <b>'+hits.length+'일</b>'+(hits.length===0?' — 아직 익절권 미도달':'')+'. '
+       +'전량매도 목표 $'+R.fmt(desig)+'까지 '+(curPx>=desig?'<b style="color:#22c55e">도달</b>':('+'+((desig/curPx-1)*100).toFixed(1)+'% 필요'))+'.')
+    : '평단($)을 입력하면 익절선·손익·수익률이 계산됩니다.';
+  const note='<div class="src" style="margin-top:6px"><b>'+sym.toUpperCase()+'</b> 최근 '+n+'거래일 · '+rng+' — 실제 종가 기준(매일 자동 갱신). '
+    +'파란선=실제가, 주황=현재 평단, 보라=별지점(익절선=평단+'+((o&&o.starPct!=null)?(o.starPct*100).toFixed(1):'—')+'%), 초록=전량매도 목표(평단+'+(fs*100).toFixed(0)+'%). ▲=실제가가 익절선 이상 올라간 날. '
+    +'아래 패널은 평단 대비 수익률(%) 추이. <span class="muted">무한매수법은 매일 분할 매수하는 방식이라, 여기서는 손익·익절 도달 관점으로 표시합니다. 기준선은 현재 입력값 기준 수평선입니다.</span></div>';
+  const _sig='<div style="margin-top:6px;font-size:12px;color:#cbd5e6">'+sig+'</div>';
+
+  return kpi + svg + leg + _sig + note;
+}
+
 /* ===================== 무한매수법 엔진 ===================== */
 const IBengine = {
   orders(p){
@@ -794,7 +903,9 @@ const IB = {
       T:R.n('ib_T'),cash:R.n('ib_cash'),shares:R.n('ib_sh'),avg:R.n('ib_avg')}; },
   _last:null,_next:null,
   renderChart(){ const sym=this.symOf(R.s('ib_preset'));
-    document.getElementById('ib_chart').innerHTML = sym? renderLineChart(Hist.get()[sym]||[]) : '<div class="muted small">직접입력 모드에서는 차트가 표시되지 않습니다.</div>'; },
+    if(!sym){ document.getElementById('ib_chart').innerHTML='<div class="muted small">직접입력 모드에서는 차트가 표시되지 않습니다.</div>'; return; }
+    const p=this.read(); let o={}; try{ o=IBengine.orders(p); }catch(e){}
+    document.getElementById('ib_chart').innerHTML = renderIBChart(sym, p, o); },
   calc(){
     const p=this.read(); const o=IBengine.orders(p); this._last={p,o};
     const sym=this.symOf(R.s('ib_preset')); const cur=sym?MKT[sym].p:null;
