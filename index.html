@@ -15,6 +15,16 @@
   nav{display:flex;gap:4px;overflow-x:auto;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:59px;z-index:19}
   nav button{white-space:nowrap;background:transparent;border:1px solid transparent;color:var(--muted);padding:8px 13px;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600}
   nav button.active{background:var(--panel2);color:var(--txt);border-color:var(--line)}
+  .moredd{position:relative}
+  .moredd>summary{list-style:none;white-space:nowrap;color:var(--muted);padding:8px 13px;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600;border:1px solid transparent;user-select:none}
+  .moredd>summary::-webkit-details-marker{display:none}
+  .moredd>summary:hover{color:var(--txt)}
+  .moredd.on>summary{background:var(--panel2);color:var(--txt);border-color:var(--line)}
+  .moredd[open]>summary{background:var(--panel2);color:var(--txt);border-color:var(--line)}
+  .moredd-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:170px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.4);padding:6px;display:flex;flex-direction:column;gap:2px;z-index:50}
+  .moredd-panel button{white-space:nowrap;text-align:left;background:transparent;border:1px solid transparent;color:var(--muted);padding:9px 12px;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600;width:100%}
+  .moredd-panel button:hover{background:var(--panel2);color:var(--txt)}
+  .moredd-panel button.active{background:var(--panel2);color:var(--txt);border-color:var(--line)}
   main{max-width:920px;margin:0 auto;padding:16px}
   .tab{display:none}.tab.active{display:block}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
@@ -69,13 +79,18 @@
   <button data-tab="dash" class="active">🧭 대시보드</button>
   <button data-tab="infinite">무한매수법</button>
   <button data-tab="vr">VR</button>
-  <button data-tab="indi">지표</button>
   <button data-tab="income">💰 인컴 허브</button>
-  <button data-tab="analytics">📊 분석</button>
-  <button data-tab="notif">🔔 알림</button>
-  <button data-tab="risk">🛡️ 리스크</button>
-  <button data-tab="log">매매기록</button>
-  <button data-tab="guide">가이드</button>
+  <details id="moreMenu" class="moredd">
+    <summary id="moreBtn">⋯ 더보기</summary>
+    <div class="moredd-panel">
+      <button data-tab="indi">📈 지표</button>
+      <button data-tab="analytics">📊 분석</button>
+      <button data-tab="notif">🔔 알림</button>
+      <button data-tab="risk">🛡️ 리스크</button>
+      <button data-tab="log">📒 매매기록</button>
+      <button data-tab="guide">📖 가이드</button>
+    </div>
+  </details>
 </nav>
 
 <main>
@@ -2591,8 +2606,9 @@ const Pro = {
 };
 
 /* ===================== 초기화(부팅) ===================== */
+var MORE_TABS = ['indi','analytics','notif','risk','log','guide'];   // '더보기' 드롭다운에 들어간 탭
 function switchTab(b){
-  if(!b) return;
+  if(!b || !b.dataset || !b.dataset.tab) return;   // data-tab 없는 요소(더보기 토글 등)는 무시
   document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');
@@ -2600,6 +2616,9 @@ function switchTab(b){
   else if(b.dataset.tab==='dash'){ document.querySelectorAll('section.dashg').forEach(x=>x.classList.add('active')); }         // 대시보드+마스터+목표 통합
   else if(b.dataset.tab==='analytics'){ document.querySelectorAll('section.anag').forEach(x=>x.classList.add('active')); }    // 분석+자본흐름+어드바이저 통합
   else { const el=document.getElementById(b.dataset.tab); if(el) el.classList.add('active'); }
+  // 더보기 드롭다운: 선택 후 닫고, 숨은 탭이 선택되면 '더보기'를 활성 표시
+  var dd=document.getElementById('moreMenu');
+  if(dd){ dd.open=false; dd.classList.toggle('on', MORE_TABS.indexOf(b.dataset.tab)>=0); }
 }
 document.getElementById('nav').addEventListener('click',function(e){
   const b=e.target.closest('button'); switchTab(b);
@@ -2607,6 +2626,11 @@ document.getElementById('nav').addEventListener('click',function(e){
 /* 방어적 보강: 위임 리스너가 어떤 이유로든 동작하지 않는 환경을 대비해 버튼별 직접 핸들러도 부착(멱등) */
 document.querySelectorAll('#nav button').forEach(function(btn){
   btn.addEventListener('click', function(){ switchTab(btn); });
+});
+/* 더보기 드롭다운: 바깥 클릭 시 닫기 */
+document.addEventListener('click', function(e){
+  var dd=document.getElementById('moreMenu');
+  if(dd && dd.open && !dd.contains(e.target)) dd.open=false;
 });
 document.getElementById('ib_preset').addEventListener('change',()=>IB.applyPreset());
 document.getElementById('vr_sym').addEventListener('change',()=>VR.loadSym());
