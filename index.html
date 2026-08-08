@@ -1044,8 +1044,8 @@ const VR = {
       grid+='<line x1="'+pl+'" y1="'+y.toFixed(1)+'" x2="'+(W-pr)+'" y2="'+y.toFixed(1)+'" stroke="#2e3a52" stroke-width="1"/>'
         +'<text x="'+(pl-6)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="#93a1bd">'+Math.round(v).toLocaleString()+'</text>'; }
     // X라벨 — 서버 시계열은 날짜(월/일), 로컬은 주차. 라벨 개수 ~8개로 자동 간격.
-    let xlab=''; const xstep=Math.max(1,Math.round(n/8));
-    arr.forEach(function(d,i){ if(i%xstep===0||i===n-1){ const lbl=isSrv?((d.date||'').slice(5)):(i+'주차'); xlab+='<text x="'+X(i).toFixed(1)+'" y="'+(H-14)+'" text-anchor="middle" font-size="10" fill="#93a1bd">'+lbl+'</text>'; } });
+    let xlab=''; const xstep=Math.max(1,Math.round(n/8)); const xgap=Math.ceil(xstep*0.6);
+    arr.forEach(function(d,i){ const isLast=(i===n-1); if(isLast || (i%xstep===0 && (n-1-i)>=xgap)){ const lbl=isSrv?((d.date||'').slice(5)):(i+'주차'); xlab+='<text x="'+X(i).toFixed(1)+'" y="'+(H-14)+'" text-anchor="middle" font-size="10" fill="#93a1bd">'+lbl+'</text>'; } });
     // 매수발생 화살표 + 목록
     let arrows='', buys=[]; arr.forEach(function(d,i){ if(d.buy){ buys.push(i); const x=X(i), y=Y(d.eval);
       arrows+='<path d="M'+x+' '+(y+26)+' L'+(x-5)+' '+(y+36)+' L'+(x+5)+' '+(y+36)+' Z" fill="#a97bff"/><line x1="'+x+'" y1="'+(y+36)+'" x2="'+x+'" y2="'+(y+48)+'" stroke="#a97bff" stroke-width="2.5"/>'; } });
