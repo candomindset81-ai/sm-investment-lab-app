@@ -727,10 +727,15 @@ function renderLineChart(data){
 }
 
 /* ===== 무한매수법 종합 분석 차트 (실제 1년 가격 + 평단/별매수/매도선 + 매수신호 + 수익률) ===== */
+function ibPxHist(){ try{return JSON.parse(localStorage.getItem('isl_ibpx_v1'))||{}}catch(e){return{}} }
 function renderIBChart(sym, p, o){
-  const srv = (typeof VR!=='undefined' && VR.srvHist) ? VR.srvHist()[sym] : null;
+  // 1순위: 무한매수법 전용 가격 히스토리(TQQQ·SOXL), 2순위: VR 밴드 시계열(px 포함)
+  let srv = ibPxHist()[sym];
   if(!srv || !srv.rows || srv.rows.length<5){
-    // 실제 가격 히스토리가 없는 심볼(예: SOXL)은 기존 스냅샷 차트로 대체
+    srv = (typeof VR!=='undefined' && VR.srvHist) ? VR.srvHist()[sym] : null;
+  }
+  if(!srv || !srv.rows || srv.rows.length<5){
+    // 아직 서버 가격 히스토리가 없으면 기존 스냅샷 차트로 대체
     return renderLineChart((typeof Hist!=='undefined'?(Hist.get()[sym]||[]):[]));
   }
   const rows = srv.rows.filter(function(r){return r&&r.px!=null;});
@@ -1343,6 +1348,8 @@ const CS = {
         if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); if(typeof DTE!=='undefined'&&DTE.render) DTE.render(); }
         // 서버가 만든 VR 밴드 1년치(주간) 시계열 저장 → bandChart 가 사용
         if(s.vr_band_hist){ try{ localStorage.setItem('isl_vrband_srv_v1', JSON.stringify(s.vr_band_hist)); if(typeof VR!=='undefined'&&VR.renderBand) VR.renderBand(); }catch(e){} }
+        // 무한매수법 종합차트용 가격 히스토리(TQQQ·SOXL)
+        if(s.ib_px_hist){ try{ localStorage.setItem('isl_ibpx_v1', JSON.stringify(s.ib_px_hist)); if(typeof IB!=='undefined'&&IB.renderChart) IB.renderChart(); }catch(e){} }
         try{ if(typeof Pro!=='undefined'&&Pro.render) Pro.render(); }catch(e){}
       }catch(e){}
       let h='';
