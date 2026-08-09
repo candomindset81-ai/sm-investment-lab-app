@@ -63,6 +63,19 @@
   .sig .bar .dot{position:absolute;top:-4px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #0f1420;transform:translateX(-50%)}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   @media(max-width:640px){.row2{grid-template-columns:1fr}}
+  /* 모바일 최적화 */
+  .card{overflow-x:auto}
+  @media(max-width:640px){
+    main{padding:12px}
+    header{padding-left:12px;padding-right:12px}
+    h1{font-size:22px}
+    h2{font-size:18px}
+    .kpi{grid-template-columns:1fr 1fr}
+    table{font-size:12px}
+    table th,table td{padding:6px 6px}
+    nav button,.moredd>summary{padding:7px 10px;font-size:13px}
+    .moredd-panel{right:auto;left:0}
+  }
   .note{font-size:12px;color:var(--muted);margin-top:6px}
   .src{font-size:11.5px;color:#6b7896}
   .tag{font-size:11px;padding:2px 7px;border-radius:6px;background:rgba(34,197,94,.15);color:#8ff0b4;margin-left:6px}
@@ -72,6 +85,7 @@
 <header>
   <h1>📈 Infinite Strategy Lab</h1>
   <div class="sub">무한매수법(Rao V4) · 밸류리밸런싱(VR) 웹 계산기 — 내 엑셀 수식 기반 · 시세 매일 자동 갱신</div>
+  <div id="freshBadge" style="margin-top:6px;font-size:12px;color:#93a1bd">🕒 데이터 갱신: <b id="freshDate">—</b><span id="freshAgo" style="margin-left:6px;color:#7a8aa6"></span></div>
 </header>
 <div class="disclaimer">⚠️ <b>위험 고지</b> — 본 도구는 <b>계산·기록·교육용</b>이며 투자 권유·수익 보장·자동매매가 아닙니다. TQQQ·SOXL 등 3배 레버리지 ETF는 원금의 상당 부분 또는 전부를 잃을 수 있습니다. 모든 결과는 <b>주문 초안</b>이며 실제 거래 전 원문 공식과 증권사 주문 조건을 직접 확인하세요.</div>
 
@@ -279,8 +293,13 @@
   <div class="card">
     <h2>매매기록</h2>
     <div class="btnrow">
-      <button class="ghost" onclick="Store.exportJSON()">JSON 백업 내보내기</button>
-      <label class="ghost" style="cursor:pointer">JSON 복원<input type="file" id="imp" accept="application/json" style="display:none" onchange="Store.importJSON(event)"></label>
+      <button class="ghost" onclick="Store.exportJSON()">매매기록만 백업</button>
+      <label class="ghost" style="cursor:pointer">매매기록 복원<input type="file" id="imp" accept="application/json" style="display:none" onchange="Store.importJSON(event)"></label>
+    </div>
+    <div class="note" style="margin-top:8px">💾 <b>전체 백업</b>은 매매기록뿐 아니라 <b>모든 설정·포지션·차트 데이터</b>(무한매수법·VR·인컴·PMMF 등 이 브라우저의 앱 데이터 전부)를 파일 하나로 저장합니다. 기기 변경·초기화 대비용으로 권장.</div>
+    <div class="btnrow">
+      <button class="act" onclick="BackupAll.exportAll()">💾 전체 백업 내보내기</button>
+      <label class="act" style="cursor:pointer">📂 전체 복원<input type="file" id="impAll" accept="application/json" style="display:none" onchange="BackupAll.importAll(event)"></label>
     </div>
     <div id="logTable" style="margin-top:12px"></div>
   </div>
@@ -1276,6 +1295,7 @@ const CS = {
       const _raw=decodeURIComponent(escape(atob((j.content||'').replace(/\s/g,''))));
       // NaN/Infinity(비표준 JSON) 방어: 파싱 실패로 자동동기화가 멈추지 않게 null로 치환
       const s=JSON.parse(_raw.replace(/:\s*-?Infinity/g,': null').replace(/:\s*NaN/g,': null'));
+      try{ if(s.updated){ localStorage.setItem('isl_cloud_updated', s.updated); } if(typeof setFreshBadge==='function') setFreshBadge(s.updated); }catch(e){}
       // 클라우드(state.json)가 단일 원본. 인컴 보유수량·평단·분배금을 앱에 자동 반영.
       let synced=0, changes=[];
       try{
@@ -2653,8 +2673,55 @@ document.getElementById('indiAsOf2').textContent=asOf;
 /* 최초 진입 표시 플래그(더 이상 과거 기록을 시드하지 않음 — 1사이클부터 시작) */
 if(!localStorage.getItem('isl_seeded_v1')) localStorage.setItem('isl_seeded_v1','1');
 
+/* 전체 백업/복원 — 이 브라우저의 모든 앱 데이터(isl_* localStorage)를 파일 하나로 저장/복원 */
+var BackupAll = {
+  exportAll(){
+    try{
+      var data={}; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k&&k.indexOf('isl_')===0) data[k]=localStorage.getItem(k); }
+      var payload={app:'InfiniteStrategyLab', type:'full-backup', exportedAt:new Date().toISOString(), keys:Object.keys(data).length, data:data};
+      var bl=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+      var u=URL.createObjectURL(bl); var a=document.createElement('a');
+      a.href=u; a.download='ISL_full_backup_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+      setTimeout(function(){URL.revokeObjectURL(u);},1000);
+    }catch(e){ alert('백업 실패: '+e); }
+  },
+  importAll(ev){
+    var f=ev.target.files&&ev.target.files[0]; if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{
+        var d=JSON.parse(rd.result); var data=d.data||d;
+        if(typeof data!=='object') throw 0;
+        var keys=Object.keys(data).filter(function(k){return k.indexOf('isl_')===0;});
+        if(!keys.length){ alert('복원할 앱 데이터가 없습니다.'); return; }
+        if(!confirm('전체 복원하면 현재 이 브라우저의 앱 데이터('+keys.length+'개 항목)를 덮어씁니다. 계속할까요?')) return;
+        keys.forEach(function(k){ try{ localStorage.setItem(k, data[k]); }catch(e){} });
+        alert('전체 복원 완료: '+keys.length+'개 항목. 새로고침합니다.');
+        location.reload();
+      }catch(e){ alert('복원 실패: 올바른 전체 백업 파일이 아닙니다.'); }
+    };
+    rd.readAsText(f);
+  }
+};
+
+/* 데이터 갱신 뱃지 — 클라우드(state.json) 마지막 갱신일 + 며칠 전인지 표시 */
+function setFreshBadge(dateStr){
+  try{
+    var d = dateStr || localStorage.getItem('isl_cloud_updated') || '';
+    var el=document.getElementById('freshDate'), ago=document.getElementById('freshAgo');
+    if(!el) return;
+    if(!d){ el.textContent='—'; if(ago)ago.textContent=''; return; }
+    el.textContent=d;
+    if(ago){
+      var dt=new Date(d+'T00:00:00'); var diff=Math.floor((Date.now()-dt.getTime())/86400000);
+      var txt = isNaN(diff)?'' : (diff<=0?'(오늘)':(diff===1?'(어제)':('('+diff+'일 전)')));
+      ago.textContent=txt;
+      ago.style.color = (diff>3?'#ffb454':'#7a8aa6');   // 3일 넘게 안 갱신되면 주황 경고
+    }
+  }catch(e){}
+}
 Hist.snapshot();
-IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); Refresh.injectButtons();
+IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); Refresh.injectButtons(); setFreshBadge();
 
 /* ===== 매일 자동 최신화 ===== 앱 열 때(토큰 있으면) 클라우드(state.json)를 자동으로 당겨와 전 탭 갱신.
    + 탭에 돌아올 때(visibilitychange) 최대 30분마다 재동기화. 서버가 매일 갱신한 데이터가 자동 반영됨. */
