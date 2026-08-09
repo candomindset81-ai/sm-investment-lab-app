@@ -1387,8 +1387,9 @@ const CS = {
       }
       if(s.pmmf){
         const pb=+s.pmmf.balance||0;
-        const din=(s.pmmf.log||[]).filter(function(e){return e.type==='div_in';}).slice(-6).reduce(function(a,e){return a+(+e.amt||0);},0);
-        h+='<tr><td>🏦 PMMF (USD MMF)</td><td>잔액 <b>$'+R.fmt(pb)+'</b> · 최근 배당유입 $'+R.fmt(din)+' · <span class="muted">배당 적립 → VR $350 매수 재원</span></td></tr>';
+        const pu=s.pmmf.shares;
+        const puTxt=(pu!==undefined&&pu!==null&&pu!=='')?(' · <b>'+(Number(pu)===Math.round(Number(pu))?Math.round(Number(pu)):pu)+'좌</b>'):'';
+        h+='<tr><td>🏦 PMMF (USD MMF)</td><td>잔액 <b>$'+R.fmt(pb)+'</b>'+puTxt+' · <span class="muted">수동 관리(매집 시 갱신) → VR $350 매수 재원</span></td></tr>';
       }
       h+='</tbody></table><div class="src">클라우드 갱신: '+(s.updated||'-')+' · 확인 '+new Date().toLocaleString()+'</div>';
       if(out)out.innerHTML=h;
@@ -1744,7 +1745,8 @@ const Master = {
       +'<div class="box"><div class="l">누적 배당</div><div class="v">$'+R.fmt(divTot)+'</div></div>'
       +'<div class="box"><div class="l">CAGR</div><div class="v">'+cagr+'</div></div></div>';
     h+='<table style="margin-top:12px"><thead><tr><th>엔진</th><th>평가금</th><th>비중</th><th>비고</th></tr></thead><tbody>';
-    const rows=[['💰 인컴 (DTE)',inc.mv,'월 배당 $'+R.fmt(incMo)+' 세후'],['📈 그로스 (VR TQQQ·UPRO)',growth,'레버리지 성장'],['⚡ 알파 (SOXL 무한매수)',alpha.val,'현금 $'+R.fmt(alpha.cash)]];
+    const ALPHA_CAP=10000; const alphaGap=ALPHA_CAP-alpha.val;
+    const rows=[['💰 인컴 (DTE)',inc.mv,'월 배당 $'+R.fmt(incMo)+' 세후'],['📈 그로스 (VR TQQQ·UPRO)',growth,'레버리지 성장'],['⚡ 알파 (SOXL 무한매수)',alpha.val,alpha.sh+'주 × 종가 · 목표 $'+R.fmt(ALPHA_CAP)+' − 현재 = $'+R.fmt(Math.abs(alphaGap))+(alphaGap>=0?' 미투입':' 초과')+' · 예수금 $'+R.fmt(alpha.cash)]];
     rows.forEach(r=>{ const w=total>0?r[1]/total:0; h+='<tr><td>'+r[0]+'</td><td>$'+R.fmt(r[1])+'</td><td>'+R.pct(w)+'</td><td class="small">'+r[2]+'</td></tr>'; });
     h+='</tbody></table>';
     h+='<div class="card" style="margin-top:12px"><h3>🎯 목표 진행</h3><div class="small">다음 목표 <b>$'+goal.toLocaleString()+'/월</b> · 현재 $'+R.fmt(incMo)+' ('+(gprog*100).toFixed(1)+'%)</div>'
@@ -1785,10 +1787,12 @@ const Flow = {
 /* ===================== WOS: 분석 엔진 ===================== */
 const Analytics = {
   render(){
-    const inc=Income.totals().mv; const growth=Master.vrVal(); const a=Master.alphaVal(); const alpha=a.val+a.cash;
-    const total=inc+growth+alpha; const lev=growth+a.val;
+    const inc=Income.totals().mv; const growth=Master.vrVal(); const a=Master.alphaVal();
+    const ALPHA_CAP=10000; const soxlCash=a.cash; const alphaGap=ALPHA_CAP-a.val;
+    const total=inc+growth+a.val+soxlCash; const lev=growth+a.val;
     const bar=(label,val,color)=>{ const w=total>0?val/total*100:0; return '<div style="margin:6px 0"><div class="small">'+label+' — $'+R.fmt(val)+' ('+w.toFixed(1)+'%)</div><div style="background:#22304a;border-radius:6px;height:12px"><div style="background:'+color+';height:12px;width:'+w.toFixed(1)+'%;border-radius:6px"></div></div></div>'; };
-    let h='<h3>자산 배분</h3>'+bar('💰 인컴(DTE)',inc,'#38d39f')+bar('📈 그로스(VR)',growth,'#4ea1ff')+bar('⚡ 알파(SOXL)',alpha,'#ffb454');
+    let h='<h3>자산 배분</h3>'+bar('💰 인컴(DTE)',inc,'#38d39f')+bar('📈 그로스(VR)',growth,'#4ea1ff')+bar('⚡ 알파(SOXL '+a.sh+'주×종가)',a.val,'#ffb454')+bar('💴 SOXL 예수금',soxlCash,'#8aa0bd');
+    h+='<div class="src" style="margin:2px 0 8px">⚡ SOXL 목표 $'+R.fmt(ALPHA_CAP)+' − 현재 $'+R.fmt(a.val)+' = <b>$'+R.fmt(Math.abs(alphaGap))+(alphaGap>=0?' 미투입':' 초과')+'</b></div>';
     const levPct=total>0?lev/total*100:0;
     h+='<h3 style="margin-top:14px">레버리지 리스크</h3><div class="kpi">'
       +'<div class="box"><div class="l">3배 레버리지 노출</div><div class="v">'+levPct.toFixed(1)+'%</div></div>'
