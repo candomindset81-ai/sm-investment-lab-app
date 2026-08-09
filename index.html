@@ -109,6 +109,11 @@
 
 <main>
 <section id="dash" class="tab active dashg">
+  <div class="card" style="border-color:#3b82f6">
+    <h2>📌 오늘의 주문</h2>
+    <div class="note">매일 넣을 주문을 한눈에. 실제 주문은 Fi PRO에서 직접 넣으세요.</div>
+    <div id="todayOrders" style="margin-top:10px"></div>
+  </div>
   <div class="card">
     <h2>대시보드</h2>
     <div class="note">각 전략 탭에서 “기록 저장”을 누르면 여기 누적 상황이 표시됩니다. 데이터는 이 브라우저에만 저장됩니다.</div>
@@ -1386,6 +1391,7 @@ const CS = {
         // 무한매수법 종합차트용 가격 히스토리(TQQQ·SOXL)
         if(s.ib_px_hist){ try{ localStorage.setItem('isl_ibpx_v1', JSON.stringify(s.ib_px_hist)); if(typeof IB!=='undefined'&&IB.renderChart) IB.renderChart(); }catch(e){} }
         try{ if(typeof Pro!=='undefined'&&Pro.render) Pro.render(); }catch(e){}
+        try{ if(typeof renderTodayOrders==='function') renderTodayOrders(); }catch(e){}
       }catch(e){}
       let h='';
       if(synced>0){
@@ -1499,6 +1505,55 @@ const IX = {
     return total;
   }
 };
+
+/* 📌 오늘의 주문 — SOXL 무한매수(매일) + VR TQQQ 밴드 신호(2주) 요약 */
+function renderTodayOrders(){
+  const el=document.getElementById('todayOrders'); if(!el) return;
+  let h='';
+  // ── SOXL 무한매수 (매일) ──
+  try{
+    const pos=(IB.loadPos()||{})['soxl20'];
+    const pr=IB.presets['soxl20'];
+    const px=(typeof MKT!=='undefined'&&MKT.soxl&&MKT.soxl.p)||0;
+    if(pos && pos.avg>0 && pr){
+      const p={N:pr.N, base:pr.base/100, slope:pr.slope/100, fs:pr.fs/100, rev:pr.rev,
+               T:+pos.T||0, cash:+pos.cash||0, shares:+pos.sh||0, avg:+pos.avg||0};
+      const o=IBengine.orders(p);
+      const phaseK = p.T===0?'첫 매수':(p.T<p.N/2?'전반전':'후반전');
+      let lines=[];
+      if(o.reverse){ lines.push('<span class="pill warn">리버스 필요</span> 소진 국면 — 리버스 모드 계산 참고'); }
+      if(o.starQty>0) lines.push('① <b>별 LOC 매수</b> '+o.starQty+'주 @ $'+R.fmt(o.starBuyPrice));
+      if(o.avgQty>0) lines.push('② <b>평단 매수</b> '+o.avgQty+'주 @ $'+R.fmt(p.avg));
+      if(!o.starQty && !o.avgQty) lines.push('오늘 신규 매수 없음(예수금/국면 확인)');
+      const evalNow=p.shares*px, gap=10000-p.shares*px;
+      h+='<div class="sig"><span class="pill hold">SOXL</span><div style="flex:1">'
+        +'<div><b>무한매수법 (매일)</b> · '+phaseK+' · 1회 $'+R.fmt(o.F)+'</div>'
+        +'<div class="small" style="margin-top:2px">'+lines.join('<br>')+'</div>'
+        +'<div class="small muted" style="margin-top:2px">현재가 $'+R.fmt(px)+' · 보유 '+p.shares+'주(평가 $'+R.fmt(evalNow)+') · 목표 $10,000까지 $'+R.fmt(Math.max(0,gap))+' 여력 · 예수금 $'+R.fmt(p.cash)+'</div>'
+        +'</div></div>';
+    } else {
+      h+='<div class="sig"><span class="pill hold">SOXL</span><div style="flex:1"><b>무한매수법</b> <span class="small muted">— 무한매수법 탭에서 SOXL(20분할) 포지션(평단·보유·예수금)을 입력하면 오늘 주문이 계산됩니다.</span></div></div>';
+    }
+  }catch(e){}
+  // ── VR TQQQ (2주 밴드) ──
+  try{
+    const srv=(typeof VR!=='undefined'&&VR.srvHist)?VR.srvHist()['tqqq']:null;
+    if(srv&&srv.rows&&srv.rows.length){
+      const r=srv.rows[srv.rows.length-1];
+      const ev=r.eval, lo=r.lo, up=r.up;
+      let sig, cls;
+      if(ev<=lo){ sig='🟢 하단 도달 — 목표 V로 되돌리게 <b>매수</b>'; cls='buy'; }
+      else if(ev>=up){ sig='🔴 상단 도달 — <b>매도</b>'; cls='sell'; }
+      else { sig='⚪ 밴드 내 — 대기(2주 GTC 유지)'; cls='hold'; }
+      h+='<div class="sig" style="margin-top:6px"><span class="pill '+cls+'">TQQQ</span><div style="flex:1">'
+        +'<div><b>VR 밴드 (2주)</b></div>'
+        +'<div class="small" style="margin-top:2px">'+sig+'</div>'
+        +'<div class="small muted" style="margin-top:2px">평가금 $'+R.fmt(ev)+' · 밴드 $'+R.fmt(lo)+' ~ $'+R.fmt(up)+' ('+r.date+')</div>'
+        +'</div></div>';
+    }
+  }catch(e){}
+  el.innerHTML = h || '<div class="muted small">표시할 주문 데이터가 없습니다. 클라우드 새로고침 또는 포지션 입력 후 확인하세요.</div>';
+}
 
 function renderMacro(){
   const m=MACRO; const el=document.getElementById('macro_out'); if(!el)return;
@@ -1819,6 +1874,24 @@ const Analytics = {
       +'<div class="box"><div class="l">인컴·현금</div><div class="v">'+(100-levPct).toFixed(1)+'%</div></div>'
       +'<div class="box"><div class="l">총 포트폴리오</div><div class="v">$'+R.fmt(total)+'</div></div></div>'
       +'<div class="src" style="margin-top:6px">'+(levPct>60?'⚠️ 레버리지 비중이 높습니다. 하락장에서 손실이 크게 증폭될 수 있어요.':'레버리지 비중이 관리 범위입니다.')+'</div>';
+    // ── 📊 매매 성과 (엔진별 평가손익 + 누적 배당) ──
+    try{
+      var vrCost=(Hist.vrPos('tqqq')||{}).costBasis||0;
+      var soxlPos=(IB.loadPos()||{}).soxl20||{}; var soxlCost=(a.sh||0)*(+soxlPos.avg||0);
+      var incT=Income.totals(); var incCost=incT.cost||0;
+      var divTot2=(Income.loadDiv()||[]).reduce(function(ss,x){return ss+(+x.amt||0);},0);
+      var prRows=[['📈 그로스(VR TQQQ)',growth,vrCost],['⚡ 알파(SOXL)',a.val,soxlCost],['💰 인컴(DTE)',inc,incCost]];
+      var totMv=0,totCost=0;
+      var pr='<h3 style="margin-top:14px">📊 매매 성과 (평가손익)</h3><table><thead><tr><th>엔진</th><th>평가금</th><th>투입원가</th><th>평가손익</th><th>수익률</th></tr></thead><tbody>';
+      prRows.forEach(function(r){ var mv=r[1]||0,cost=r[2]||0,pl=mv-cost,pct=cost>0?(pl/cost*100):0; totMv+=mv; totCost+=cost;
+        var col=pl>=0?'#22c55e':'#ff5a4d';
+        pr+='<tr><td>'+r[0]+'</td><td>$'+R.fmt(mv)+'</td><td>$'+R.fmt(cost)+'</td><td style="color:'+col+'">'+(pl>=0?'+':'')+'$'+R.fmt(pl)+'</td><td style="color:'+col+'">'+(cost>0?((pl>=0?'+':'')+pct.toFixed(1)+'%'):'–')+'</td></tr>'; });
+      var totPl=totMv-totCost,totPct=totCost>0?(totPl/totCost*100):0,tcol=totPl>=0?'#22c55e':'#ff5a4d';
+      pr+='<tr style="font-weight:700"><td>합계</td><td>$'+R.fmt(totMv)+'</td><td>$'+R.fmt(totCost)+'</td><td style="color:'+tcol+'">'+(totPl>=0?'+':'')+'$'+R.fmt(totPl)+'</td><td style="color:'+tcol+'">'+(totCost>0?((totPl>=0?'+':'')+totPct.toFixed(1)+'%'):'–')+'</td></tr></tbody></table>';
+      var recs=(typeof Store!=='undefined'&&Store.get)?Store.get():[];
+      pr+='<div class="src" style="margin-top:4px">💵 누적 수령 배당(실현): <b>$'+R.fmt(divTot2)+'</b>'+((recs&&recs.length)?(' · 매매기록 '+recs.length+'건'):'')+' · <span class="muted">평가손익은 미실현이며 시세로 변동. 원가=보유주수×평단(클라우드 동기화 기준).</span></div>';
+      h+=pr;
+    }catch(e){}
     const dl=Income.loadDiv(); if(dl.length){ const bySym={}; dl.forEach(x=>bySym[x.sym]=(bySym[x.sym]||0)+x.amt);
       h+='<h3 style="margin-top:14px">배당 분석 (누적 수령)</h3><table><thead><tr><th>종목</th><th>누적</th></tr></thead><tbody>';
       Object.keys(bySym).forEach(s=>h+='<tr><td>'+s+'</td><td>$'+R.fmt(bySym[s])+'</td></tr>'); h+='</tbody></table>'; }
@@ -2218,7 +2291,7 @@ const Refresh = {
     if(btn){ btn.innerHTML='⏳ 새로고침 중…'; btn.disabled=true; }
     let hasTok=false;
     try{ hasTok=(typeof CS!=='undefined' && CS.token && !!CS.token()); if(hasTok){ await CS.fetch(); } }catch(e){ console.log('refresh cloud',e); }
-    try{ IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); renderMacro(); QDTE.render(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); }catch(e){ console.log('refresh render',e); }
+    try{ IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); renderMacro(); QDTE.render(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); renderTodayOrders(); }catch(e){ console.log('refresh render',e); }
     if(btn){ btn.innerHTML = hasTok ? '✅ 최신 데이터로 갱신됨' : '✅ 갱신됨 · 클라우드 토큰 없음(매매기록 탭에서 저장)';
       setTimeout(function(){ btn.innerHTML=old; btn.disabled=false; }, 2500); }
     this.busy=false;
@@ -2721,7 +2794,7 @@ function setFreshBadge(dateStr){
   }catch(e){}
 }
 Hist.snapshot();
-IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); Refresh.injectButtons(); setFreshBadge();
+IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); Refresh.injectButtons(); setFreshBadge(); try{renderTodayOrders();}catch(e){}
 
 /* ===== 매일 자동 최신화 ===== 앱 열 때(토큰 있으면) 클라우드(state.json)를 자동으로 당겨와 전 탭 갱신.
    + 탭에 돌아올 때(visibilitychange) 최대 30분마다 재동기화. 서버가 매일 갱신한 데이터가 자동 반영됨. */
