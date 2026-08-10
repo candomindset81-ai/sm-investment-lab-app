@@ -133,6 +133,7 @@
   <div class="card">
     <h2>무한매수법 계산기 <span class="tag">Rao V4 · VERIFIED</span></h2>
     <div class="note">노란 칸(현재 보유 상태)만 입력하면 다음 주문표가 계산됩니다. 현재가는 매일 자동 갱신됩니다.</div>
+    <div class="note" style="color:#ffd699">💡 1회매수금은 <b>사이클 자본(cap)</b> 기준으로 계산합니다 — 부족분은 예수금으로 채운다는 가정(만달러 기준). 실제 매수 전 계좌 잔액을 확인하세요.</div>
     <h3>① 설정</h3>
     <div class="grid">
       <label class="f">종목·분할 프리셋
@@ -883,7 +884,10 @@ function renderIBChart(sym, p, o){
 const IBengine = {
   orders(p){
     const {N,base,slope,fs,T,cash,shares,avg}=p;
-    const F  = (N - T) <= 0 ? 0 : cash/(N - T);
+    // 1회매수금: 사이클 자본(cap) 기준 — 부족분은 예수금으로 채운다고 가정(만달러 기준 주문).
+    // cap 미지정 시에만 보유현금으로 폴백.
+    const _budget = (p.cap>0 ? p.cap : cash);
+    const F  = (N - T) <= 0 ? 0 : _budget/(N - T);
     const starPct = Math.max(0, base - slope*T);
     const starPoint = avg===0 ? null : avg*(1+starPct);
     const starBuyPrice = starPoint===null ? null : R.fix(starPoint-0.01,6);
@@ -1527,7 +1531,7 @@ function renderTodayOrders(){
     const pr=IB.presets['soxl20'];
     const px=(typeof MKT!=='undefined'&&MKT.soxl&&MKT.soxl.p)||0;
     if(pos && pos.avg>0 && pr){
-      const p={N:pr.N, base:pr.base/100, slope:pr.slope/100, fs:pr.fs/100, rev:pr.rev,
+      const p={N:pr.N, base:pr.base/100, slope:pr.slope/100, fs:pr.fs/100, rev:pr.rev, cap:pr.cap,
                T:+pos.T||0, cash:+pos.cash||0, shares:+pos.sh||0, avg:+pos.avg||0};
       const o=IBengine.orders(p);
       const phaseK = p.T===0?'첫 매수':(p.T<p.N/2?'전반전':'후반전');
