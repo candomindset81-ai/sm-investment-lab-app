@@ -1300,7 +1300,18 @@ const CS = {
       const _raw=decodeURIComponent(escape(atob((j.content||'').replace(/\s/g,''))));
       // NaN/Infinity(비표준 JSON) 방어: 파싱 실패로 자동동기화가 멈추지 않게 null로 치환
       const s=JSON.parse(_raw.replace(/:\s*-?Infinity/g,': null').replace(/:\s*NaN/g,': null'));
-      try{ if(s.updated){ localStorage.setItem('isl_cloud_updated', s.updated); } if(typeof setFreshBadge==='function') setFreshBadge(s.updated); }catch(e){}
+      try{
+        // 최신 갱신일 = 매일 갱신되는 데이터들 중 가장 최근 날짜(top-level updated는 일일작업이 안 건드려 오래됨)
+        var _cand=[s.updated,
+          (s.vr_band_hist&&s.vr_band_hist.tqqq&&s.vr_band_hist.tqqq.updated),
+          (s.ib_px_hist&&s.ib_px_hist.tqqq&&s.ib_px_hist.tqqq.updated),
+          (s.ib_px_hist&&s.ib_px_hist.soxl&&s.ib_px_hist.soxl.updated),
+          (s.risk&&s.risk.updated),(s.roundhill&&s.roundhill.updated)]
+          .filter(function(d){return typeof d==='string' && /^\d{4}-\d{2}-\d{2}$/.test(d);});
+        var _fresh=_cand.length?_cand.sort().slice(-1)[0]:(s.updated||'');
+        if(_fresh){ localStorage.setItem('isl_cloud_updated', _fresh); }
+        if(typeof setFreshBadge==='function') setFreshBadge(_fresh);
+      }catch(e){}
       // 클라우드(state.json)가 단일 원본. 인컴 보유수량·평단·분배금을 앱에 자동 반영.
       let synced=0, changes=[];
       try{
