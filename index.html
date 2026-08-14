@@ -425,7 +425,7 @@
 
 <section id="income" class="tab hub">
   <div class="card">
-    <h2>💰 인컴 엔진 <span class="tag">QDTE · XDTE · JEPQ · PFFA</span></h2>
+    <h2>💰 인컴 엔진 <span class="tag">QDTE · XDTE · JEPQ · PFFA · NVDY</span></h2>
     <div class="note">주간 배당 ETF 보유를 입력하면 평가금·비중·주/월/연 배당·Yield on Cost를 계산합니다. 기존 매매 전략(VR·무한매수법)과 <b>완전히 독립된 모듈</b>이며, 데이터는 이 브라우저에만 저장됩니다.</div>
     <div class="grid">
       <label class="f">배당 세율(%)<input id="wi_tax" type="number" step="0.1" value="15" onchange="Income.setTax()"></label>
@@ -1682,9 +1682,9 @@ function resetAll(){
    ※ 주당 금액은 매주 변동합니다. 실제 수령액으로 덮어쓰는 것을 권장합니다. */
 const DIST = {
   asOf:'2026-08-04', nextEx:'2026-08-06', payDay:'금요일', exDay:'목요일',
-  perShare:{ QDTE:0.1370, XDTE:0.0900, JEPQ:0.50, PFFA:0.1725 },
-  freq:{ QDTE:'weekly', XDTE:'weekly', JEPQ:'monthly', PFFA:'monthly' },
-  src:{ QDTE:'주배당 YTD 평균(변동 반영)', XDTE:'주배당 YTD 평균(변동 반영)', JEPQ:'월배당 변동 $0.50~0.70(월 지급)', PFFA:'우선주 월배당 $0.1725' }
+  perShare:{ QDTE:0.1370, XDTE:0.0900, JEPQ:0.50, PFFA:0.1725, NVDY:0.0988 },
+  freq:{ QDTE:'weekly', XDTE:'weekly', JEPQ:'monthly', PFFA:'monthly', NVDY:'weekly' },
+  src:{ QDTE:'주배당 YTD 평균(변동 반영)', XDTE:'주배당 YTD 평균(변동 반영)', JEPQ:'월배당 변동 $0.50~0.70(월 지급)', PFFA:'우선주 월배당 $0.1725', NVDY:'주배당·YieldMax(위성 5%)' }
 };
 // 배당 빈도 자동보정: 보유행에 freq가 없거나 잘못돼도 종목명으로 월/주 판정 → 연 지급횟수 반환
 const DFREQ = (sym,freq)=>{ const f=freq||(DIST.freq&&DIST.freq[sym]); return f==='monthly'?12:52; };
@@ -1698,7 +1698,7 @@ const Income = {
   loadDiv(){ try{return JSON.parse(localStorage.getItem(this.DKEY))||[]}catch(e){return[]} },
   saveDiv(a){ localStorage.setItem(this.DKEY,JSON.stringify(a)); },
   tax(){ const t=parseFloat(localStorage.getItem(this.TKEY)); return isNaN(t)?15:t; },
-  seedDefaults(){ if(localStorage.getItem('wos_income_seed9'))return; if(this.load().length===0){ this.save([{sym:'QDTE',sh:0,avg:0,px:0,dist:0,tw:35,freq:'weekly'},{sym:'XDTE',sh:0,avg:0,px:0,dist:0,tw:30,freq:'weekly'},{sym:'JEPQ',sh:0,avg:0,px:0,dist:0,tw:20,freq:'monthly'},{sym:'PFFA',sh:0,avg:0,px:0,dist:0,tw:15,freq:'monthly'}]); } localStorage.setItem('wos_income_seed9','1'); },
+  seedDefaults(){ if(localStorage.getItem('wos_income_seed9'))return; if(this.load().length===0){ this.save([{sym:'QDTE',sh:0,avg:0,px:0,dist:0,tw:33,freq:'weekly'},{sym:'XDTE',sh:0,avg:0,px:0,dist:0,tw:29,freq:'weekly'},{sym:'JEPQ',sh:0,avg:0,px:0,dist:0,tw:19,freq:'monthly'},{sym:'PFFA',sh:0,avg:0,px:0,dist:0,tw:14,freq:'monthly'},{sym:'NVDY',sh:0,avg:0,px:0,dist:0,tw:5,freq:'weekly'}]); } localStorage.setItem('wos_income_seed9','1'); },
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
   freqN(r){ return DFREQ(r&&r.sym, r&&r.freq); },   // 연 지급 횟수: 월배당 12 / 주배당 52 (종목명으로 자동 보정)
   totals(){ let mv=0,cost=0,yr=0; this.load().forEach(r=>{ mv+=r.sh*r.px; cost+=r.sh*r.avg; yr+=r.sh*(+r.dist||0)*Income.freqN(r); }); return {mv:mv,cost:cost,wk:yr/52,yr:yr,mo:yr/12}; },
