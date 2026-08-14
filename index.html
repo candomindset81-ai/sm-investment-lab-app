@@ -374,8 +374,9 @@
     <table>
       <thead><tr><th>주문</th><th>뜻</th><th>체결 조건</th></tr></thead>
       <tbody>
-        <tr class="buy"><td>① 별 LOC 매수</td><td>평단 위 '별지점'에 매수</td><td>종가 ≤ 지정가</td></tr>
-        <tr class="buy"><td>② 평단 LOC 매수</td><td>평단 가격에 매수</td><td>종가 ≤ 평단</td></tr>
+        <tr class="buy"><td>① 별 LOC 매수</td><td>'별지점'에 매수(전반전=평단 위, 후반전=평단 아래)</td><td>종가 ≤ 지정가</td></tr>
+        <tr class="buy"><td>② 평단 LOC 매수</td><td>평단 가격에 매수(전반전만)</td><td>종가 ≤ 평단</td></tr>
+        <tr class="buy"><td>⑤ 급락 하단 LOC</td><td>내림센트(1회매수금÷누적수량), 각 1주 계단식</td><td>종가 ≤ 지정가</td></tr>
         <tr class="sell"><td>③ 쿼터 LOC 매도</td><td>보유 1/4 별지점 매도</td><td>종가 ≥ 별지점</td></tr>
         <tr class="sell"><td>④ 지정가 매도</td><td>나머지 전량(수익실현)</td><td>종가 ≥ 평단+15~20%</td></tr>
       </tbody>
@@ -409,8 +410,9 @@
   </div>
   <div class="card">
     <h2>무한매수법(Rao V4) 규칙 요약</h2>
-    <p class="small">1회매수금 = 현금 ÷ (N − T). 별% = max(0, base − slope×T). 별지점 = 평단 ×(1+별%). 별 LOC 매수가 = 별지점 − 0.01.</p>
-    <p class="small">전반전(T &lt; N/2): 별쪽 예산 = 1회매수금/2, 평단쪽 예산 = 1회매수금/2. 후반전(T ≥ N/2): 별쪽 예산 = 1회매수금 전액, 평단쪽 = 0.</p>
+    <p class="small">1회매수금(F) = 사이클자본(cap) ÷ (N − T) <span class="muted">(부족분은 예수금 충당, 만달러 기준)</span>. 별% = base − slope×T <b>(음수 허용)</b>. 별지점 = 평단 ×(1+별%). 별 LOC 매수가 = <b>내림센트(별지점) − $0.01</b>. 모든 가격은 <b>센트 단위 내림(floor)</b>.</p>
+    <p class="small">전반전(T &lt; N/2): 별 예산 = F/2 → 별수량=내림(별예산/별매수가), <b>평단 예산 = F − 별실제지출</b>(나머지) → 평단수량=내림(평단예산/평단). 후반전(T ≥ N/2): 별 예산 = F 전액(별지점이 평단 아래), 평단 = 0.</p>
+    <p class="small"><b>급락 대비 하단 LOC</b>: 기본 누적수량 다음부터 가격 = 내림센트(F ÷ 누적수량), 각 1주씩 계단식(기본 6단). 종가가 낮을수록 누적 체결이 1주씩 늘고, 여러 LOC가 걸리면 전량 같은 종가로 체결 → 총매수액은 F 이내 유지.</p>
     <p class="small">쿼터 매도 = 보유수량/4(내림), 별지점에 LOC. 지정가 매도 = 평단 ×(1+finalsell), 나머지 전량. T 갱신: 매수 +1(전량)/+0.5(일부), 쿼터매도 ×0.75, 지정가매도 ×0.25.</p>
     <p class="small src">분할수(N) 변형 프리셋의 slope는 엑셀 패턴(별% 이 T=N/2에서 0이 됨 → slope = 2×base÷N)에서 도출했습니다. 언제든 직접 수정 가능합니다.</p>
   </div>
@@ -669,6 +671,7 @@
 const R = {
   fix:(x,d=8)=>{ if(x===''||x===null||isNaN(x))return NaN; return Math.round((+x+Number.EPSILON)*10**d)/10**d; },
   floor:(x)=>Math.floor(R.fix(x,8)),
+  floorCent:(x)=> (x===''||x===null||isNaN(x))?NaN:Math.floor(R.fix(x,8)*100)/100, // 센트($0.01) 단위 내림 — 라오어 원본 가격처리
   money:(x)=>Math.round(R.fix(x,6)*100)/100,
   n:(id)=>{ const v=document.getElementById(id).value; return v===''?NaN:parseFloat(v); },
   s:(id)=>document.getElementById(id).value,
@@ -881,6 +884,7 @@ function renderIBChart(sym, p, o){
 }
 
 /* ===================== 무한매수법 엔진 ===================== */
+const IB_DIP_STEPS = 6;   // 급락 대비 하단 LOC 계단(누적수량 +1씩) 단수 — 라오어 원본 max_extra_orders
 const IBengine = {
   orders(p){
     const {N,base,slope,fs,T,cash,shares,avg}=p;
@@ -888,20 +892,33 @@ const IBengine = {
     // cap 미지정 시에만 보유현금으로 폴백.
     const _budget = (p.cap>0 ? p.cap : cash);
     const F  = (N - T) <= 0 ? 0 : _budget/(N - T);
-    const starPct = Math.max(0, base - slope*T);
+    // 별% = base − slope×T (음수 허용). T>N/2(후반전)이면 음수 → 별지점이 평단 아래로 내려간다(원본 V4).
+    const starPct = base - slope*T;
     const starPoint = avg===0 ? null : avg*(1+starPct);
-    const starBuyPrice = starPoint===null ? null : R.fix(starPoint-0.01,6);
+    // 별 매수가 = 별지점을 센트 단위 내림 후 −$0.01(원본 화면: 별지점 78.12 → 주문 78.11).
+    const starBuyPrice = starPoint===null ? null : R.money(R.floorCent(starPoint)-0.01);
     const phase = T===0 ? 'First Buy' : (T < N/2 ? 'Front Half' : 'Back Half');
     const starBudget = phase==='Back Half' ? F : F/2;
-    const avgBudget  = phase==='Front Half'? F/2 : 0;
-    const starQty = (starBuyPrice===null || starBudget===0) ? 0 : R.floor(starBudget/starBuyPrice);
-    const avgQty  = (avg===0 || avgBudget===0) ? 0 : R.floor(avgBudget/avg);
+    const starQty = (starBuyPrice===null || starBudget<=0 || !(starBuyPrice>0)) ? 0 : R.floor(starBudget/starBuyPrice);
+    const starSpend = starQty>0 ? starQty*starBuyPrice : 0;
+    // 전반전 평단쪽 예산 = 1회매수금 − 별 실제지출(나머지). 원본 전반전 화면(별3·평단4주) 재현.
+    const avgBudget  = phase==='Front Half' ? Math.max(0, F - starSpend) : 0;
+    const avgQty  = (avg===0 || avgBudget<=0) ? 0 : R.floor(avgBudget/avg);
+    // 급락 대비 하단 LOC: 기본 누적수량 다음부터 가격 = 내림센트(1회매수금/누적수량), 각 1주(계단식).
+    const baseCum = starQty + avgQty;
+    const dipOrders = [];
+    if(F>0 && baseCum>0){
+      for(let c=baseCum+1; c<=baseCum+IB_DIP_STEPS; c++){
+        const px=R.floorCent(F/c); if(px>0) dipOrders.push({price:px, qty:1, cum:c});
+      }
+    }
+    const dipQtyTotal = dipOrders.reduce((a,d)=>a+d.qty,0);
     const quarterQty  = R.floor(shares/4);
     const quarterPrice= starPoint;
     const desigQty = Math.max(shares-quarterQty,0);
     const desigPrice = avg===0 ? null : avg*(1+fs);
     const reverse = T > p.rev;
-    return {F,starPct,starPoint,starBuyPrice,phase,starBudget,avgBudget,starQty,avgQty,quarterQty,quarterPrice,desigQty,desigPrice,reverse};
+    return {F,starPct,starPoint,starBuyPrice,phase,starBudget,avgBudget,starQty,avgQty,starSpend,dipOrders,dipQtyTotal,quarterQty,quarterPrice,desigQty,desigPrice,reverse};
   },
   fill(p,o,f){
     const {T,cash,shares,avg}=p; const {bs,bp,ss,sp}=f;
@@ -966,21 +983,25 @@ const IB = {
       +'</div>';
     const row=(cls,label,type,price,qty)=>{ const amt=(price&&qty)?price*qty:'';
       return '<tr class="'+cls+'"><td>'+label+'</td><td><span class="pill '+cls+'">'+type+'</span></td><td>'+(price?('$'+R.fmt(price)):'–')+'</td><td>'+(qty||0)+'</td><td>'+(amt?('$'+R.fmt(amt)):'–')+'</td></tr>'; };
+    const dipRows=(o.dipOrders||[]).map((d,i)=>row('buy','⑤ 급락 하단 LOC '+(i+1)+' (누적 '+d.cum+'주)','매수',d.price,d.qty)).join('');
     document.getElementById('ib_orders').innerHTML = '<table><thead><tr><th>구분</th><th>유형</th><th>가격</th><th>수량(주)</th><th>예상금액</th></tr></thead><tbody>'
       +row('buy','① 별 LOC 매수','매수',o.starBuyPrice,o.starQty)
       +row('buy','② 평단 LOC 매수','매수',p.avg,o.avgQty)
+      +dipRows
       +row('sell','③ 쿼터 LOC 매도','매도',o.quarterPrice,o.quarterQty)
-      +row('sell','④ 지정가 매도','매도',o.desigPrice,o.desigQty)+'</tbody></table>';
+      +row('sell','④ 지정가 매도','매도',o.desigPrice,o.desigQty)+'</tbody></table>'
+      +'<p class="small muted" style="margin-top:6px">⑤ 급락 하단 LOC = 내림센트(1회매수금 ÷ 누적수량), 각 1주. 종가가 더 내려갈수록 누적 체결수량이 1주씩 늘고, 여러 LOC가 걸리면 전량 같은 종가로 체결되어 총매수액은 1회매수금 이내로 유지됩니다.</p>';
     document.getElementById('ib_audit').textContent =
 '[무한매수법 계산 근거]\n입력 T='+p.T+', 현금=$'+R.fmt(p.cash)+', 수량='+p.shares+', 평단=$'+R.fmt(p.avg)+'\n'
 +'cap='+p.cap+', N='+p.N+', base='+R.pct(p.base)+', slope='+(p.slope*100).toFixed(4)+'%/T, finalsell='+R.pct(p.fs)+'\n'
-+'─ F=현금/(N−T)='+R.fmt(p.cash)+'/('+p.N+'−'+p.T+') = $'+R.fmt(o.F)+'\n'
-+'─ 별%=max(0,base−slope×T) = '+R.pct(o.starPct)+'\n'
++'─ F=cap/(N−T)='+R.fmt(p.cap)+'/('+p.N+'−'+p.T+') = $'+R.fmt(o.F)+' (부족분은 예수금으로 충당 가정)\n'
++'─ 별%=base−slope×T = '+R.pct(o.starPct)+' (음수 허용 → 후반전엔 별지점<평단)\n'
 +'─ 별지점=평단×(1+별%) = '+(o.starPoint?('$'+R.fmt(o.starPoint)):'평단0')+'\n'
-+'─ Phase='+o.phase+' → K=$'+R.fmt(o.starBudget)+', L=$'+R.fmt(o.avgBudget)+'\n'
-+'─ 별매수가 I=별지점−0.01='+(o.starBuyPrice?('$'+R.fmt(o.starBuyPrice)):'–')+' / 별수량 M=내림(K/I)='+o.starQty+'\n'
++'─ Phase='+o.phase+' → 별예산 K=$'+R.fmt(o.starBudget)+', 평단예산 L=F−별지출=$'+R.fmt(o.avgBudget)+'\n'
++'─ 별매수가 I=내림센트(별지점)−0.01='+(o.starBuyPrice?('$'+R.fmt(o.starBuyPrice)):'–')+' / 별수량 M=내림(K/I)='+o.starQty+' (지출 $'+R.fmt(o.starSpend)+')\n'
 +'─ 평단수량 N=내림(L/평단)='+o.avgQty+' / 쿼터 O=내림(수량/4)='+o.quarterQty+' / 지정가 Q=수량−쿼터='+o.desigQty+' @ '+(o.desigPrice?('$'+R.fmt(o.desigPrice)):'–')+'\n'
-+'─ 리버스: T('+p.T+')>발동('+p.rev+') ? '+(o.reverse?'예':'아니오')+'\n반올림: 금액 소수2자리, 수량 내림.';
++'─ 급락 하단 LOC('+ (o.dipOrders?o.dipOrders.length:0) +'단): '+((o.dipOrders||[]).map(d=>'$'+R.fmt(d.price)+'(누적'+d.cum+')').join(', ')||'–')+' — 각 1주, 가격=내림센트(F/누적)\n'
++'─ 리버스: T('+p.T+')>발동('+p.rev+') ? '+(o.reverse?'예':'아니오')+'\n가격: 센트 내림(floor). 금액 소수2자리, 수량 내림.';
     this.renderChart();
   },
   applyFill(){
@@ -1539,7 +1560,8 @@ function renderTodayOrders(){
       if(o.reverse){ lines.push('<span class="pill warn">리버스 필요</span> 소진 국면 — 리버스 모드 계산 참고'); }
       if(o.starQty>0) lines.push('① <b>별 LOC 매수</b> '+o.starQty+'주 @ $'+R.fmt(o.starBuyPrice));
       if(o.avgQty>0) lines.push('② <b>평단 매수</b> '+o.avgQty+'주 @ $'+R.fmt(p.avg));
-      if(!o.starQty && !o.avgQty) lines.push('오늘 신규 매수 없음(예수금/국면 확인)');
+      if(o.dipOrders && o.dipOrders.length) lines.push('⑤ <b>급락 하단 LOC</b> '+o.dipOrders.map(d=>'$'+R.fmt(d.price)).join(' / ')+' (각 1주)');
+      if(!o.starQty && !o.avgQty) lines.push('오늘 신규 기본매수 없음 · 급락 대비 하단 LOC만 접수');
       const evalNow=p.shares*px, gap=10000-p.shares*px;
       h+='<div class="sig"><span class="pill hold">SOXL</span><div style="flex:1">'
         +'<div><b>무한매수법 (매일)</b> · '+phaseK+' · 1회 $'+R.fmt(o.F)+'</div>'
@@ -1620,12 +1642,13 @@ const TG = {
   ibLine(sym){
     const pos=IB.loadPos(); const keys=sym==='soxl'?['soxl20','soxl40']:['tqqq40','tqqq20'];
     const key=keys.find(k=>pos[k])||keys[0]; const pr=IB.presets[key]; const st=pos[key]||pr.pos;
-    const p={N:pr.N,base:pr.base/100,slope:pr.slope/100,fs:pr.fs/100,rev:pr.rev,T:st.T,cash:st.cash,shares:st.sh,avg:st.avg};
+    const p={N:pr.N,base:pr.base/100,slope:pr.slope/100,fs:pr.fs/100,rev:pr.rev,cap:pr.cap,T:st.T,cash:st.cash,shares:st.sh,avg:st.avg};
     if(p.shares===0 && p.T===0) return '';   // 미시작 종목 제외
     const o=IBengine.orders(p);
     let s='🔹 <b>'+sym.toUpperCase()+'</b> (T '+p.T+' · 시장가 $'+R.fmt(MKT[sym].p)+')\n';
     if(o.starQty>0) s+='  ① 별 LOC 매수 '+o.starQty+'주 @ $'+R.fmt(o.starBuyPrice)+'\n';
     if(o.avgQty>0)  s+='  ② 평단 LOC 매수 '+o.avgQty+'주 @ $'+R.fmt(p.avg)+'\n';
+    if(o.dipOrders && o.dipOrders.length) s+='  ⑤ 급락 하단 LOC '+o.dipOrders.map(d=>'$'+R.fmt(d.price)).join('/')+' (각 1주)\n';
     s+='  ③ 쿼터 LOC 매도 '+o.quarterQty+'주 @ $'+(o.quarterPrice?R.fmt(o.quarterPrice):'-')+'\n';
     s+='  ④ 지정가 매도 '+o.desigQty+'주 @ $'+(o.desigPrice?R.fmt(o.desigPrice):'-')+'\n';
     return s;
