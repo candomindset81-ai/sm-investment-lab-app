@@ -394,7 +394,7 @@
         <tr><td>평가금이 상단 위 (급등)</td><td style="color:#ff9d9d">매도</td></tr>
       </tbody>
     </table>
-    <p class="small">적립액(자동): <b>TQQQ 2주 $350</b> (UPRO 중단). 전략 단계는 "전략 구분"에서 전환: <b>적립식</b>($200,000까지) → <b>거치식</b> → <b>인출식</b>(목표 도달 시).</p>
+    <p class="small">적립액(자동): <b>TQQQ 2주 $250</b> (UPRO 중단). 전략 단계는 "전략 구분"에서 전환: <b>적립식</b>($200,000까지) → <b>거치식</b> → <b>인출식</b>(목표 도달 시).</p>
   </div>
   <div class="card">
     <h2>④ 부가 기능 · 백업</h2>
@@ -633,7 +633,7 @@
 
   <div class="card" style="border:1px solid #6a5acd;background:rgba(106,90,205,0.06)">
     <h3 style="margin:0 0 6px;color:#a99bff">🔀 $700을 어디에 재투자? · 인컴 재투자 vs VR 성장</h3>
-    <div class="src" style="margin-bottom:8px"><b>방식 A</b> 인컴 재투자(QDTE·XDTE·JEPQ) &nbsp;|&nbsp; <b>방식 B</b> VR 성장 적립 — 2주마다 TQQQ $350 (UPRO 중단)</div>
+    <div class="src" style="margin-bottom:8px"><b>방식 A</b> 인컴 재투자(QDTE·XDTE·JEPQ) &nbsp;|&nbsp; <b>방식 B</b> VR 성장 적립 — 2주마다 TQQQ $250 (UPRO 중단)</div>
     <table><thead><tr><th>항목</th><th>A · 인컴 재투자</th><th>B · VR 성장(TQQQ·UPRO)</th></tr></thead><tbody>
       <tr><td>성장 동력</td><td>분배금 복리(주식 수↑)</td><td>나스닥·S&P <b>3배 레버리지</b> 상승</td></tr>
       <tr><td>기대 성격</td><td>총수익 ~연 14%(프리미엄 의존)</td><td>강세장 매우 높음 · 약세장 급락</td></tr>
@@ -685,11 +685,11 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-07-16',
-  vix:16.38,
-  tqqq:{p:68.72, rsi:49.1, m50:76.47, m200:58.24, hi:88.09, prevClose:68.72},
-  soxl:{p:134.69, rsi:45.2, m50:203.21, m200:91.50, hi:302, prevClose:134.69},
-  upro:{p:142.73, rsi:50, m50:140, m200:120, hi:151.41, prevClose:142.73}
+  asOf:'2026-08-16',
+  vix:14.25,
+  tqqq:{p:76.79, rsi:69.8, m50:73.3, m200:60.32, hi:88.09, prevClose:77.15},
+  soxl:{p:144.95, rsi:56.7, m50:180.26, m200:103.26, hi:302.0, prevClose:145.36},
+  upro:{p:156.63, rsi:74.3, m50:142.64, m200:124.58, hi:158.63, prevClose:157.68}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
@@ -1072,7 +1072,7 @@ const VR = {
   STKEY:'isl_vr_state_v1',
   store(){ try{return JSON.parse(localStorage.getItem(this.STKEY))||{}}catch(e){return{}} },
   loadState(sym){ return this.store()[sym]||null; },
-  DEFDEP:{tqqq:350},
+  DEFDEP:{tqqq:250},
   saveState(){ const s=this.store(); s[R.s('vr_sym')]={pv:R.n('vr_pv'),pp:R.n('vr_pp'),ps:R.n('vr_ps'),type:R.s('vr_type'),mult:R.n('vr_mult'),dep:R.n('vr_dep')}; localStorage.setItem(this.STKEY,JSON.stringify(s)); },
   loadSym(){
     const sym=R.s('vr_sym'); const st=this.loadState(sym)||{};
@@ -1451,7 +1451,7 @@ const CS = {
         const pb=+s.pmmf.balance||0;
         const pu=s.pmmf.shares;
         const puTxt=(pu!==undefined&&pu!==null&&pu!=='')?(' · <b>'+(Number(pu)===Math.round(Number(pu))?Math.round(Number(pu)):pu)+'좌</b>'):'';
-        h+='<tr><td>🏦 PMMF (USD MMF)</td><td>잔액 <b>$'+R.fmt(pb)+'</b>'+puTxt+' · <span class="muted">수동 관리(매집 시 갱신) → VR $350 매수 재원</span></td></tr>';
+        h+='<tr><td>🏦 PMMF (USD MMF)</td><td>잔액 <b>$'+R.fmt(pb)+'</b>'+puTxt+' · <span class="muted">수동 관리(매집 시 갱신) → VR $250 매수 재원</span></td></tr>';
       }
       h+='</tbody></table><div class="src">클라우드 갱신: '+(s.updated||'-')+' · 확인 '+new Date().toLocaleString()+'</div>';
       if(out)out.innerHTML=h;
