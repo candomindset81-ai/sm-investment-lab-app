@@ -425,7 +425,7 @@
 
 <section id="income" class="tab hub">
   <div class="card">
-    <h2>💰 인컴 엔진 <span class="tag">QDTE · XDTE · JEPQ · PFFA · NVDY</span></h2>
+    <h2>💰 인컴 엔진 <span class="tag">QDTE · XDTE · JEPQ · 441640 · 494300 · NVDY</span></h2>
     <div class="note">주간 배당 ETF 보유를 입력하면 평가금·비중·주/월/연 배당·Yield on Cost를 계산합니다. 기존 매매 전략(VR·무한매수법)과 <b>완전히 독립된 모듈</b>이며, 데이터는 이 브라우저에만 저장됩니다.</div>
     <div class="grid">
       <label class="f">배당 세율(%)<input id="wi_tax" type="number" step="0.1" value="15" onchange="Income.setTax()"></label>
@@ -562,7 +562,7 @@
 
 <section id="pro" class="tab hub">
   <div class="card">
-    <h2>💹 인컴 Pro <span class="tag">QDTE·XDTE·JEPQ·PFFA 전문 분석</span></h2>
+    <h2>💹 인컴 Pro <span class="tag">QDTE·XDTE·JEPQ·441640·494300 전문 분석</span></h2>
     <div class="note">전문 지표(YoC·CAGR·MDD·Sharpe 등)·배당 시뮬레이터·차트·내보내기. 실측 지표는 서버(Roundhill 일별 NAV·리스크)에서 매일 계산되고, 시뮬레이터는 <b>가정 기반 추정</b>입니다. 목표비중 QDTE 34 / XDTE 33 / JEPQ 33. <b>JEPQ는 월배당·JPMorgan</b>이라 Roundhill 공식 NAV·주간 지표는 QDTE·XDTE만 제공됩니다.</div>
     <div class="btnrow">
       <button class="act" onclick="CS.fetch()">☁️ 클라우드에서 새로고침</button>
@@ -685,8 +685,8 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-08-16',
-  vix:14.25,
+  asOf:'2026-08-18',
+  vix:15.19,
   tqqq:{p:76.79, rsi:69.8, m50:73.3, m200:60.32, hi:88.09, prevClose:77.15},
   soxl:{p:144.95, rsi:56.7, m50:180.26, m200:103.26, hi:302.0, prevClose:145.36},
   upro:{p:156.63, rsi:74.3, m50:142.64, m200:124.58, hi:158.63, prevClose:157.68}
@@ -696,11 +696,11 @@ const MKT = {
 /* ===================== 매크로 데이터 (매주 자동 갱신 블록) =====================
    [AUTO-UPDATE:MACRO] 매주 자동 작업이 이 블록만 교체합니다. */
 const MACRO = {
-  asOf:'2026-07-16',
-  vix:16.38,
-  regime:'중립',
+  asOf:'2026-08-17',
+  vix:14.25,
+  regime:'상승',
   fearGreed:'-',
-  us10y:'-',
+  us10y:'4.70%',
   fedRate:'-',
   note:''
 };
@@ -1682,9 +1682,9 @@ function resetAll(){
    ※ 주당 금액은 매주 변동합니다. 실제 수령액으로 덮어쓰는 것을 권장합니다. */
 const DIST = {
   asOf:'2026-08-04', nextEx:'2026-08-06', payDay:'금요일', exDay:'목요일',
-  perShare:{ QDTE:0.1370, XDTE:0.0900, JEPQ:0.50, PFFA:0.1725, NVDY:0.0988 },
-  freq:{ QDTE:'weekly', XDTE:'weekly', JEPQ:'monthly', PFFA:'monthly', NVDY:'weekly' },
-  src:{ QDTE:'주배당 YTD 평균(변동 반영)', XDTE:'주배당 YTD 평균(변동 반영)', JEPQ:'월배당 변동 $0.50~0.70(월 지급)', PFFA:'우선주 월배당 $0.1725', NVDY:'주배당·YieldMax(위성 5%)' }
+  perShare:{ QDTE:0.1370, XDTE:0.0900, JEPQ:0.50, '441640':0.07, '494300':0.11, NVDY:0.0988 },
+  freq:{ QDTE:'weekly', XDTE:'weekly', JEPQ:'monthly', '441640':'monthly', '494300':'monthly', NVDY:'weekly' },
+  src:{ QDTE:'주배당 YTD 평균(변동 반영)', XDTE:'주배당 YTD 평균(변동 반영)', JEPQ:'월배당 변동 $0.50~0.70(월 지급)', '441640':'KODEX 미국배당커버드콜·월배당', '494300':'KODEX 나스닥100커버드콜·월배당', NVDY:'주배당·YieldMax(위성 5%)' }
 };
 // 배당 빈도 자동보정: 보유행에 freq가 없거나 잘못돼도 종목명으로 월/주 판정 → 연 지급횟수 반환
 const DFREQ = (sym,freq)=>{ const f=freq||(DIST.freq&&DIST.freq[sym]); return f==='monthly'?12:52; };
@@ -1698,7 +1698,7 @@ const Income = {
   loadDiv(){ try{return JSON.parse(localStorage.getItem(this.DKEY))||[]}catch(e){return[]} },
   saveDiv(a){ localStorage.setItem(this.DKEY,JSON.stringify(a)); },
   tax(){ const t=parseFloat(localStorage.getItem(this.TKEY)); return isNaN(t)?15:t; },
-  seedDefaults(){ if(localStorage.getItem('wos_income_seed9'))return; if(this.load().length===0){ this.save([{sym:'QDTE',sh:0,avg:0,px:0,dist:0,tw:33,freq:'weekly'},{sym:'XDTE',sh:0,avg:0,px:0,dist:0,tw:29,freq:'weekly'},{sym:'JEPQ',sh:0,avg:0,px:0,dist:0,tw:19,freq:'monthly'},{sym:'PFFA',sh:0,avg:0,px:0,dist:0,tw:14,freq:'monthly'},{sym:'NVDY',sh:0,avg:0,px:0,dist:0,tw:5,freq:'weekly'}]); } localStorage.setItem('wos_income_seed9','1'); },
+  seedDefaults(){ if(localStorage.getItem('wos_income_seed9'))return; if(this.load().length===0){ this.save([{sym:'QDTE',sh:0,avg:0,px:0,dist:0,tw:33,freq:'weekly'},{sym:'XDTE',sh:0,avg:0,px:0,dist:0,tw:29,freq:'weekly'},{sym:'JEPQ',sh:0,avg:0,px:0,dist:0,tw:19,freq:'monthly'},{sym:'441640',sh:323,avg:9.21,px:9.21,dist:0.07,tw:7,freq:'monthly'},{sym:'494300',sh:458,avg:6.50,px:6.50,dist:0.11,tw:7,freq:'monthly'},{sym:'NVDY',sh:0,avg:0,px:0,dist:0,tw:5,freq:'weekly'}]); } localStorage.setItem('wos_income_seed9','1'); },
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
   freqN(r){ return DFREQ(r&&r.sym, r&&r.freq); },   // 연 지급 횟수: 월배당 12 / 주배당 52 (종목명으로 자동 보정)
   totals(){ let mv=0,cost=0,yr=0; this.load().forEach(r=>{ mv+=r.sh*r.px; cost+=r.sh*r.avg; yr+=r.sh*(+r.dist||0)*Income.freqN(r); }); return {mv:mv,cost:cost,wk:yr/52,yr:yr,mo:yr/12}; },
@@ -2348,7 +2348,7 @@ const Refresh = {
 
 /* ===================== 💹 인컴 Pro 모듈 ===================== */
 const Pro = {
-  syms:['QDTE','XDTE','JEPQ','PFFA'],
+  syms:['QDTE','XDTE','JEPQ','441640','494300'],
   rh(){ try{return JSON.parse(localStorage.getItem('isl_roundhill_v1'))||null}catch(e){return null} },
   rsAll(){ try{return JSON.parse(localStorage.getItem('isl_realstats_v1'))||{}}catch(e){return {}} },
   monthlySeries(){ try{return JSON.parse(localStorage.getItem('isl_monthly_v1'))||[]}catch(e){return []} },
@@ -2420,7 +2420,7 @@ const Pro = {
   },
   lineSVG(rows){
     // 최근 12주 주당 배당 추이 (종목별 선그래프)
-    const cols={QDTE:'#22c58b',XDTE:'#ffd24a',JEPQ:'#4ea1ff',PFFA:'#c58bff',UTG:'#ff9d5c'};
+    const cols={QDTE:'#22c58b',XDTE:'#ffd24a',JEPQ:'#4ea1ff','441640':'#c58bff','494300':'#5cc8ff',UTG:'#ff9d5c'};
     const series=rows.map(function(x){ return {sym:x.sym, v:(x.hist||[]).slice(-12).map(function(p){return +p[1];})}; }).filter(function(s){return s.v.length;});
     if(!series.length) return '<span class="small muted">배당 이력이 아직 부족합니다.</span>';
     const W=640,H=240,pl=44,pr=90,pt=14,pb=26;
