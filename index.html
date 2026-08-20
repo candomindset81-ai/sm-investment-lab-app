@@ -685,11 +685,11 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-08-19',
-  vix:15.84,
-  tqqq:{p:72.53, rsi:72.8, m50:73.11, m200:60.47, hi:88.09, prevClose:76.4},
-  soxl:{p:129.1, rsi:65.6, m50:176.97, m200:104.18, hi:302.0, prevClose:151.53},
-  upro:{p:151.19, rsi:75.2, m50:143.01, m200:124.9, hi:158.63, prevClose:154.4}
+  asOf:'2026-08-20',
+  vix:14.89,
+  tqqq:{p:72.06, rsi:66.0, m50:73.03, m200:60.54, hi:88.09, prevClose:72.53},
+  soxl:{p:120.74, rsi:52.9, m50:175.16, m200:104.55, hi:302.0, prevClose:129.1},
+  upro:{p:152.16, rsi:71.2, m50:143.29, m200:125.07, hi:158.63, prevClose:151.19}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
@@ -1446,6 +1446,17 @@ const CS = {
         const tax=(+s.income.tax_pct||0)/100, tgt=+s.income.target_monthly_net||700;
         const moNet=yr/12*(1-tax), prog=tgt>0?(moNet/tgt*100):0;
         h+='<tr><td>🎯 인컴 목표</td><td>월 세후 $'+R.fmt(moNet)+' · <b>'+prog.toFixed(1)+'%</b> / $'+R.fmt(tgt)+'</td></tr>';
+      }
+      if(s.income_goal){
+        const ig=s.income_goal, taxp=(+((s.income||{}).tax_pct)||0)/100;
+        let usg=0;
+        ((s.income||{}).holdings||[]).forEach(function(c){ if((c.ccy||'')==='KRW')return; const fN=DFREQ(c.sym,c.freq); usg+=(+c.sh||0)*(+c.dist||0)*fN/12; });
+        const usn=usg*(1-taxp), goal=+ig.total_monthly||1000, p=goal>0?Math.min(100,usn/goal*100):0;
+        h+='<tr><td>🎯 배당 자립 목표</td><td>월 <b>$'+R.fmt(goal)+'</b> (TQQQ $'+R.fmt(ig.tqqq_monthly||500)+' + 토스3종목 $'+R.fmt(ig.auto3_monthly||480)+') · 현재 US ETF 세후 $'+R.fmt(usn)+' · <b>'+p.toFixed(0)+'%</b></td></tr>';
+      }
+      if(s.auto_invest){
+        const ai=s.auto_invest, items=(ai.items||[]).map(function(it){return it.sym+' $'+R.fmt(it.usd);}).join(' · ');
+        h+='<tr><td>💳 토스 자동적립</td><td>매주 '+(ai.day||'금요일')+': '+items+' · <span class="muted">월 $'+R.fmt(ai.monthly_usd||480)+' · 현금(800~1,000만원) 소진까지 현금 충당</span></td></tr>';
       }
       if(s.pmmf){
         const pb=+s.pmmf.balance||0;
@@ -2214,6 +2225,20 @@ const DTE = {
       log.forEach(function(e){ if((e.date||'').slice(0,4)===yr){ ytdG+=(+e.amt||0); cntW++; } });
       h+='<div class="src" style="margin-top:8px">🧾 <b>세금 대시보드</b> · '+yr+' 누적 수령 세전 <b>$'+R.fmt(ytdG)+'</b> ('+cntW+'주 기록) → 원천징수 '+(tax*100).toFixed(0)+'% 차감 후 <b>$'+R.fmt(ytdG*(1-tax))+'</b></div></div>';
     }catch(e){ console.log('dte cashflow',e); }
+    // ── 🎯 배당 자립 목표 카드 ──
+    try{
+      const inc=(typeof Income!=='undefined'&&Income.load)?Income.load():[];
+      const tax=(typeof Income!=='undefined'&&Income.tax)?(Income.tax()/100):0.15;
+      let usg=0; inc.forEach(function(x){ if(/^\d{6}$/.test(String(x.sym)))return; const fN=DFREQ(x.sym,x.freq); usg+=(+x.sh||0)*(+x.dist||0)*fN/12; });
+      const usn=usg*(1-tax), goal=1000, p=Math.min(100,usn/goal*100);
+      const fill=Math.round(p/10), bar='\u2588'.repeat(fill)+'\u2591'.repeat(10-fill);
+      h+='<div class="card"><h3 style="margin:0 0 6px">🎯 배당 자립 목표 <span class="small muted">(현금 소진 후 배당으로 자동적립+TQQQ)</span></h3>'
+        +'<div class="kpi"><div class="box"><div class="l">월 목표</div><div class="v">$'+R.fmt(goal)+'</div></div>'
+        +'<div class="box"><div class="l">현재 US ETF 세후</div><div class="v">$'+R.fmt(usn)+'</div></div>'
+        +'<div class="box"><div class="l">달성률</div><div class="v">'+p.toFixed(0)+'%</div></div>'
+        +'<div class="box"><div class="l">남은</div><div class="v">$'+R.fmt(Math.max(0,goal-usn))+'</div></div></div>'
+        +'<div class="src" style="margin-top:6px">'+bar+' · 구성: 토스 매주 금 QLD $50·SCHD $40·DIVO $30 (월 $480) + TQQQ 월 $500 · <span class="muted">현재는 보유 현금(약 800~1,000만원)으로 충당 → 소진 시 배당 전환</span></div></div>';
+    }catch(e){ console.log('dte goal',e); }
     // ── 🔥 ROC 히트맵 (추정) ──
     try{
       let hm='<div class="card"><h3 style="margin:0 0 6px">🔥 ROC 히트맵 <span class="small muted">(추정 · 분배금 중 원금반환 비율 · 높을수록 위험)</span></h3><div style="display:flex;gap:6px">';
