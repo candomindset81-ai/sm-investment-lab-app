@@ -2422,10 +2422,11 @@ const Pro = {
       const sh=+h.sh||0, avg=+h.avg||0, per=+h.dist||0; const fN=DFREQ(h.sym,h.freq); const annDist=per*fN; const wk=annDist/52;
       return {sym:sym, sh:sh, avg:avg, px:px, mv:sh*px, tw:(+h.tw||0), wk:wk, per:per, freq:DISFM(h.sym,h.freq), annDist:annDist,
         yoc: avg? annDist/avg*100 : null, dy: px? annDist/px*100 : null,
-        tr:(n.ann_total!=null?+n.ann_total:null), pr:(n.ann_price!=null?+n.ann_price:null),
-        roc:(n.roc!=null?+n.roc:null), m:(of.metrics||null), decay:decay,
+        tr:(n.ann_total!=null?+n.ann_total:(rs.ann_total!=null?+rs.ann_total:null)),
+        pr:(n.ann_price!=null?+n.ann_price:(rs.ann_price!=null?+rs.ann_price:null)),
+        roc:(n.roc!=null?+n.roc:null), m:(of.metrics||rs.metrics||null), decay:decay,
         ror:ror, premdisc:of.premdisc, sec:of.sec_yield, rsrc:(rs.src||null),
-        hist:(n.hist||h.hist||[]) };
+        hist:((n.hist&&n.hist.length)?n.hist:((rs.hist&&rs.hist.length)?rs.hist:(h.hist||[]))) };
     });
     const tot=rows.reduce(function(a,b){return a+b.mv;},0);
     rows.forEach(function(x){ x.cur = tot? x.mv/tot*100 : 0; });
