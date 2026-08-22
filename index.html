@@ -1712,7 +1712,7 @@ const Income = {
   tax(){ const t=parseFloat(localStorage.getItem(this.TKEY)); return isNaN(t)?15:t; },
   isKRX(sym){ return /^\d{6}$/.test(String(sym||'')); },
   taxRateFor(sym){ return this.isKRX(sym) ? 0 : (this.tax()/100); },   // 한국 ISA(6자리) 비과세 · 미국 15%
-  seedDefaults(){ if(localStorage.getItem('wos_income_seed11'))return; this.save([{sym:'QDTE',sh:548,avg:29.3539,px:28.72,dist:0.172087,tw:34,freq:'weekly'},{sym:'XDTE',sh:378,avg:38.457,px:38.595,dist:0.149533,tw:31,freq:'weekly'},{sym:'JEPQ',sh:168,avg:58.0486,px:58.25,dist:0.705,tw:21,freq:'monthly'},{sym:'JEPI',sh:40,avg:57.95,px:57.95,dist:0.38,tw:5,freq:'monthly'},{sym:'441640',sh:180,avg:9.14,px:9.14,dist:0.07,tw:4,freq:'monthly'},{sym:'494300',sh:200,avg:6.58,px:6.58,dist:0.11,tw:3,freq:'monthly'},{sym:'482730',sh:150,avg:8.55,px:8.55,dist:0.078,tw:2,freq:'monthly'}]); localStorage.setItem('wos_income_seed11','1'); },
+  seedDefaults(){ if(localStorage.getItem('wos_income_seed12'))return; this.save([{sym:'QDTE',sh:548,avg:29.3539,px:28.72,dist:0.172087,tw:34,freq:'weekly'},{sym:'XDTE',sh:378,avg:38.457,px:38.595,dist:0.149533,tw:31,freq:'weekly'},{sym:'JEPQ',sh:168,avg:58.0486,px:58.25,dist:0.705,tw:21,freq:'monthly'},{sym:'JEPI',sh:40,avg:57.95,px:57.95,dist:0.36664,tw:5,freq:'monthly'},{sym:'441640',sh:230,avg:9.13,px:9.13,dist:0.07,tw:4,freq:'monthly'},{sym:'494300',sh:220,avg:6.58,px:6.58,dist:0.11,tw:3,freq:'monthly'},{sym:'482730',sh:150,avg:8.55,px:8.55,dist:0.078,tw:2,freq:'monthly'}]); localStorage.setItem('wos_income_seed12','1'); },
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
   freqN(r){ return DFREQ(r&&r.sym, r&&r.freq); },   // 연 지급 횟수: 월배당 12 / 주배당 52 (종목명으로 자동 보정)
   totals(){ let mv=0,cost=0,yr=0,yrNet=0; this.load().forEach(r=>{ const y=r.sh*(+r.dist||0)*Income.freqN(r); mv+=r.sh*r.px; cost+=r.sh*r.avg; yr+=y; yrNet+=y*(1-Income.taxRateFor(r.sym)); }); return {mv:mv,cost:cost,wk:yr/52,yr:yr,mo:yr/12,yrNet:yrNet,moNet:yrNet/12}; },
@@ -2242,6 +2242,31 @@ const DTE = {
         +'<div class="box"><div class="l">남은</div><div class="v">$'+R.fmt(Math.max(0,goal-usn))+'</div></div></div>'
         +'<div class="src" style="margin-top:6px">'+bar+' · 구성: 토스 매주 금 QLD $50·SCHD $40·DIVO $30 (월 $480) + TQQQ 월 $500 · <span class="muted">현재는 보유 현금(약 800~1,000만원)으로 충당 → 소진 시 배당 전환</span></div></div>';
     }catch(e){ console.log('dte goal',e); }
+    // ── 🏦 계좌별(미국/ISA) 요약 ──
+    try{
+      const inc=(typeof Income!=='undefined'&&Income.load)?Income.load():[];
+      const taxR=(typeof Income!=='undefined'&&Income.tax)?(Income.tax()/100):0.15;
+      let usA=0,isaA=0,usD=0,isaD=0;
+      inc.forEach(function(x){
+        const krx=/^\d{6}$/.test(String(x.sym));
+        const asset=(+x.sh||0)*(+x.px||+x.avg||0);
+        const div=(+x.sh||0)*(+x.dist||0)*DFREQ(x.sym,x.freq)/12;
+        if(krx){ isaA+=asset; isaD+=div; } else { usA+=asset; usD+=div*(1-taxR); }
+      });
+      const totA=usA+isaA, totD=usD+isaD;
+      const aPct=totA>0?Math.round(usA/totA*100):0, dPct=totD>0?Math.round(usD/totD*100):0;
+      h+='<div class="card"><h3 style="margin:0 0 6px">🏦 계좌별 요약 <span class="small muted">(미국 vs ISA · ISA 비과세)</span></h3>'
+        +'<div class="kpi">'
+        +'<div class="box"><div class="l">🇺🇸 미국 자산</div><div class="v">$'+R.fmt(usA)+'</div></div>'
+        +'<div class="box"><div class="l">🇺🇸 월배당(세후)</div><div class="v">$'+R.fmt(usD)+'</div></div>'
+        +'<div class="box"><div class="l">🇰🇷 ISA 자산</div><div class="v">$'+R.fmt(isaA)+'</div></div>'
+        +'<div class="box"><div class="l">🇰🇷 월배당(비과세)</div><div class="v">$'+R.fmt(isaD)+'</div></div>'
+        +'</div>'
+        +'<div class="src" style="margin-top:6px">자산 비중 — 미국 '+aPct+'% / ISA '+(100-aPct)+'% · 배당 비중 — 미국 '+dPct+'% / ISA '+(100-dPct)+'%</div>'
+        +'<div style="margin-top:6px;height:14px;border-radius:7px;overflow:hidden;display:flex;background:#22304a">'
+        +'<div style="width:'+aPct+'%;background:#4ea1ff"></div><div style="width:'+(100-aPct)+'%;background:#22c58b"></div></div>'
+        +'<div class="src" style="margin-top:6px">합계: 자산 $'+R.fmt(totA)+' · 월배당 $'+R.fmt(totD)+' <span class="muted">(파랑=미국, 초록=ISA)</span></div></div>';
+    }catch(e){ console.log('dte account summary',e); }
     // ── 🔥 ROC 히트맵 (추정) ──
     try{
       let hm='<div class="card"><h3 style="margin:0 0 6px">🔥 ROC 히트맵 <span class="small muted">(추정 · 분배금 중 원금반환 비율 · 높을수록 위험)</span></h3><div style="display:flex;gap:6px">';
