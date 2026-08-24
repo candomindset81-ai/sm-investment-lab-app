@@ -227,7 +227,7 @@
         <select id="vr_sym"><option value="tqqq">TQQQ</option></select>
       </label>
       <label class="f">전략 구분
-        <select id="vr_type"><option>적립식VR</option><option>거치식VR</option><option>인출식VR</option></select>
+        <select id="vr_type" onchange="VR.setType()"><option>적립식VR</option><option>거치식VR</option><option>인출식VR</option></select>
       </label>
       <label class="f">G값<input id="vr_G" type="number" step="1" value="10"></label>
       <label class="f">적용 밴드 ±(%)<input id="vr_band" type="number" step="1" value="15"></label>
@@ -1073,13 +1073,19 @@ const VR = {
   store(){ try{return JSON.parse(localStorage.getItem(this.STKEY))||{}}catch(e){return{}} },
   loadState(sym){ return this.store()[sym]||null; },
   DEFDEP:{tqqq:250},
-  saveState(){ const s=this.store(); s[R.s('vr_sym')]={pv:R.n('vr_pv'),pp:R.n('vr_pp'),ps:R.n('vr_ps'),type:R.s('vr_type'),mult:R.n('vr_mult'),dep:R.n('vr_dep')}; localStorage.setItem(this.STKEY,JSON.stringify(s)); },
+  saveState(){ const s=this.store(); s[R.s('vr_sym')]={pv:R.n('vr_pv'),pp:R.n('vr_pp'),ps:R.n('vr_ps'),type:R.s('vr_type'),mult:R.n('vr_mult'),dep:R.n('vr_dep'),wd:R.n('vr_wd')}; localStorage.setItem(this.STKEY,JSON.stringify(s)); },
+  setType(){ const ty=R.s('vr_type'), sym=R.s('vr_sym');
+    if(ty==='거치식VR'){ R.set('vr_dep',0); R.set('vr_wd',0); }
+    else if(ty==='인출식VR'){ R.set('vr_dep',0); if(R.n('vr_wd')<=0)R.set('vr_wd',0); }
+    else { R.set('vr_dep', this.DEFDEP[sym]!=null?this.DEFDEP[sym]:0); R.set('vr_wd',0); }
+    this.saveState(); this.calc(); try{this.dashboard();}catch(e){} try{this.renderBand();}catch(e){} },
   loadSym(){
     const sym=R.s('vr_sym'); const st=this.loadState(sym)||{};
     R.set('vr_pv',st.pv||0);R.set('vr_pp',st.pp||0);R.set('vr_ps',st.ps||0);
     document.getElementById('vr_type').value=st.type||'적립식VR';
     document.getElementById('vr_mult').value=String(st.mult||1);
     R.set('vr_dep', st.dep!=null?st.dep:(this.DEFDEP[sym]!=null?this.DEFDEP[sym]:0));
+    R.set('vr_wd', st.wd!=null?st.wd:0);
     R.set('vr_price',MKT[sym]?MKT[sym].prevClose:0);
     this.calc();
     try{ this.dashboard(); }catch(e){ console.log('vr dash',e); }
