@@ -1063,6 +1063,18 @@ const VRengine = {
     const action = buyShares>0?('매수 '+buyShares+'주'):(sellShares>0?('매도 '+sellShares+'주'):'관망 / 밴드 내');
     const totalAsset = endShares*price+endPool;
     return {deposit,newV,lower,upper,evalBefore,buyNeed,sellNeed,poolAvail,poolLimit,maxBuy,buyShares,sellShares,actualBuy,actualSell,endShares,endPool,action,totalAsset};
+  },
+  // 예약 GTC 주문 계획(밴드 끝 지정가·Pool 70% 한도) — 계산기·포지션현황 공용
+  gtc(newV, poolAvail, ps, band, poolRatio){
+    poolRatio = poolRatio || 0.7;
+    const lower = newV*(1-band), upper = newV*(1+band);
+    const buyPx = ps>0 ? lower/ps : 0, sellPx = ps>0 ? upper/ps : 0;
+    const nBuyRaw = Math.round(ps*band/(1-band));
+    const nSell   = Math.round(ps*band/(1+band));
+    const usable = Math.max(0, poolAvail)*poolRatio;
+    const affBuy = buyPx>0 ? Math.floor(usable/buyPx) : 0;
+    const nBuy = Math.max(0, Math.min(nBuyRaw, affBuy));
+    return {lower,upper,buyPx,sellPx,nBuyRaw,nSell,affBuy,nBuy};
   }
 };
 
@@ -1116,55 +1128,32 @@ const VR = {
           +'<div style="display:flex;align-items:center;gap:8px"><span style="width:64px;color:#93a1bd">전일종가</span><div style="flex:1;background:#22304a;border-radius:4px;height:14px"><div style="width:'+wPx.toFixed(0)+'%;background:'+col+';height:14px;border-radius:4px"></div></div><span style="width:70px;text-align:right;color:'+col+'">$'+r.px.toFixed(2)+'</span></div>'
           +'</div>';
       }
-      // VR 밴드 게이지 (평가금 vs V ±band)
-      if(r.V>0){ const lo=r.V*(1-band), up=r.V*(1+band);
+      // VR 밴드 게이지 (평가금 vs 새 V ±band) — 새 V·적립 포함 기준으로 통일
+      if(r.V>0){
+        var _G=(R.n('vr_G')||10), _dep=(R.n('vr_dep')||0)*(R.n('vr_mult')||1), _wd=(R.n('vr_wd')||0), _pr=(R.n('vr_pool')||70)/100;
+        var newV=r.V + (r.pool>0?r.pool/_G:0) + _dep - _wd;
+        var poolAvail=r.pool + _dep - _wd;
+        const lo=newV*(1-band), up=newV*(1+band);
         const posPct=Math.max(0,Math.min(100,(r.evalv-lo)/(up-lo)*100));
         const act=r.evalv<lo?'매수 신호':(r.evalv>up?'매도 신호':'밴드 내(유지)');
         const acol=r.evalv<lo?'#5ee2a0':(r.evalv>up?'#ff9d5c':'#93a1bd');
         h+='<div style="margin-top:8px;font-size:12px"><div style="display:flex;justify-content:space-between;color:#93a1bd"><span>하단 $'+money(lo)+'</span><span style="color:'+acol+';font-weight:700">'+act+'</span><span>상단 $'+money(up)+'</span></div>'
           +'<div style="position:relative;height:10px;background:linear-gradient(90deg,#1f4a33,#22304a,#54471a);border-radius:5px;margin-top:3px">'
           +'<div style="position:absolute;left:'+posPct.toFixed(0)+'%;top:-3px;width:3px;height:16px;background:#fff;border-radius:2px"></div></div>'
-          +'<div class="small muted" style="margin-top:2px">평가금 $'+money(r.evalv)+' · 목표 V $'+money(r.V)+' · Pool $'+money(r.pool)+'</div></div>';
-        // 📊 라오어 VR 실행 안내: 밴드 '밖'이면 지금 시장가로 V까지 조정, 밴드 '안'이면 밴드가격 GTC 예약
+          +'<div class="small muted" style="margin-top:2px">평가금 $'+money(r.evalv)+' · 새 V $'+money(newV)+' <span class="muted">(직전 V $'+money(r.V)+' + 적립/성장)</span> · Pool(적립포함) $'+money(poolAvail)+'</div></div>';
+        // 예약 GTC 통일: 매수/매도를 밴드 끝 지정가에 미리 걸어둠 (새 V 기준 · Pool 70% 한도)
         if(r.px>0 && r.ps>0){
-          var poolRatio=0.7, stTxt, line1, line2='', srcTxt;
-          if(r.evalv<lo){
-            // 하단 이탈 → 지금 시장가 매수 (V까지, Pool 한도)
-            stTxt='🔵 하단 이탈 → <b>지금 매수</b>';
-            var need=r.V-r.evalv;
-            var toV=Math.round(need/r.px);
-            var poolUsable=(r.pool>0)?Math.min(need, r.pool*poolRatio, r.pool):0;
-            var poolSh=Math.floor(poolUsable/r.px);
-            var buyN=Math.max(0,Math.min(toV,poolSh));
-            line1='🔵 <b>지금 매수</b> · 시장가 <b>~$'+r.px.toFixed(2)+'</b> · <b>'+buyN+'주</b> (약 $'+money(buyN*r.px)+')';
-            line2='<span class="muted">V까지 '+toV+'주 필요 · Pool 한도 '+poolSh+'주'+(buyN<toV?' → 나머지는 적립/현금 채워지면':'')+'</span>';
-            srcTxt='평가금이 하단($'+money(lo)+') 아래 → 목표 V로 되돌리게 지금 매수. 지정가 걸면 상한 현재가 근처로(예: $'+r.px.toFixed(2)+').';
-          } else if(r.evalv>up){
-            stTxt='🔺 상단 초과 → <b>지금 매도</b>';
-            var over=r.evalv-r.V; var sellN=Math.min(r.ps, Math.round(over/r.px));
-            line1='🔺 <b>지금 매도</b> · 시장가 <b>~$'+r.px.toFixed(2)+'</b> · <b>'+sellN+'주</b> (V로 복귀)';
-            line2='<span class="muted">상단($'+money(up)+') 초과분 $'+money(over)+' 환수</span>';
-            srcTxt='평가금이 상단($'+money(up)+') 위 → 목표 V로 되돌리게 지금 매도.';
-          } else {
-            // 밴드 내 → 예약 GTC (밴드 가격에 미리 걸어둠). ★매수 GTC는 Pool 70% 한도로 제한(30% 비축)
-            stTxt='⚪ 밴드 내 → 관망(예약 GTC)';
-            var buyPx=lo/r.ps, sellPx=up/r.ps;
-            var nBuyRaw=Math.round(r.ps*band/(1-band)), nSell=Math.round(r.ps*band/(1+band));
-            var usable=Math.max(0,r.pool)*poolRatio;                 // 사용가능(70%)
-            var affBuy=buyPx>0?Math.floor(usable/buyPx):0;           // Pool 70%로 살 수 있는 최대
-            var nBuy=Math.max(0,Math.min(nBuyRaw,affBuy));
-            line1='🔵 예약 매수 GTC · 지정가 <b>$'+buyPx.toFixed(2)+'</b> · <b>'+nBuy+'주</b> <span class="muted">(하단 닿으면 체결 · Pool70% 한도 '+affBuy+'주)</span>'+(nBuyRaw>affBuy?(' <span style="color:#ff9d5c">이상 '+nBuyRaw+'주지만 Pool 70%로 '+nBuy+'주만</span>'):'');
-            line2='🔺 예약 매도 GTC · 지정가 <b>$'+sellPx.toFixed(2)+'</b> · <b>'+nSell+'주</b> <span class="muted">(상단 닿으면 체결)</span>';
-            srcTxt='밴드 안이라 대기. 하단/상단 가격에 GTC를 걸어두면 닿을 때 자동 체결. 매수는 Pool 70% 한도(30% 비축) 내에서만.';
-          }
+          var g=VRengine.gtc(newV, poolAvail, r.ps, band, _pr);
+          var stTxt=r.evalv<lo?'🔵 하단 이탈 → 매수 GTC 즉시 체결권':(r.evalv>up?'🔺 상단 초과 → 매도 GTC 즉시 체결권':'⚪ 밴드 내 → 예약 GTC 대기');
+          var line1='🔵 예약 매수 GTC · 지정가 <b>$'+g.buyPx.toFixed(2)+'</b> · <b>'+g.nBuy+'주</b> <span class="muted">(하단 닿으면 체결 · Pool 70% 한도 '+g.affBuy+'주)</span>'+(g.nBuyRaw>g.affBuy?(' <span style="color:#ff9d5c">밴드상 '+g.nBuyRaw+'주지만 Pool 70%로 '+g.nBuy+'주만</span>'):'');
+          var line2='🔺 예약 매도 GTC · 지정가 <b>$'+g.sellPx.toFixed(2)+'</b> · <b>'+g.nSell+'주</b> <span class="muted">(상단 닿으면 체결)</span>';
           h+='<div class="small" style="margin-top:5px;padding:6px 9px;background:#182338;border-radius:6px;color:#cde;line-height:1.6">'
-            +'<div style="color:#9fb0c8;margin-bottom:2px">상태: '+stTxt+' · 목표 V $'+money(r.V)+' · 현재가 ~$'+r.px.toFixed(2)+'</div>'
+            +'<div style="color:#9fb0c8;margin-bottom:2px">상태: '+stTxt+' · 새 V $'+money(newV)+' · 현재가 ~$'+r.px.toFixed(2)+'</div>'
             +'<div>'+line1+'</div><div>'+line2+'</div>'
-            +'<div style="color:#7f8ba3;margin-top:3px">'+srcTxt+' 매수는 Pool 현금 한도 내.</div>'
+            +'<div style="color:#7f8ba3;margin-top:3px">밴드 끝 가격에 GTC를 걸어두면 닿을 때 자동 체결. 매수는 Pool 70% 한도(30% 비축) 내.</div>'
             +'</div>';
         }
-      }
-      h+='</div>';
+      }      h+='</div>';
     });
     // ── 2) 포지션 배분 도넛 (TQQQ vs UPRO 평가금) ──
     const totEval=rows.reduce(function(a,b){return a+b.evalv;},0);
@@ -1260,6 +1249,7 @@ const VR = {
   calc(){
     const p=this.read(); const o=VRengine.calc(p); this._last={p,o}; this.saveState();
     const cls = o.buyShares>0?'buy':(o.sellShares>0?'sell':'hold');
+    const g = VRengine.gtc(o.newV, o.poolAvail, p.ps, p.band, p.pool||0.7);
     let vrLadder='';
     if(p.ps>0){ const n=Math.min(p.ps,5); let lr=''; for(let i=0;i<n;i++){ const rem=p.ps-i; lr+='<tr><td>매도 '+(i+1)+' · 1주</td><td>$'+R.fmt(o.upper/rem)+'</td></tr>'; }
       vrLadder='<div class="src" style="margin-top:10px">🔺 <b>라오어 매도 사다리 (LOC · 각 1주)</b> — 가격 = (V×1.15) ÷ 남은주식수, 상승 시 자동 분할 매도</div><table><tbody>'+lr+'</tbody></table>'; }
@@ -1267,11 +1257,11 @@ const VR = {
       +'<div class="box"><div class="l">새 V</div><div class="v">$'+R.fmt(o.newV)+'</div></div>'
       +'<div class="box"><div class="l">밴드 (하단~상단)</div><div class="v" style="font-size:15px">$'+R.fmt(o.lower)+' ~ $'+R.fmt(o.upper)+'</div></div>'
       +'<div class="box"><div class="l">리밸 전 평가금</div><div class="v">$'+R.fmt(o.evalBefore)+'</div></div>'
-      +'<div class="box"><div class="l">액션</div><div class="v"><span class="pill '+cls+'">'+o.action+'</span></div></div>'
+      +'<div class="box"><div class="l">액션(예약 GTC)</div><div class="v" style="font-size:14px">🔵매수 '+g.nBuy+'주 · 🔺매도 '+g.nSell+'주</div></div>'
       +'</div><table style="margin-top:12px"><tbody>'
       +'<tr class="'+(o.buyShares>0?'buy':'')+'"><td>매수 필요금 / 최대 매수금</td><td>$'+R.fmt(o.buyNeed)+' / $'+R.fmt(o.maxBuy)+'</td></tr>'
       +'<tr class="'+(o.sellShares>0?'sell':'')+'"><td>매도 필요금</td><td>$'+R.fmt(o.sellNeed)+'</td></tr>'
-      +'<tr><td>주문 주수</td><td>'+(o.buyShares>0?('매수 '+o.buyShares+'주 @ $'+R.fmt(p.price)):(o.sellShares>0?('매도 '+o.sellShares+'주 @ $'+R.fmt(p.price)):'없음'))+'</td></tr>'
+      +'<tr><td>예약 GTC 주문</td><td>🔵 매수 '+g.nBuy+'주 @ $'+R.fmt(g.buyPx)+' · 🔺 매도 '+g.nSell+'주 @ $'+R.fmt(g.sellPx)+'</td></tr>'
       +'<tr><td>리밸 후 보유수량 / Pool</td><td>'+o.endShares+'주 / $'+R.fmt(o.endPool)+'</td></tr>'
       +'<tr><td>총자산(참고)</td><td>$'+R.fmt(o.totalAsset)+'</td></tr></tbody></table>'+vrLadder;
     document.getElementById('vr_audit').textContent=
