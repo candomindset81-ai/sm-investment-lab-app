@@ -1260,6 +1260,13 @@ const VR = {
   calc(){
     const p=this.read(); const o=VRengine.calc(p); this._last={p,o}; this.saveState();
     const cls = o.buyShares>0?'buy':(o.sellShares>0?'sell':'hold');
+    // 포지션 현황과 동일: 목표 V(직전 V)·현재 Pool 기준 밴드끝 GTC 예약주문
+    const gLo=p.pv*(1-p.band), gUp=p.pv*(1+p.band);
+    const gBuyPx=p.ps>0?gLo/p.ps:0, gSellPx=p.ps>0?gUp/p.ps:0;
+    const gBuyRaw=Math.round(p.ps*p.band/(1-p.band)), gSell=Math.round(p.ps*p.band/(1+p.band));
+    const gUsable=Math.max(0,p.pp)*(p.pool||0.7), gAff=gBuyPx>0?Math.floor(gUsable/gBuyPx):0;
+    const gBuy=Math.max(0,Math.min(gBuyRaw,gAff));
+    const gEndSh=p.ps+gBuy, gEndPool=p.pp-gBuy*gBuyPx, gTotal=gEndSh*p.price+gEndPool;
     let vrLadder='';
     if(p.ps>0){ const n=Math.min(p.ps,5); let lr=''; for(let i=0;i<n;i++){ const rem=p.ps-i; lr+='<tr><td>매도 '+(i+1)+' · 1주</td><td>$'+R.fmt(o.upper/rem)+'</td></tr>'; }
       vrLadder='<div class="src" style="margin-top:10px">🔺 <b>라오어 매도 사다리 (LOC · 각 1주)</b> — 가격 = (V×1.15) ÷ 남은주식수, 상승 시 자동 분할 매도</div><table><tbody>'+lr+'</tbody></table>'; }
@@ -1267,13 +1274,13 @@ const VR = {
       +'<div class="box"><div class="l">새 V</div><div class="v">$'+R.fmt(o.newV)+'</div></div>'
       +'<div class="box"><div class="l">밴드 (하단~상단)</div><div class="v" style="font-size:15px">$'+R.fmt(o.lower)+' ~ $'+R.fmt(o.upper)+'</div></div>'
       +'<div class="box"><div class="l">리밸 전 평가금</div><div class="v">$'+R.fmt(o.evalBefore)+'</div></div>'
-      +'<div class="box"><div class="l">액션</div><div class="v"><span class="pill '+cls+'">'+o.action+'</span></div></div>'
+      +'<div class="box"><div class="l">액션(예약 GTC)</div><div class="v" style="font-size:14px">🔵매수 '+gBuy+'주 · 🔺매도 '+gSell+'주</div></div>'
       +'</div><table style="margin-top:12px"><tbody>'
       +'<tr class="'+(o.buyShares>0?'buy':'')+'"><td>매수 필요금 / 최대 매수금</td><td>$'+R.fmt(o.buyNeed)+' / $'+R.fmt(o.maxBuy)+'</td></tr>'
       +'<tr class="'+(o.sellShares>0?'sell':'')+'"><td>매도 필요금</td><td>$'+R.fmt(o.sellNeed)+'</td></tr>'
-      +'<tr><td>주문 주수</td><td>'+(o.buyShares>0?('매수 '+o.buyShares+'주 @ $'+R.fmt(p.price)):(o.sellShares>0?('매도 '+o.sellShares+'주 @ $'+R.fmt(p.price)):'없음'))+'</td></tr>'
-      +'<tr><td>리밸 후 보유수량 / Pool</td><td>'+o.endShares+'주 / $'+R.fmt(o.endPool)+'</td></tr>'
-      +'<tr><td>총자산(참고)</td><td>$'+R.fmt(o.totalAsset)+'</td></tr></tbody></table>'+vrLadder;
+      +'<tr><td>예약 GTC 주문 <span class="small muted">(목표 V 기준·포지션 현황과 동일)</span></td><td>🔵 매수 '+gBuy+'주 @ $'+R.fmt(gBuyPx)+' · 🔺 매도 '+gSell+'주 @ $'+R.fmt(gSellPx)+(gBuyRaw>gAff?(' <span style="color:#ff9d5c">(밴드상 '+gBuyRaw+'주지만 Pool 70%로 '+gBuy+'주)</span>'):'')+'</td></tr>'
+      +'<tr><td>매수 GTC 체결 시 보유수량 / Pool</td><td>'+gEndSh+'주 / $'+R.fmt(gEndPool)+'</td></tr>'
+      +'<tr><td>총자산(참고)</td><td>$'+R.fmt(gTotal)+'</td></tr></tbody></table>'+vrLadder;
     document.getElementById('vr_audit').textContent=
 '[VR 계산 근거]\n입력 직전V=$'+R.fmt(p.pv)+', 직전Pool=$'+R.fmt(p.pp)+', 직전수량='+p.ps+', 기준가=$'+R.fmt(p.price)+'\n'
 +'G='+p.G+', 밴드=±'+R.pct(p.band)+', Pool한도='+R.pct(p.pool)+', 적립=$'+R.fmt(p.dep)+'×'+p.mult+'=$'+R.fmt(o.deposit)+'\n'
