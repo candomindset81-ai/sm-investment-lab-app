@@ -442,6 +442,7 @@
     <div class="btnrow"><button class="act" onclick="Income.add()">➕ 추가/갱신</button></div>
     <div id="wi_table" style="margin-top:12px"></div>
   </div>
+  <div id="income_monitors"></div>
   <div class="card">
     <h3>🛒 매수 배분 계산기</h3>
     <div class="note">투자할 금액을 넣으면 <b>목표 비중</b>에 맞춰 종목별 <b>매수 주수</b>를 계산합니다. (① 에 종목·현재가·목표비중을 먼저 입력. 목표비중 미설정 시 동일 비중으로 배분)</div>
@@ -1828,6 +1829,61 @@ const Income = {
       s+=Object.keys(DIST.perShare).map(function(k){return k+' $'+DIST.perShare[k]+' <span class="muted">('+DIST.src[k]+')</span>';}).join(' · ');
       s+='<br>※ 주당 금액은 매주 크게 변동합니다. 실제 수령액으로 수정해 쓰세요.';
       sc.innerHTML=s; }
+    try{ this.monitors(); }catch(e){ console.log('income monitors',e); }
+  },
+  monitors(){
+    const el=document.getElementById('income_monitors'); if(!el) return;
+    const inc=this.load(); const taxR=this.tax()/100; let h='';
+    // 🏦 계좌별(미국/ISA) 요약
+    try{
+      let usA=0,isaA=0,usD=0,isaD=0;
+      inc.forEach(function(x){ const krx=/^\d{6}$/.test(String(x.sym)); const asset=(+x.sh||0)*(+x.px||+x.avg||0); const div=(+x.sh||0)*(+x.dist||0)*DFREQ(x.sym,x.freq)/12; if(krx){ isaA+=asset; isaD+=div; } else { usA+=asset; usD+=div*(1-taxR); } });
+      const totA=usA+isaA, totD=usD+isaD; const aPct=totA>0?Math.round(usA/totA*100):0, dPct=totD>0?Math.round(usD/totD*100):0;
+      h+='<div class="card"><h3 style="margin:0 0 6px">\uD83C\uDFE6 \uACC4\uC88C\uBCC4 \uC694\uC57D <span class="small muted">(\uBBF8\uAD6D vs ISA \u00B7 ISA \uBE44\uACFC\uC138)</span></h3>'
+        +'<div class="kpi">'
+        +'<div class="box"><div class="l">\uD83C\uDDFA\uD83C\uDDF8 \uBBF8\uAD6D \uC790\uC0B0</div><div class="v">$'+R.fmt(usA)+'</div></div>'
+        +'<div class="box"><div class="l">\uD83C\uDDFA\uD83C\uDDF8 \uC6D4\uBC30\uB2F9(\uC138\uD6C4)</div><div class="v">$'+R.fmt(usD)+'</div></div>'
+        +'<div class="box"><div class="l">\uD83C\uDDF0\uD83C\uDDF7 ISA \uC790\uC0B0</div><div class="v">$'+R.fmt(isaA)+'</div></div>'
+        +'<div class="box"><div class="l">\uD83C\uDDF0\uD83C\uDDF7 \uC6D4\uBC30\uB2F9(\uBE44\uACFC\uC138)</div><div class="v">$'+R.fmt(isaD)+'</div></div>'
+        +'</div>'
+        +'<div class="src" style="margin-top:6px">\uC790\uC0B0 \uBE44\uC911 \u2014 \uBBF8\uAD6D '+aPct+'% / ISA '+(100-aPct)+'% \u00B7 \uBC30\uB2F9 \uBE44\uC911 \u2014 \uBBF8\uAD6D '+dPct+'% / ISA '+(100-dPct)+'%</div>'
+        +'<div style="margin-top:6px;height:14px;border-radius:7px;overflow:hidden;display:flex;background:#22304a"><div style="width:'+aPct+'%;background:#4ea1ff"></div><div style="width:'+(100-aPct)+'%;background:#22c58b"></div></div>'
+        +'<div class="src" style="margin-top:6px">\uD569\uACC4: \uC790\uC0B0 $'+R.fmt(totA)+' \u00B7 \uC6D4\uBC30\uB2F9 $'+R.fmt(totD)+'</div></div>';
+    }catch(e){ console.log('acct summary',e); }
+    // \uD83C\uDDF0\uD83C\uDDF7 \uAE08\uC735\uC18C\uB4DD \uC885\uD569\uACFC\uC138 \uBAA8\uB2C8\uD130
+    try{
+      const fxEl=document.getElementById('pro_fx'); const fx=(fxEl&&+fxEl.value)?+fxEl.value:1380;
+      let usGross=0; inc.forEach(function(x){ if(/^\d{6}$/.test(String(x.sym)))return; usGross+=(+x.sh||0)*(+x.dist||0)*DFREQ(x.sym,x.freq); });
+      const taxKrw=usGross*fx, LIMIT=20000000, WARN=19000000; const barPct=Math.min(taxKrw/LIMIT*100,100), pctTxt=(taxKrw/LIMIT*100).toFixed(0);
+      const st=taxKrw>=LIMIT?'over':(taxKrw>=WARN?'warn':'safe'); const col=st==='over'?'#ff5d5d':(st==='warn'?'#ffb020':'#22c58b');
+      const label=st==='over'?'\uD83D\uDEA8 \uC885\uD569\uACFC\uC138 \uB300\uC0C1 \uCD08\uACFC \u2014 \uC5F0 2\uCC9C\uB9CC\uC6D0 \uB118\uC74C':(st==='warn'?'\u26A0\uFE0F \uACBD\uACE0 \u2014 \uC5F0 1,900\uB9CC\uC6D0 \uCD08\uACFC, \uC885\uD569\uACFC\uC138 \uC784\uBC15':'\u2705 \uC548\uC804 \u2014 \uD55C\uB3C4\uAE4C\uC9C0 \u20A9'+Math.max(0,LIMIT-taxKrw).toLocaleString()+' \uC5EC\uC720');
+      h+='<div class="card"><h3 style="margin:0 0 6px">\uD83C\uDDF0\uD83C\uDDF7 \uAE08\uC735\uC18C\uB4DD \uC885\uD569\uACFC\uC138 \uBAA8\uB2C8\uD130 <span class="small muted">(ISA \uC81C\uC678 \u00B7 \uBBF8\uAD6D\uACC4\uC88C \uBC30\uB2F9)</span></h3>'
+        +'<div class="kpi"><div class="box"><div class="l">\uC5F0 \uAE08\uC735\uC18C\uB4DD</div><div class="v">\u20A9'+Math.round(taxKrw).toLocaleString()+'</div></div>'
+        +'<div class="box"><div class="l">\uC885\uD569\uACFC\uC138 \uD55C\uB3C4</div><div class="v">\u20A920,000,000</div></div>'
+        +'<div class="box"><div class="l">\uD55C\uB3C4 \uB300\uBE44</div><div class="v" style="color:'+col+'">'+pctTxt+'%</div></div></div>'
+        +'<div style="margin-top:8px;position:relative;height:18px;border-radius:9px;background:#22304a;overflow:hidden"><div style="width:'+barPct+'%;height:100%;background:'+col+'"></div><div style="position:absolute;left:95%;top:0;height:100%;width:2px;background:#ffb020"></div><div style="position:absolute;left:100%;top:0;height:100%;width:2px;background:#ff5d5d"></div></div>'
+        +'<div class="src" style="margin-top:6px;color:'+col+';font-weight:700">'+label+'</div>'
+        +'<div class="src" style="margin-top:2px">\uD658\uC728 \u20A9'+fx+'/$ \u00B7 \uACBD\uACE0\uC120 1,900\uB9CC\uC6D0 \u00B7 \uD55C\uB3C4\uC120 2,000\uB9CC\uC6D0</div></div>';
+    }catch(e){ console.log('tax monitor',e); }
+    // \uD83D\uDCB0 \uBC30\uB2F9 \uC218\uB839 \uC6D0\uC7A5
+    try{
+      let dlog=[]; try{ dlog=JSON.parse(localStorage.getItem('isl_divlog_v1')||'[]'); }catch(_e){}
+      if(dlog && dlog.length){
+        const now=new Date(); const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'); const cum={}, mon={};
+        dlog.forEach(function(e){ const s=e.sym; if(!s)return; const a=+e.amt||0; cum[s]=(cum[s]||0)+a; if(String(e.date||'').slice(0,7)===ym) mon[s]=(mon[s]||0)+a; });
+        const isk=function(s){ return /^\d{6}$/.test(String(s)); };
+        let order=inc.map(function(x){return x.sym;}); Object.keys(cum).forEach(function(s){ if(order.indexOf(s)<0) order.push(s); });
+        let rows='', usdM=0,usdC=0,krwM=0,krwC=0, seen={};
+        order.forEach(function(s){ if(seen[s]||(cum[s]==null&&mon[s]==null))return; seen[s]=1; const m=mon[s]||0, c=cum[s]||0;
+          if(isk(s)){ krwM+=m; krwC+=c; rows+='<tr><td>'+s+'</td><td style="text-align:right">\u20A9'+Math.round(m).toLocaleString()+'</td><td style="text-align:right">\u20A9'+Math.round(c).toLocaleString()+'</td></tr>'; }
+          else{ usdM+=m; usdC+=c; rows+='<tr><td>'+s+'</td><td style="text-align:right">$'+R.fmt(m)+'</td><td style="text-align:right">$'+R.fmt(c)+'</td></tr>'; } });
+        h+='<div class="card"><h3 style="margin:0 0 6px">\uD83D\uDCB0 \uBC30\uB2F9 \uC218\uB839 \uC6D0\uC7A5 <span class="small muted">(\uC885\uBAA9\uBCC4 \uC774\uBC88\uB2EC\u00B7\uB204\uC801 \u00B7 \uBBF8\uAD6D=$ / ISA=\u20A9)</span></h3>'
+          +'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#8aa2c0"><th style="text-align:left;padding:2px 0">\uC885\uBAA9</th><th style="text-align:right">\uC774\uBC88\uB2EC</th><th style="text-align:right">\uB204\uC801</th></tr></thead><tbody>'+rows+'</tbody></table>'
+          +'<div class="src" style="margin-top:6px">\u2211 \uC774\uBC88\uB2EC $'+R.fmt(usdM)+' + \u20A9'+Math.round(krwM).toLocaleString()+' \u00B7 \uB204\uC801 $'+R.fmt(usdC)+' + \u20A9'+Math.round(krwC).toLocaleString()+'</div>'
+          +'<div class="src">\uC218\uB839\uC561 = \uBC30\uB2F9\uB77D\uC77C \uC8FC\uB2F9\uBD84\uBC30\uAE08 \u00D7 \uBCF4\uC720\uC8FC\uC218 \u00B7 \uBC30\uB2F9\uB77D \uAC10\uC9C0 \uB54C\uB9C8\uB2E4 \uC790\uB3D9 \uAE30\uB85D</div></div>';
+      }
+    }catch(e){ console.log('div ledger',e); }
+    el.innerHTML=h;
   }
 };
 
@@ -2255,76 +2311,6 @@ const DTE = {
         +'<div class="box"><div class="l">남은</div><div class="v">$'+R.fmt(Math.max(0,goal-usn))+'</div></div></div>'
         +'<div class="src" style="margin-top:6px">'+bar+' · 구성: 토스 매주 금 QLD $50·SCHD $40·DIVO $30 (월 $480) + TQQQ 월 $500 · <span class="muted">현재는 보유 현금(약 800~1,000만원)으로 충당 → 소진 시 배당 전환</span></div></div>';
     }catch(e){ console.log('dte goal',e); }
-    // ── 🏦 계좌별(미국/ISA) 요약 ──
-    try{
-      const inc=(typeof Income!=='undefined'&&Income.load)?Income.load():[];
-      const taxR=(typeof Income!=='undefined'&&Income.tax)?(Income.tax()/100):0.15;
-      let usA=0,isaA=0,usD=0,isaD=0;
-      inc.forEach(function(x){
-        const krx=/^\d{6}$/.test(String(x.sym));
-        const asset=(+x.sh||0)*(+x.px||+x.avg||0);
-        const div=(+x.sh||0)*(+x.dist||0)*DFREQ(x.sym,x.freq)/12;
-        if(krx){ isaA+=asset; isaD+=div; } else { usA+=asset; usD+=div*(1-taxR); }
-      });
-      const totA=usA+isaA, totD=usD+isaD;
-      const aPct=totA>0?Math.round(usA/totA*100):0, dPct=totD>0?Math.round(usD/totD*100):0;
-      h+='<div class="card"><h3 style="margin:0 0 6px">🏦 계좌별 요약 <span class="small muted">(미국 vs ISA · ISA 비과세)</span></h3>'
-        +'<div class="kpi">'
-        +'<div class="box"><div class="l">🇺🇸 미국 자산</div><div class="v">$'+R.fmt(usA)+'</div></div>'
-        +'<div class="box"><div class="l">🇺🇸 월배당(세후)</div><div class="v">$'+R.fmt(usD)+'</div></div>'
-        +'<div class="box"><div class="l">🇰🇷 ISA 자산</div><div class="v">$'+R.fmt(isaA)+'</div></div>'
-        +'<div class="box"><div class="l">🇰🇷 월배당(비과세)</div><div class="v">$'+R.fmt(isaD)+'</div></div>'
-        +'</div>'
-        +'<div class="src" style="margin-top:6px">자산 비중 — 미국 '+aPct+'% / ISA '+(100-aPct)+'% · 배당 비중 — 미국 '+dPct+'% / ISA '+(100-dPct)+'%</div>'
-        +'<div style="margin-top:6px;height:14px;border-radius:7px;overflow:hidden;display:flex;background:#22304a">'
-        +'<div style="width:'+aPct+'%;background:#4ea1ff"></div><div style="width:'+(100-aPct)+'%;background:#22c58b"></div></div>'
-        +'<div class="src" style="margin-top:6px">합계: 자산 $'+R.fmt(totA)+' · 월배당 $'+R.fmt(totD)+' <span class="muted">(파랑=미국, 초록=ISA)</span></div></div>';
-    }catch(e){ console.log('dte account summary',e); }
-    // ── 🇰🇷 금융소득 종합과세 모니터 (ISA 제외 · 미국계좌 배당) ──
-    try{
-      const fxEl=document.getElementById('pro_fx');
-      const fx=(fxEl&&+fxEl.value)?+fxEl.value:1380;
-      let usGross=0;
-      (inc||[]).forEach(function(x){ if(/^\d{6}$/.test(String(x.sym)))return; usGross+=(+x.sh||0)*(+x.dist||0)*DFREQ(x.sym,x.freq); });
-      const taxKrw=usGross*fx, LIMIT=20000000, WARN=19000000;
-      const barPct=Math.min(taxKrw/LIMIT*100,100), pctTxt=(taxKrw/LIMIT*100).toFixed(0);
-      const st=taxKrw>=LIMIT?'over':(taxKrw>=WARN?'warn':'safe');
-      const col=st==='over'?'#ff5d5d':(st==='warn'?'#ffb020':'#22c58b');
-      const label=st==='over'?'🚨 종합과세 대상 초과 — 연 2천만원 넘음(초과분 종합과세)':(st==='warn'?'⚠️ 경고 — 연 1,900만원 초과, 종합과세(2천만원) 임박':'✅ 안전 — 한도까지 ₩'+Math.max(0,LIMIT-taxKrw).toLocaleString()+' 여유');
-      h+='<div class="card"><h3 style="margin:0 0 6px">🇰🇷 금융소득 종합과세 모니터 <span class="small muted">(ISA 비과세분 제외 · 미국계좌 배당 기준)</span></h3>'
-        +'<div class="kpi"><div class="box"><div class="l">연 금융소득</div><div class="v">₩'+Math.round(taxKrw).toLocaleString()+'</div></div>'
-        +'<div class="box"><div class="l">종합과세 한도</div><div class="v">₩20,000,000</div></div>'
-        +'<div class="box"><div class="l">한도 대비</div><div class="v" style="color:'+col+'">'+pctTxt+'%</div></div></div>'
-        +'<div style="margin-top:8px;position:relative;height:18px;border-radius:9px;background:#22304a;overflow:hidden">'
-        +'<div style="width:'+barPct+'%;height:100%;background:'+col+'"></div>'
-        +'<div style="position:absolute;left:95%;top:0;height:100%;width:2px;background:#ffb020"></div>'
-        +'<div style="position:absolute;left:100%;top:0;height:100%;width:2px;background:#ff5d5d"></div></div>'
-        +'<div class="src" style="margin-top:6px;color:'+col+';font-weight:700">'+label+'</div>'
-        +'<div class="src" style="margin-top:2px">환율 ₩'+fx+'/$ · 경고선 1,900만원 · 한도선 2,000만원 · <span class="muted">해외배당 원천징수 전 총액 기준, ISA 수령분 미포함</span></div></div>';
-    }catch(e){ console.log('tax monitor',e); }
-    // ── 💰 배당 수령 원장 (월별 종목별 + 누적) ──
-    try{
-      let dlog=[]; try{ dlog=JSON.parse(localStorage.getItem('isl_divlog_v1')||'[]'); }catch(_e){}
-      if(dlog && dlog.length){
-        const now=new Date(); const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-        const cum={}, mon={};
-        dlog.forEach(function(e){ const s=e.sym; if(!s)return; const a=+e.amt||0; cum[s]=(cum[s]||0)+a; if(String(e.date||'').slice(0,7)===ym) mon[s]=(mon[s]||0)+a; });
-        const isk=function(s){ return /^\d{6}$/.test(String(s)); };
-        let order=(typeof Income!=='undefined'&&Income.load)?Income.load().map(function(x){return x.sym;}):Object.keys(cum);
-        Object.keys(cum).forEach(function(s){ if(order.indexOf(s)<0) order.push(s); });
-        let rows='', usdM=0,usdC=0,krwM=0,krwC=0, seen={};
-        order.forEach(function(s){ if(seen[s]||(cum[s]==null&&mon[s]==null))return; seen[s]=1;
-          const m=mon[s]||0, c=cum[s]||0;
-          if(isk(s)){ krwM+=m; krwC+=c; rows+='<tr><td>'+s+'</td><td style="text-align:right">₩'+Math.round(m).toLocaleString()+'</td><td style="text-align:right">₩'+Math.round(c).toLocaleString()+'</td></tr>'; }
-          else{ usdM+=m; usdC+=c; rows+='<tr><td>'+s+'</td><td style="text-align:right">$'+R.fmt(m)+'</td><td style="text-align:right">$'+R.fmt(c)+'</td></tr>'; }
-        });
-        h+='<div class="card"><h3 style="margin:0 0 6px">💰 배당 수령 원장 <span class="small muted">(종목별 이번달·누적 · 미국=$ / ISA=₩)</span></h3>'
-          +'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#8aa2c0">'
-          +'<th style="text-align:left;padding:2px 0">종목</th><th style="text-align:right">이번달</th><th style="text-align:right">누적</th></tr></thead><tbody>'+rows+'</tbody></table>'
-          +'<div class="src" style="margin-top:6px">∑ 이번달 $'+R.fmt(usdM)+' + ₩'+Math.round(krwM).toLocaleString()+' · 누적 $'+R.fmt(usdC)+' + ₩'+Math.round(krwC).toLocaleString()+'</div>'
-          +'<div class="src">수령액 = 배당락일 주당분배금 × 보유주수 · 배당락 감지 때마다 자동 기록</div></div>';
-      }
-    }catch(e){ console.log('div ledger',e); }
     // ── 🔥 ROC 히트맵 (추정) ──
     try{
       let hm='<div class="card"><h3 style="margin:0 0 6px">🔥 ROC 히트맵 <span class="small muted">(추정 · 분배금 중 원금반환 비율 · 높을수록 위험)</span></h3><div style="display:flex;gap:6px">';
