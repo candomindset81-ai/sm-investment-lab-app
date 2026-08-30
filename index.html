@@ -686,11 +686,11 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-08-29',
-  vix:14.51,
-  tqqq:{p:73.3, rsi:47.0, m50:72.3, m200:60.98, hi:88.09, prevClose:70.47},
-  soxl:{p:123.05, rsi:40.2, m50:162.55, m200:106.74, hi:302.0, prevClose:116.6},
-  upro:{p:152.91, rsi:45.6, m50:144.57, m200:126.12, hi:158.63, prevClose:149.97}
+  asOf:'2026-08-30',
+  vix:14.43,
+  tqqq:{p:71.85, rsi:45.1, m50:72.19, m200:61.06, hi:88.09, prevClose:73.3},
+  soxl:{p:111.34, rsi:39.5, m50:160.1, m200:107.08, hi:302.0, prevClose:123.05},
+  upro:{p:151.78, rsi:43.8, m50:144.83, m200:126.29, hi:158.63, prevClose:152.91}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
@@ -1454,7 +1454,7 @@ const CS = {
         let yr=0, yrNet=0; const taxP=(+s.income.tax_pct||0)/100;
         s.income.holdings.forEach(function(c){
           const fN=DFREQ(c.sym,c.freq); const _y=(+c.sh||0)*(+c.dist||0)*fN; yr += _y;
-          const _kr=(/^\d{6}$/.test(String(c.sym))||c.ccy==='KRW'||c.account==='ISA')?0:taxP; yrNet += _y*(1-_kr);
+          const _kr=(/^\d/.test(String(c.sym))||c.ccy==='KRW'||c.account==='ISA')?0:taxP; yrNet += _y*(1-_kr);
           const lbl=(fN===12)?'월배당':'주배당';
           h+='<tr><td>💰 '+c.sym+'</td><td>'+(c.sh||0)+'주 · 평단 $'+(+c.avg||0).toFixed(2)+' · 주당 '+lbl+' $'+(+c.dist||0).toFixed(4)+'</td></tr>';
         });
@@ -1708,9 +1708,9 @@ function resetAll(){
    ※ 주당 금액은 매주 변동합니다. 실제 수령액으로 덮어쓰는 것을 권장합니다. */
 const DIST = {
   asOf:'2026-08-04', nextEx:'2026-08-06', payDay:'금요일', exDay:'목요일',
-  perShare:{ QDTE:0.1370, XDTE:0.0900, RDTE:0.2000, JEPQ:0.50, QQQI:0.66, IWMI:0.6046, '441640':0.07, '494300':0.11, '482730':0.078, '458730':0.03 },
-  freq:{ QDTE:'weekly', XDTE:'weekly', RDTE:'weekly', JEPQ:'monthly', QQQI:'monthly', IWMI:'monthly', '441640':'monthly', '494300':'monthly', '482730':'monthly', '458730':'monthly' },
-  src:{ QDTE:'주배당 YTD 평균(변동 반영)', XDTE:'주배당 YTD 평균(변동 반영)', RDTE:'러셀2000 0DTE 커버드콜·주배당(소형주)', JEPQ:'월배당 변동 $0.50~0.70(월 지급)', '441640':'KODEX 미국배당커버드콜·월배당', QQQI:'NEOS 나스닥100 하이인컴·월배당(NDX 콜매도)', IWMI:'NEOS 러셀2000 하이인컴·월배당(RUT 콜매도·소형주)', '494300':'KODEX 나스닥100커버드콜·월배당', '482730':'TIGER S&P500 타겟커버드콜·월배당', '458730':'TIGER 미국배당다우존스·SCHD형 월배당' }
+  perShare:{ QDTE:0.1370, XDTE:0.0900, RDTE:0.2000, JEPQ:0.50, QQQI:0.66, IWMI:0.6046, '441640':0.07, '494300':0.11, '0008S0':0.078, '482730':0.078, '458730':0.03 },
+  freq:{ QDTE:'weekly', XDTE:'weekly', RDTE:'weekly', JEPQ:'monthly', QQQI:'monthly', IWMI:'monthly', '441640':'monthly', '494300':'monthly', '0008S0':'monthly', '482730':'monthly', '458730':'monthly' },
+  src:{ QDTE:'주배당 YTD 평균(변동 반영)', XDTE:'주배당 YTD 평균(변동 반영)', RDTE:'러셀2000 0DTE 커버드콜·주배당(소형주)', JEPQ:'월배당 변동 $0.50~0.70(월 지급)', '441640':'KODEX 미국배당커버드콜·월배당', QQQI:'NEOS 나스닥100 하이인컴·월배당(NDX 콜매도)', IWMI:'NEOS 러셀2000 하이인컴·월배당(RUT 콜매도·소형주)', '494300':'KODEX 나스닥100커버드콜·월배당', '0008S0':'TIGER 미국배당다우존스 타겟데일리커버드콜·SCHD+10%콜·월배당', '482730':'TIGER S&P500 타겟커버드콜·월배당', '458730':'TIGER 미국배당다우존스·SCHD형 월배당' }
 };
 // 배당 빈도 자동보정: 보유행에 freq가 없거나 잘못돼도 종목명으로 월/주 판정 → 연 지급횟수 반환
 const DFREQ = (sym,freq)=>{ const f=freq||(DIST.freq&&DIST.freq[sym]); return f==='monthly'?12:52; };
@@ -1724,9 +1724,9 @@ const Income = {
   loadDiv(){ try{return JSON.parse(localStorage.getItem(this.DKEY))||[]}catch(e){return[]} },
   saveDiv(a){ localStorage.setItem(this.DKEY,JSON.stringify(a)); },
   tax(){ const t=parseFloat(localStorage.getItem(this.TKEY)); return isNaN(t)?15:t; },
-  isKRX(sym){ return /^\d{6}$/.test(String(sym||'')); },
+  isKRX(sym){ return /^\d/.test(String(sym||'')); },
   taxRateFor(sym){ return this.isKRX(sym) ? 0 : (this.tax()/100); },   // 한국 ISA(6자리) 비과세 · 미국 15%
-  seedDefaults(){ if(localStorage.getItem('wos_income_seed21'))return; this.save([{sym:'QDTE',sh:548,avg:29.3539,px:28.72,dist:0.172087,tw:16,freq:'weekly'},{sym:'XDTE',sh:378,avg:38.457,px:38.595,dist:0.149533,tw:16,freq:'weekly'},{sym:'RDTE',sh:0,avg:0,px:28.57,dist:0.20,tw:16,freq:'weekly'},{sym:'JEPQ',sh:168,avg:58.0486,px:58.25,dist:0.705,tw:21,freq:'monthly'},{sym:'QQQI',sh:24,avg:55.7921,px:56.09,dist:0.66,tw:7,freq:'monthly'},{sym:'IWMI',sh:26,avg:52.48,px:52.48,dist:0.6046,tw:7,freq:'monthly'},{sym:'441640',sh:230,avg:9.13,px:9.13,dist:0.07,tw:4,freq:'monthly'},{sym:'494300',sh:220,avg:6.58,px:6.58,dist:0.11,tw:3,freq:'monthly'},{sym:'482730',sh:150,avg:8.55,px:8.55,dist:0.078,tw:2,freq:'monthly'},{sym:'458730',sh:40,avg:10.84,px:10.84,dist:0.03,tw:8,freq:'monthly'}]); localStorage.setItem('wos_income_seed21','1'); },
+  seedDefaults(){ if(localStorage.getItem('wos_income_seed22'))return; this.save([{sym:'QDTE',sh:548,avg:29.3539,px:28.72,dist:0.172087,tw:16,freq:'weekly'},{sym:'XDTE',sh:378,avg:38.457,px:38.595,dist:0.149533,tw:16,freq:'weekly'},{sym:'RDTE',sh:0,avg:0,px:28.57,dist:0.20,tw:16,freq:'weekly'},{sym:'JEPQ',sh:168,avg:58.0486,px:58.25,dist:0.705,tw:21,freq:'monthly'},{sym:'QQQI',sh:24,avg:55.7921,px:56.09,dist:0.66,tw:7,freq:'monthly'},{sym:'IWMI',sh:26,avg:52.48,px:52.48,dist:0.6046,tw:7,freq:'monthly'},{sym:'441640',sh:230,avg:9.13,px:9.13,dist:0.07,tw:4,freq:'monthly'},{sym:'494300',sh:220,avg:6.58,px:6.58,dist:0.11,tw:3,freq:'monthly'},{sym:'0008S0',sh:0,avg:7.76,px:7.76,dist:0.078,tw:3,freq:'monthly'},{sym:'482730',sh:150,avg:8.55,px:8.55,dist:0.078,tw:2,freq:'monthly'},{sym:'458730',sh:40,avg:10.84,px:10.84,dist:0.03,tw:8,freq:'monthly'}]); localStorage.setItem('wos_income_seed22','1'); },
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
   freqN(r){ return DFREQ(r&&r.sym, r&&r.freq); },   // 연 지급 횟수: 월배당 12 / 주배당 52 (종목명으로 자동 보정)
   totals(){ let mv=0,cost=0,yr=0,yrNet=0; this.load().forEach(r=>{ const y=r.sh*(+r.dist||0)*Income.freqN(r); mv+=r.sh*r.px; cost+=r.sh*r.avg; yr+=y; yrNet+=y*(1-Income.taxRateFor(r.sym)); }); return {mv:mv,cost:cost,wk:yr/52,yr:yr,mo:yr/12,yrNet:yrNet,moNet:yrNet/12}; },
@@ -1837,7 +1837,7 @@ const Income = {
     // 🏦 계좌별(미국/ISA) 요약
     try{
       let usA=0,isaA=0,usD=0,isaD=0;
-      inc.forEach(function(x){ const krx=/^\d{6}$/.test(String(x.sym)); const asset=(+x.sh||0)*(+x.px||+x.avg||0); const div=(+x.sh||0)*(+x.dist||0)*DFREQ(x.sym,x.freq)/12; if(krx){ isaA+=asset; isaD+=div; } else { usA+=asset; usD+=div*(1-taxR); } });
+      inc.forEach(function(x){ const krx=/^\d/.test(String(x.sym)); const asset=(+x.sh||0)*(+x.px||+x.avg||0); const div=(+x.sh||0)*(+x.dist||0)*DFREQ(x.sym,x.freq)/12; if(krx){ isaA+=asset; isaD+=div; } else { usA+=asset; usD+=div*(1-taxR); } });
       const totA=usA+isaA, totD=usD+isaD; const aPct=totA>0?Math.round(usA/totA*100):0, dPct=totD>0?Math.round(usD/totD*100):0;
       h+='<div class="card"><h3 style="margin:0 0 6px">\uD83C\uDFE6 \uACC4\uC88C\uBCC4 \uC694\uC57D <span class="small muted">(\uBBF8\uAD6D vs ISA \u00B7 ISA \uBE44\uACFC\uC138)</span></h3>'
         +'<div class="kpi">'
@@ -1853,7 +1853,7 @@ const Income = {
     // \uD83C\uDDF0\uD83C\uDDF7 \uAE08\uC735\uC18C\uB4DD \uC885\uD569\uACFC\uC138 \uBAA8\uB2C8\uD130
     try{
       const fxEl=document.getElementById('pro_fx'); const fx=(fxEl&&+fxEl.value)?+fxEl.value:1380;
-      let usGross=0; inc.forEach(function(x){ if(/^\d{6}$/.test(String(x.sym)))return; usGross+=(+x.sh||0)*(+x.dist||0)*DFREQ(x.sym,x.freq); });
+      let usGross=0; inc.forEach(function(x){ if(/^\d/.test(String(x.sym)))return; usGross+=(+x.sh||0)*(+x.dist||0)*DFREQ(x.sym,x.freq); });
       const taxKrw=usGross*fx, LIMIT=20000000, WARN=19000000; const barPct=Math.min(taxKrw/LIMIT*100,100), pctTxt=(taxKrw/LIMIT*100).toFixed(0);
       const st=taxKrw>=LIMIT?'over':(taxKrw>=WARN?'warn':'safe'); const col=st==='over'?'#ff5d5d':(st==='warn'?'#ffb020':'#22c58b');
       const label=st==='over'?'\uD83D\uDEA8 \uC885\uD569\uACFC\uC138 \uB300\uC0C1 \uCD08\uACFC \u2014 \uC5F0 2\uCC9C\uB9CC\uC6D0 \uB118\uC74C':(st==='warn'?'\u26A0\uFE0F \uACBD\uACE0 \u2014 \uC5F0 1,900\uB9CC\uC6D0 \uCD08\uACFC, \uC885\uD569\uACFC\uC138 \uC784\uBC15':'\u2705 \uC548\uC804 \u2014 \uD55C\uB3C4\uAE4C\uC9C0 \u20A9'+Math.max(0,LIMIT-taxKrw).toLocaleString()+' \uC5EC\uC720');
@@ -1871,7 +1871,7 @@ const Income = {
       if(dlog && dlog.length){
         const now=new Date(); const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'); const cum={}, mon={};
         dlog.forEach(function(e){ const s=e.sym; if(!s)return; const a=+e.amt||0; cum[s]=(cum[s]||0)+a; if(String(e.date||'').slice(0,7)===ym) mon[s]=(mon[s]||0)+a; });
-        const isk=function(s){ return /^\d{6}$/.test(String(s)); };
+        const isk=function(s){ return /^\d/.test(String(s)); };
         let order=inc.map(function(x){return x.sym;}); Object.keys(cum).forEach(function(s){ if(order.indexOf(s)<0) order.push(s); });
         let rows='', usdM=0,usdC=0,krwM=0,krwC=0, seen={};
         order.forEach(function(s){ if(seen[s]||(cum[s]==null&&mon[s]==null))return; seen[s]=1; const m=mon[s]||0, c=cum[s]||0;
@@ -2285,7 +2285,7 @@ const DTE = {
     try{
       const inc=(typeof Income!=='undefined'&&Income.load)?Income.load():[];
       const tax=(typeof Income!=='undefined'&&Income.tax)?(Income.tax()/100):0.15;
-      let annG=0, annN=0; inc.forEach(function(x){ const fN=DFREQ(x.sym,x.freq); const _y=(+x.sh||0)*(+x.dist||0)*fN; annG += _y; const _kr=(/^\d{6}$/.test(String(x.sym)))?0:tax; annN += _y*(1-_kr); });
+      let annG=0, annN=0; inc.forEach(function(x){ const fN=DFREQ(x.sym,x.freq); const _y=(+x.sh||0)*(+x.dist||0)*fN; annG += _y; const _kr=(/^\d/.test(String(x.sym)))?0:tax; annN += _y*(1-_kr); });
       const moN=annN/12, wk=annN/52;
       h+='<div class="card"><h3 style="margin:0 0 6px">💵 12개월 현금흐름 예측 <span class="small muted">(현재 분배금 유지 가정)</span></h3>'
         +'<div class="kpi"><div class="box"><div class="l">주간</div><div class="v">$'+R.fmt(wk)+'</div></div>'
@@ -2301,7 +2301,7 @@ const DTE = {
     try{
       const inc=(typeof Income!=='undefined'&&Income.load)?Income.load():[];
       const tax=(typeof Income!=='undefined'&&Income.tax)?(Income.tax()/100):0.15;
-      let usg=0; inc.forEach(function(x){ if(/^\d{6}$/.test(String(x.sym)))return; const fN=DFREQ(x.sym,x.freq); usg+=(+x.sh||0)*(+x.dist||0)*fN/12; });
+      let usg=0; inc.forEach(function(x){ if(/^\d/.test(String(x.sym)))return; const fN=DFREQ(x.sym,x.freq); usg+=(+x.sh||0)*(+x.dist||0)*fN/12; });
       const usn=usg*(1-tax), goal=1000, p=Math.min(100,usn/goal*100);
       const fill=Math.round(p/10), bar='\u2588'.repeat(fill)+'\u2591'.repeat(10-fill);
       h+='<div class="card"><h3 style="margin:0 0 6px">🎯 배당 자립 목표 <span class="small muted">(현금 소진 후 배당으로 자동적립+TQQQ)</span></h3>'
@@ -2445,7 +2445,7 @@ const Refresh = {
 
 /* ===================== 💹 인컴 Pro 모듈 ===================== */
 const Pro = {
-  syms:['QDTE','XDTE','RDTE','JEPQ','QQQI','IWMI','441640','494300','482730','458730'],
+  syms:['QDTE','XDTE','RDTE','JEPQ','QQQI','IWMI','441640','494300','0008S0','482730','458730'],
   rh(){ try{return JSON.parse(localStorage.getItem('isl_roundhill_v1'))||null}catch(e){return null} },
   rsAll(){ try{return JSON.parse(localStorage.getItem('isl_realstats_v1'))||{}}catch(e){return {}} },
   monthlySeries(){ try{return JSON.parse(localStorage.getItem('isl_monthly_v1'))||[]}catch(e){return []} },
@@ -2518,7 +2518,7 @@ const Pro = {
   },
   lineSVG(rows){
     // 최근 12주 주당 배당 추이 (종목별 선그래프)
-    const cols={QDTE:'#22c58b',XDTE:'#ffd24a',RDTE:'#ff7a7a',JEPQ:'#4ea1ff',QQQI:'#f7a35c',IWMI:'#e8688a','441640':'#c58bff','494300':'#5cc8ff','482730':'#ff9d5c','458730':'#8fe3a0'};
+    const cols={QDTE:'#22c58b',XDTE:'#ffd24a',RDTE:'#ff7a7a',JEPQ:'#4ea1ff',QQQI:'#f7a35c',IWMI:'#e8688a','441640':'#c58bff','494300':'#5cc8ff','0008S0':'#5cd6c8','482730':'#ff9d5c','458730':'#8fe3a0'};
     const series=rows.map(function(x){ return {sym:x.sym, v:(x.hist||[]).slice(-12).map(function(p){return +p[1];})}; }).filter(function(s){return s.v.length;});
     if(!series.length) return '<span class="small muted">배당 이력이 아직 부족합니다.</span>';
     const W=640,H=240,pl=44,pr=90,pt=14,pb=26;
