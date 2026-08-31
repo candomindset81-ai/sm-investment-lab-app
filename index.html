@@ -233,7 +233,7 @@
       <label class="f">적용 밴드 ±(%)<input id="vr_band" type="number" step="1" value="15"></label>
       <label class="f">Pool 사용한도(%)<input id="vr_pool" type="number" step="1" value="70"></label>
       <label class="f">수수료/슬리피지($/주)<input id="vr_fee" type="number" step="0.01" value="0"></label>
-      <label class="f">매 사이클 적립액($)<input id="vr_dep" type="number" step="0.01" value="250"></label>
+      <label class="f">매 사이클 적립액($)<input id="vr_dep" type="number" step="0.01" value="231"></label>
       <label class="f">매 사이클 인출액($)<input id="vr_wd" type="number" step="0.01" value="0"></label>
       <label class="f">적립 배수 (공격매수)
         <select id="vr_mult"><option value="1">기본 ×1</option><option value="1.5">공격 ×1.5</option></select>
@@ -385,7 +385,7 @@
   </div>
   <div class="card">
     <h2>③ VR (TQQQ) — 2주 GTC 예약형</h2>
-    <p class="small"><b>2주(격주) 시작에 GTC 주문을 걸어두는 방식</b>: 하단밴드 가격(V×0.85÷보유주수)에 <b>매수 GTC</b>, 상단밴드 가격(V×1.15÷보유주수)에 <b>매도 GTC</b>를 계산된 주수(평가금을 V로 되돌리는 양)로 걸고 <b>2주간 유지</b>합니다. 그 사이 밴드에 닿으면 자동 체결, 안 닿으면 그대로 두고 <b>2주 후 V·주수를 재계산해 갱신</b>합니다. 무한매수법(SOXL)처럼 매일 매매하지 않아요. 같은 2주 금요일에 정기 적립(TQQQ +$250 · UPRO +$100)도 반영. (일정: 07/31 → 08/14 → 08/28 …)</p>
+    <p class="small"><b>2주(격주) 시작에 GTC 주문을 걸어두는 방식</b>: 하단밴드 가격(V×0.85÷보유주수)에 <b>매수 GTC</b>, 상단밴드 가격(V×1.15÷보유주수)에 <b>매도 GTC</b>를 계산된 주수(평가금을 V로 되돌리는 양)로 걸고 <b>2주간 유지</b>합니다. 그 사이 밴드에 닿으면 자동 체결, 안 닿으면 그대로 두고 <b>2주 후 V·주수를 재계산해 갱신</b>합니다. 무한매수법(SOXL)처럼 매일 매매하지 않아요. 같은 2주 금요일에 정기 적립(TQQQ +$231 · 월 약 $500)도 반영. (일정: 07/31 → 08/14 → 08/28 …)</p>
     <table>
       <thead><tr><th>상황</th><th>행동</th></tr></thead>
       <tbody>
@@ -394,7 +394,7 @@
         <tr><td>평가금이 상단 위 (급등)</td><td style="color:#ff9d9d">매도</td></tr>
       </tbody>
     </table>
-    <p class="small">적립액(자동): <b>TQQQ 2주 $250</b> (UPRO 중단). 전략 단계는 "전략 구분"에서 전환: <b>적립식</b>($200,000까지) → <b>거치식</b> → <b>인출식</b>(목표 도달 시).</p>
+    <p class="small">적립액(자동): <b>TQQQ 2주 $231</b> (월 ≈$500) (UPRO 중단). 전략 단계는 "전략 구분"에서 전환: <b>적립식</b>($200,000까지) → <b>거치식</b> → <b>인출식</b>(목표 도달 시).</p>
   </div>
   <div class="card">
     <h2>④ 부가 기능 · 백업</h2>
@@ -634,7 +634,7 @@
 
   <div class="card" style="border:1px solid #6a5acd;background:rgba(106,90,205,0.06)">
     <h3 style="margin:0 0 6px;color:#a99bff">🔀 $700을 어디에 재투자? · 인컴 재투자 vs VR 성장</h3>
-    <div class="src" style="margin-bottom:8px"><b>방식 A</b> 인컴 재투자(QDTE·XDTE·JEPQ) &nbsp;|&nbsp; <b>방식 B</b> VR 성장 적립 — 2주마다 TQQQ $250 (UPRO 중단)</div>
+    <div class="src" style="margin-bottom:8px"><b>방식 A</b> 인컴 재투자(QDTE·XDTE·JEPQ) &nbsp;|&nbsp; <b>방식 B</b> VR 성장 적립 — 2주마다 TQQQ $231 (월 ≈$500)</div>
     <table><thead><tr><th>항목</th><th>A · 인컴 재투자</th><th>B · VR 성장(TQQQ·UPRO)</th></tr></thead><tbody>
       <tr><td>성장 동력</td><td>분배금 복리(주식 수↑)</td><td>나스닥·S&P <b>3배 레버리지</b> 상승</td></tr>
       <tr><td>기대 성격</td><td>총수익 ~연 14%(프리미엄 의존)</td><td>강세장 매우 높음 · 약세장 급락</td></tr>
@@ -686,8 +686,8 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-08-30',
-  vix:14.43,
+  asOf:'2026-08-31',
+  vix:15.23,
   tqqq:{p:71.85, rsi:45.1, m50:72.19, m200:61.06, hi:88.09, prevClose:73.3},
   soxl:{p:111.34, rsi:39.5, m50:160.1, m200:107.08, hi:302.0, prevClose:123.05},
   upro:{p:151.78, rsi:43.8, m50:144.83, m200:126.29, hi:158.63, prevClose:152.91}
@@ -697,11 +697,11 @@ const MKT = {
 /* ===================== 매크로 데이터 (매주 자동 갱신 블록) =====================
    [AUTO-UPDATE:MACRO] 매주 자동 작업이 이 블록만 교체합니다. */
 const MACRO = {
-  asOf:'2026-08-24',
-  vix:15.13,
+  asOf:'2026-08-31',
+  vix:14.43,
   regime:'상승',
   fearGreed:'-',
-  us10y:'4.74%',
+  us10y:'4.72%',
   fedRate:'-',
   note:''
 };
