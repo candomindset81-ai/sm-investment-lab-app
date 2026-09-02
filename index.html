@@ -133,7 +133,7 @@
   <div class="card">
     <h2>무한매수법 계산기 <span class="tag">Rao V4 · VERIFIED</span></h2>
     <div class="note">노란 칸(현재 보유 상태)만 입력하면 다음 주문표가 계산됩니다. 현재가는 매일 자동 갱신됩니다.</div>
-    <div class="note" style="color:#ffd699">💡 1회매수금은 <b>사이클 자본(cap)</b> 기준으로 계산합니다 — 부족분은 예수금으로 채운다는 가정(만달러 기준). 실제 매수 전 계좌 잔액을 확인하세요.</div>
+    <div class="note" style="color:#ffd699">💡 1회매수금 = <b>원금(cap) ÷ 분할수(N)</b> 고정 (라오어 정석, 10000÷20=$500). 실제 매수 전 계좌 잔액을 확인하세요.</div>
     <h3>① 설정</h3>
     <div class="grid">
       <label class="f">종목·분할 프리셋
@@ -410,7 +410,7 @@
   </div>
   <div class="card">
     <h2>무한매수법(Rao V4) 규칙 요약</h2>
-    <p class="small">1회매수금(F) = 사이클자본(cap) ÷ (N − T) <span class="muted">(부족분은 예수금 충당, 만달러 기준)</span>. 별% = base − slope×T <b>(음수 허용)</b>. 별지점 = 평단 ×(1+별%). 별 LOC 매수가 = <b>내림센트(별지점) − $0.01</b>. 모든 가격은 <b>센트 단위 내림(floor)</b>.</p>
+    <p class="small">1회매수금(F) = 원금(cap) ÷ 분할수(N) <span class="muted">고정 — 라오어 정석(10000÷20=$500)</span>. 별% = base − slope×T <b>(음수 허용)</b>. 별지점 = 평단 ×(1+별%). 별 LOC 매수가 = <b>내림센트(별지점) − $0.01</b>. 모든 가격은 <b>센트 단위 내림(floor)</b>.</p>
     <p class="small">전반전(T &lt; N/2): 별 예산 = F/2 → 별수량=내림(별예산/별매수가), <b>평단 예산 = F − 별실제지출</b>(나머지) → 평단수량=내림(평단예산/평단). 후반전(T ≥ N/2): 별 예산 = F 전액(별지점이 평단 아래), 평단 = 0.</p>
     <p class="small"><b>급락 대비 하단 LOC</b>: 기본 누적수량 다음부터 가격 = 내림센트(F ÷ 누적수량), 각 1주씩 계단식(기본 6단). 종가가 낮을수록 누적 체결이 1주씩 늘고, 여러 LOC가 걸리면 전량 같은 종가로 체결 → 총매수액은 F 이내 유지.</p>
     <p class="small">쿼터 매도 = 보유수량/4(내림), 별지점에 LOC. 지정가 매도 = 평단 ×(1+finalsell), 나머지 전량. T 갱신: 매수 +1(전량)/+0.5(일부), 쿼터매도 ×0.75, 지정가매도 ×0.25.</p>
@@ -686,11 +686,11 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-08-31',
-  vix:15.23,
-  tqqq:{p:71.85, rsi:45.1, m50:72.19, m200:61.06, hi:88.09, prevClose:73.3},
-  soxl:{p:111.34, rsi:39.5, m50:160.1, m200:107.08, hi:302.0, prevClose:123.05},
-  upro:{p:151.78, rsi:43.8, m50:144.83, m200:126.29, hi:158.63, prevClose:152.91}
+  asOf:'2026-09-02',
+  vix:16.49,
+  tqqq:{p:69.15, rsi:36.8, m50:71.7, m200:61.21, hi:88.09, prevClose:71.92},
+  soxl:{p:105.91, rsi:28.8, m50:152.87, m200:107.74, hi:302.0, prevClose:112.79},
+  upro:{p:147.15, rsi:36.5, m50:145.09, m200:126.6, hi:158.63, prevClose:150.27}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
@@ -892,7 +892,7 @@ const IBengine = {
     // 1회매수금: 사이클 자본(cap) 기준 — 부족분은 예수금으로 채운다고 가정(만달러 기준 주문).
     // cap 미지정 시에만 보유현금으로 폴백.
     const _budget = (p.cap>0 ? p.cap : cash);
-    const F  = (N - T) <= 0 ? 0 : _budget/(N - T);
+    const F  = N > 0 ? _budget/N : 0;   // 라오어 정석 고정: 원금÷분할수
     // 별% = base − slope×T (음수 허용). T>N/2(후반전)이면 음수 → 별지점이 평단 아래로 내려간다(원본 V4).
     const starPct = base - slope*T;
     const starPoint = avg===0 ? null : avg*(1+starPct);
@@ -995,7 +995,7 @@ const IB = {
     document.getElementById('ib_audit').textContent =
 '[무한매수법 계산 근거]\n입력 T='+p.T+', 현금=$'+R.fmt(p.cash)+', 수량='+p.shares+', 평단=$'+R.fmt(p.avg)+'\n'
 +'cap='+p.cap+', N='+p.N+', base='+R.pct(p.base)+', slope='+(p.slope*100).toFixed(4)+'%/T, finalsell='+R.pct(p.fs)+'\n'
-+'─ F=cap/(N−T)='+R.fmt(p.cap)+'/('+p.N+'−'+p.T+') = $'+R.fmt(o.F)+' (부족분은 예수금으로 충당 가정)\n'
++'─ F=cap/N='+R.fmt(p.cap)+'/'+p.N+' = $'+R.fmt(o.F)+' (라오어 정석 고정)\n'
 +'─ 별%=base−slope×T = '+R.pct(o.starPct)+' (음수 허용 → 후반전엔 별지점<평단)\n'
 +'─ 별지점=평단×(1+별%) = '+(o.starPoint?('$'+R.fmt(o.starPoint)):'평단0')+'\n'
 +'─ Phase='+o.phase+' → 별예산 K=$'+R.fmt(o.starBudget)+', 평단예산 L=F−별지출=$'+R.fmt(o.avgBudget)+'\n'
