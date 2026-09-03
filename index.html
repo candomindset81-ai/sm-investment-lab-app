@@ -2414,12 +2414,12 @@ const DTE = {
     try{
       let q=null; try{ q=JSON.parse(localStorage.getItem('isl_qld_v1')||'null'); }catch(_e){}
       if(q){
-        h+='<div class="card"><h3 style="margin:0 0 6px">🚀 QLD 적립 <span class="small muted">(2x 나스닥100 · 월 $'+(q.monthly_usd||100)+' · 200일선 규칙)</span></h3>'
+        h+='<div class="card"><h3 style="margin:0 0 6px">🚀 QLD 딥매집 <span class="small muted">(2x 나스닥100 · 200일선 역발상)</span></h3>'
           +'<div class="kpi"><div class="box"><div class="l">보유</div><div class="v">'+(q.sh||0)+'주</div></div>'
           +'<div class="box"><div class="l">평단</div><div class="v">$'+R.fmt(q.avg||0)+'</div></div>'
           +'<div class="box"><div class="l">평가금</div><div class="v">$'+R.fmt((q.sh||0)*(q.avg||0))+'</div></div>'
           +'<div class="box"><div class="l">월 적립</div><div class="v">$'+(q.monthly_usd||100)+'</div></div></div>'
-          +'<div class="src" style="margin-top:6px">규칙: 매달 $'+(q.monthly_usd||100)+' 정액 매수 · <b>나스닥100이 200일선 위일 때만</b> 매수(아래면 보류). 매수 신호·수량은 매일 텔레그램 주문 초안에 표시됩니다.</div>'
+          +'<div class="src" style="margin-top:6px">규칙(역발상 딥매집): <b>200일선 아래로 깊을수록 더 많이</b> 매수 — 위 $100 / 딥0~10% $150 / 딥10~20% $250 / 딥20%+ $400. 매수액·수량은 매일 텔레그램 주문 초안에 표시됩니다.</div>'
           +'<div class="src">⚠️ 2배 레버리지 — 하락장 큰 낙폭·변동성 감쇄 위험. 체결은 텔레그램 봇에 "체결 QLD 매수 N 가격"으로 보고.</div></div>';
       }
     }catch(e){ console.log('qld card',e); }
