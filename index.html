@@ -686,11 +686,11 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-09-02',
-  vix:16.49,
-  tqqq:{p:69.15, rsi:36.8, m50:71.7, m200:61.21, hi:88.09, prevClose:71.92},
-  soxl:{p:105.91, rsi:28.8, m50:152.87, m200:107.74, hi:302.0, prevClose:112.79},
-  upro:{p:147.15, rsi:36.5, m50:145.09, m200:126.6, hi:158.63, prevClose:150.27}
+  asOf:'2026-09-03',
+  vix:15.19,
+  tqqq:{p:69.6, rsi:29.6, m50:71.6, m200:61.3, hi:88.09, prevClose:69.15},
+  soxl:{p:106.35, rsi:26.4, m50:150.37, m200:108.08, hi:302.0, prevClose:105.91},
+  upro:{p:149.14, rsi:40.8, m50:145.04, m200:126.58, hi:158.63, prevClose:147.15}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
@@ -1435,6 +1435,7 @@ const CS = {
         try{ if(s.income && s.income.log){ localStorage.setItem('isl_divlog_v1', JSON.stringify(s.income.log)); } }catch(e){}
         try{ if(s.income && s.income.real_stats){ localStorage.setItem('isl_realstats_v1', JSON.stringify(s.income.real_stats)); } }catch(e){}
         try{ if(s.income && s.income.monthly_series){ localStorage.setItem('isl_monthly_v1', JSON.stringify(s.income.monthly_series)); } }catch(e){}
+        try{ if(s.qld){ localStorage.setItem('isl_qld_v1', JSON.stringify(s.qld)); } }catch(e){}
         if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); if(typeof DTE!=='undefined'&&DTE.render) DTE.render(); }
         // 서버가 만든 VR 밴드 1년치(주간) 시계열 저장 → bandChart 가 사용
         if(s.vr_band_hist){ try{ localStorage.setItem('isl_vrband_srv_v1', JSON.stringify(s.vr_band_hist)); if(typeof VR!=='undefined'&&VR.renderBand) VR.renderBand(); }catch(e){} }
@@ -2409,7 +2410,20 @@ const DTE = {
       h+='</div>';
     });
     h+='<div class="note" style="margin-top:8px">💡 0DTE 커버드콜 ETF는 분배금 상당액이 <b>원금반환(ROC)</b>입니다(Roundhill 최근 19a-1 기준 QDTE 추정 ROC 100%). 그래서 <b>분배금률이 아니라 총수익률(재투자)</b>이 실제 성과 지표예요. 참고용 · 투자 자문 아님.</div>';
-    el.innerHTML=h;
+        // ── 🚀 QLD 적립 (2x 나스닥100, 월 $100 · 200일선 규칙) ──
+    try{
+      let q=null; try{ q=JSON.parse(localStorage.getItem('isl_qld_v1')||'null'); }catch(_e){}
+      if(q){
+        h+='<div class="card"><h3 style="margin:0 0 6px">🚀 QLD 적립 <span class="small muted">(2x 나스닥100 · 월 $'+(q.monthly_usd||100)+' · 200일선 규칙)</span></h3>'
+          +'<div class="kpi"><div class="box"><div class="l">보유</div><div class="v">'+(q.sh||0)+'주</div></div>'
+          +'<div class="box"><div class="l">평단</div><div class="v">$'+R.fmt(q.avg||0)+'</div></div>'
+          +'<div class="box"><div class="l">평가금</div><div class="v">$'+R.fmt((q.sh||0)*(q.avg||0))+'</div></div>'
+          +'<div class="box"><div class="l">월 적립</div><div class="v">$'+(q.monthly_usd||100)+'</div></div></div>'
+          +'<div class="src" style="margin-top:6px">규칙: 매달 $'+(q.monthly_usd||100)+' 정액 매수 · <b>나스닥100이 200일선 위일 때만</b> 매수(아래면 보류). 매수 신호·수량은 매일 텔레그램 주문 초안에 표시됩니다.</div>'
+          +'<div class="src">⚠️ 2배 레버리지 — 하락장 큰 낙폭·변동성 감쇄 위험. 체결은 텔레그램 봇에 "체결 QLD 매수 N 가격"으로 보고.</div></div>';
+      }
+    }catch(e){ console.log('qld card',e); }
+el.innerHTML=h;
   }
 };
 
