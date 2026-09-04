@@ -1643,12 +1643,26 @@ const Dash = {
       +'<div class="box"><div class="l">마지막 기록</div><div class="v" style="font-size:14px">'+(recs[0]?new Date(recs[0].ts).toLocaleDateString('ko-KR'):'–')+'</div></div>';
     try{
       var q=JSON.parse(localStorage.getItem('isl_qld_v1')||'null'); var el=document.getElementById('dashQld');
+      var USH={'2026-01-01':1,'2026-01-19':1,'2026-02-16':1,'2026-04-03':1,'2026-05-25':1,'2026-06-19':1,'2026-07-03':1,'2026-09-07':1,'2026-11-26':1,'2026-12-25':1};
+      var iso=function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+      var trad=function(d){return d.getDay()!==0&&d.getDay()!==6&&!USH[iso(d)];};
+      var firstBiz=function(y,m){var d=new Date(y,m,1);while(!trad(d)){d.setDate(d.getDate()+1);}return d;};
+      var t0=new Date();t0.setHours(0,0,0,0);
+      var nb=firstBiz(t0.getFullYear(),t0.getMonth());
+      if(nb<t0){var ny=t0.getMonth()===11?t0.getFullYear()+1:t0.getFullYear();var nm=t0.getMonth()===11?0:t0.getMonth()+1;nb=firstBiz(ny,nm);}
+      var isBuy=(iso(nb)===iso(t0)); var dday=Math.round((nb-t0)/864e5);
+      var wd=['일','월','화','수','목','금','토'][nb.getDay()];
+      var buyLine=isBuy
+        ? '<div class="box" style="border-color:#22c55e;background:#052e16"><div class="l">📅 오늘</div><div class="v" style="color:#4ade80">정기 매수일</div></div>'
+        : '<div class="box"><div class="l">📅 다음 매수일</div><div class="v" style="font-size:14px">'+iso(nb)+' ('+wd+') · D-'+dday+'</div></div>';
       if(el){ el.innerHTML = q ? (
-        '<div class="kpi"><div class="box"><div class="l">보유</div><div class="v">'+(q.sh||0)+'주</div></div>'
+        '<div class="kpi">'+buyLine
+        +'<div class="box"><div class="l">보유</div><div class="v">'+(q.sh||0)+'주</div></div>'
         +'<div class="box"><div class="l">평단</div><div class="v">$'+R.fmt(q.avg||0)+'</div></div>'
         +'<div class="box"><div class="l">평가금</div><div class="v">$'+R.fmt((q.sh||0)*(q.avg||0))+'</div></div>'
         +'<div class="box"><div class="l">월 기본</div><div class="v">$'+(q.base_usd||100)+'</div></div></div>'
-        +'<div class="src" style="margin-top:6px">규칙: 200일선 아래로 깊을수록 더 매수 — 위 $100 / 딥0~10% $150 / 딥10~20% $250 / 딥20%+ $400. 매수액·주수는 매일 텔레그램 주문 초안에 표시.</div>'
+        +'<div class="src" style="margin-top:6px"><b>매수 시점:</b> 매월 1영업일(주말·휴장이면 다음 영업일) 1회 매수. 금액은 그날 200일선 이격으로 자동 조절 — 위 $100 / 딥0~10% $150 / 딥10~20% $250 / 딥20%+ $400.</div>'
+        +'<div class="src">딥 급락(200일선 -10%↓) 시엔 정기일 전이라도 텔레그램 초안에 추가 매수 알림. 실제 매수액·주수는 그날 주문 초안 참고.</div>'
         +'<div class="src">⚠️ 2x 레버리지 — 하락장 큰 낙폭·감쇄 위험. 체결은 텔레그램 봇에 "체결 QLD 매수 N 가격".</div>'
       ) : '<div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div>'; }
     }catch(e){ console.log('dashQld',e); }
