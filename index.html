@@ -114,6 +114,9 @@
     <div class="note">매일 넣을 주문을 한눈에. 실제 주문은 Fi PRO에서 직접 넣으세요.</div>
     <div id="todayOrders" style="margin-top:10px"></div>
   </div>
+  <div class="card"><h3 style="margin:0 0 6px">🚀 QLD 딥매집 <span class="small muted">(2x 나스닥100 · 200일선 역발상)</span></h3>
+    <div id="dashQld"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
+  </div>
   <div class="card">
     <h2>대시보드</h2>
     <div class="note">각 전략 탭에서 “기록 저장”을 누르면 여기 누적 상황이 표시됩니다. 데이터는 이 브라우저에만 저장됩니다.</div>
@@ -1638,7 +1641,18 @@ const Dash = {
       +'<div class="box"><div class="l">무한매수법</div><div class="v">'+ib.length+'</div></div>'
       +'<div class="box"><div class="l">VR</div><div class="v">'+vr.length+'</div></div>'
       +'<div class="box"><div class="l">마지막 기록</div><div class="v" style="font-size:14px">'+(recs[0]?new Date(recs[0].ts).toLocaleDateString('ko-KR'):'–')+'</div></div>';
-    document.getElementById('dashRecent').innerHTML = recs.length? recs.slice(0,5).map(r=>'<div class="sig"><span class="pill '+(r.type==='VR'?'buy':'hold')+'">'+r.type+'</span><div style="flex:1"><b>'+r.symbol+'</b> <span class="small muted">'+r.summary+'</span></div><span class="src">'+new Date(r.ts).toLocaleDateString('ko-KR')+'</span></div>').join('') : '<div class="muted small">아직 저장된 기록이 없습니다.</div>';
+    try{
+      var q=JSON.parse(localStorage.getItem('isl_qld_v1')||'null'); var el=document.getElementById('dashQld');
+      if(el){ el.innerHTML = q ? (
+        '<div class="kpi"><div class="box"><div class="l">보유</div><div class="v">'+(q.sh||0)+'주</div></div>'
+        +'<div class="box"><div class="l">평단</div><div class="v">$'+R.fmt(q.avg||0)+'</div></div>'
+        +'<div class="box"><div class="l">평가금</div><div class="v">$'+R.fmt((q.sh||0)*(q.avg||0))+'</div></div>'
+        +'<div class="box"><div class="l">월 기본</div><div class="v">$'+(q.base_usd||100)+'</div></div></div>'
+        +'<div class="src" style="margin-top:6px">규칙: 200일선 아래로 깊을수록 더 매수 — 위 $100 / 딥0~10% $150 / 딥10~20% $250 / 딥20%+ $400. 매수액·주수는 매일 텔레그램 주문 초안에 표시.</div>'
+        +'<div class="src">⚠️ 2x 레버리지 — 하락장 큰 낙폭·감쇄 위험. 체결은 텔레그램 봇에 "체결 QLD 매수 N 가격".</div>'
+      ) : '<div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div>'; }
+    }catch(e){ console.log('dashQld',e); }
+        document.getElementById('dashRecent').innerHTML = recs.length? recs.slice(0,5).map(r=>'<div class="sig"><span class="pill '+(r.type==='VR'?'buy':'hold')+'">'+r.type+'</span><div style="flex:1"><b>'+r.symbol+'</b> <span class="small muted">'+r.summary+'</span></div><span class="src">'+new Date(r.ts).toLocaleDateString('ko-KR')+'</span></div>').join('') : '<div class="muted small">아직 저장된 기록이 없습니다.</div>';
   }
 };
 const Log = {
@@ -2278,25 +2292,10 @@ const DTE = {
   render(){
     const el=document.getElementById('dte_out'); if(!el)return;
     const r=Risk.load();
-    var _qcard="";
-    try{
-      var q=JSON.parse(localStorage.getItem("isl_qld_v1")||"null");
-      if(q){
-        _qcard='<div class="card"><h3 style="margin:0 0 6px">🚀 QLD 딥매집 <span class="small muted">(2x 나스닥100 · 200일선 역발상)</span></h3>'
-          +'<div class="kpi"><div class="box"><div class="l">보유</div><div class="v">'+(q.sh||0)+'주</div></div>'
-          +'<div class="box"><div class="l">평단</div><div class="v">$'+R.fmt(q.avg||0)+'</div></div>'
-          +'<div class="box"><div class="l">평가금</div><div class="v">$'+R.fmt((q.sh||0)*(q.avg||0))+'</div></div>'
-          +'<div class="box"><div class="l">월 기본</div><div class="v">$'+(q.base_usd||100)+'</div></div></div>'
-          +'<div class="src" style="margin-top:6px">규칙(역발상 딥매집): <b>200일선 아래로 깊을수록 더 많이</b> 매수 — 위 $100 / 딥0~10% $150 / 딥10~20% $250 / 딥20%+ $400. 매수액·주수는 매일 텔레그램 주문 초안에 표시.</div>'
-          +'<div class="src">⚠️ 2x 레버리지 — 하락장 큰 낙폭·감쇄 위험. 체결은 텔레그램 봇에 "체결 QLD 매수 N 가격".</div></div>';
-      } else {
-        _qcard='<div class="card"><h3 style="margin:0 0 6px">🚀 QLD 딥매집</h3><div class="src">클라우드 새로고침(☁️)을 누르면 QLD 적립 현황이 표시됩니다.</div></div>';
-      }
-    }catch(e){ console.log("qld card",e); }
-    if(!r||!r.nav){ el.innerHTML=_qcard+'<span class="small muted">아직 DTE 데이터가 없습니다. 매매기록 탭에서 클라우드 토큰 저장 후 "☁️ 클라우드에서 새로고침"을 누르세요.</span>'; return; }
+    if(!r||!r.nav){ el.innerHTML='<span class="small muted">아직 데이터가 없습니다. 매매기록 탭에서 클라우드 토큰을 저장한 뒤 "☁️ 클라우드에서 새로고침"을 누르세요. 서버가 매일 새벽 자동 계산합니다.</span>'; return; }
     const by={}; r.nav.forEach(function(n){ by[n.sym]=n; });
     const RH=this.rh(); const rhf=(RH&&RH.funds)?RH.funds:{};
-    let h=_qcard+'<div class="src" style="margin-bottom:8px">클라우드 갱신: '+(r.updated||'-')+' · 매일 새벽 자동 · Roundhill 공식 데이터 기준</div>';
+    let h='<div class="src" style="margin-bottom:8px">클라우드 갱신: '+(r.updated||'-')+' · 매일 새벽 자동 · Roundhill 공식 데이터 기준</div>';
     // ── 💵 12개월 현금흐름 예측 + 🧾 세금 대시보드 (실데이터·기계적 계산) ──
     try{
       const inc=(typeof Income!=='undefined'&&Income.load)?Income.load():[];
