@@ -1652,6 +1652,23 @@ const Dash = {
         ? '<div class="box" style="border-color:#22c55e;background:#052e16"><div class="l">🔁 오늘</div><div class="v" style="color:#4ade80">자동매수일(월)</div></div>'
         : '<div class="box"><div class="l">🔁 다음 자동매수</div><div class="v" style="font-size:14px">'+iso(nm)+' (월)</div></div>';
       var totAuto=(q&&Array.isArray(q.log))? q.log.reduce(function(a,l){return a+(l.add||0);},0):0;
+      // ── 5·10년 예상(주가 상승률 시나리오) ──
+      var P0=(Array.isArray(q.log)&&q.log.length?(q.log[q.log.length-1].px||0):0)||q.avg||90.5;
+      var shN=q.sh||0;
+      var fmtK=function(v){return v>=1e8?('₩'+(v*1418/1e8).toFixed(2)+'억'):('₩'+Math.round(v*1418/1e4)+'만');};
+      var projRow=function(Y){
+        var shE=shN+52*Y;
+        var cells=[0.08,0.15,0.25].map(function(g){
+          var pf=P0*Math.pow(1+g,Y); var val=shE*pf;
+          return '<td style="text-align:right;padding:2px 6px">$'+Math.round(val).toLocaleString()+'<br><span class="muted" style="font-size:11px">'+fmtK(val)+'</span></td>';
+        }).join('');
+        return '<tr><td style="padding:2px 6px"><b>'+Y+'년</b><br><span class="muted" style="font-size:11px">'+shE+'주</span></td>'+cells+'</tr>';
+      };
+      var _proj='<div class="src" style="margin-top:8px"><b>📈 예상 평가액</b> (현재가 $'+R.fmt(P0)+' 기준 · 매주 1주 적립 가정)</div>'
+        +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px">'
+        +'<tr class="muted"><td style="padding:2px 6px">기간</td><td style="text-align:right;padding:2px 6px">연 8%</td><td style="text-align:right;padding:2px 6px">연 15%</td><td style="text-align:right;padding:2px 6px">연 25%</td></tr>'
+        +projRow(5)+projRow(10)+'</table>'
+        +'<div class="src" style="font-size:11px">※ 예측 아님·시나리오. 2x 레버리지는 하락·횡보장에서 감쇄로 지수 2배보다 나쁠 수 있고, 주가가 오르면 1주 매수액도 커져 재원(배당)이 못 따라갈 수 있습니다.</div>';
       if(el){ el.innerHTML = q ? (
         '<div class="kpi">'+buyLine
         +'<div class="box"><div class="l">보유</div><div class="v">'+(q.sh||0)+'주</div></div>'
@@ -1661,6 +1678,7 @@ const Dash = {
         +'<div class="src" style="margin-top:6px"><b>방식:</b> 토스증권에서 <b>매주 월요일 QLD 1주</b> 자동매수 · 재원: QDTE·XDTE·RDTE 배당. 매주 월요일 종가로 보유·평단이 자동 반영됩니다.</div>'
         +'<div class="src">실체결가가 종가와 다르면 텔레그램 봇에 "체결 QLD 매수 1 실제가격"으로 정정.</div>'
         +'<div class="src">⚠️ 2x 레버리지 — 하락장 큰 낙폭·감쇄 위험.</div>'
+        +_proj
       ) : '<div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div>'; }
     }catch(e){ console.log('dashQld',e); }
         document.getElementById('dashRecent').innerHTML = recs.length? recs.slice(0,5).map(r=>'<div class="sig"><span class="pill '+(r.type==='VR'?'buy':'hold')+'">'+r.type+'</span><div style="flex:1"><b>'+r.symbol+'</b> <span class="small muted">'+r.summary+'</span></div><span class="src">'+new Date(r.ts).toLocaleDateString('ko-KR')+'</span></div>').join('') : '<div class="muted small">아직 저장된 기록이 없습니다.</div>';
