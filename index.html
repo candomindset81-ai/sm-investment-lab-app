@@ -1471,7 +1471,7 @@ const CS = {
         let usg=0;
         ((s.income||{}).holdings||[]).forEach(function(c){ if((c.ccy||'')==='KRW')return; const fN=DFREQ(c.sym,c.freq); usg+=(+c.sh||0)*(+c.dist||0)*fN/12; });
         const usn=usg*(1-taxp), goal=+ig.total_monthly||1000, p=goal>0?Math.min(100,usn/goal*100):0;
-        h+='<tr><td>🎯 배당 자립 목표</td><td>월 <b>$'+R.fmt(goal)+'</b> (TQQQ $'+R.fmt(ig.tqqq_monthly||500)+' + 토스3종목 $'+R.fmt(ig.auto3_monthly||480)+') · 현재 US ETF 세후 $'+R.fmt(usn)+' · <b>'+p.toFixed(0)+'%</b></td></tr>';
+        h+='<tr><td>🎯 배당 자립 목표</td><td>월 <b>$'+R.fmt(goal)+'</b> (QLD 주1주 $'+R.fmt(ig.qld_monthly||392)+' + TQQQ VR $'+R.fmt(ig.tqqq_monthly||542)+') · 현재 US ETF 세후 $'+R.fmt(usn)+' · <b>'+p.toFixed(0)+'%</b>'+(ig.external_topup?' · 부족분 외부보충 $'+R.fmt(ig.external_topup)+'/월':'')+'</td></tr>';
       }
       if(s.auto_invest){
         const ai=s.auto_invest, items=(ai.items||[]).map(function(it){return it.sym+' $'+R.fmt(it.usd);}).join(' · ');
