@@ -114,7 +114,7 @@
     <div class="note">매일 넣을 주문을 한눈에. 실제 주문은 Fi PRO에서 직접 넣으세요.</div>
     <div id="todayOrders" style="margin-top:10px"></div>
   </div>
-  <div class="card"><h3 style="margin:0 0 6px">🚀 QLD 딥매집 <span class="small muted">(2x 나스닥100 · 200일선 역발상)</span></h3>
+  <div class="card"><h3 style="margin:0 0 6px">🔁 QLD 주간 자동적립 <span class="small muted">(2x 나스닥100 · 토스 · 매주 월 1주)</span></h3>
     <div id="dashQld"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
   </div>
   <div class="card">
@@ -689,11 +689,11 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-09-04',
-  vix:14.18,
-  tqqq:{p:72.03, rsi:38.5, m50:71.58, m200:61.39, hi:88.09, prevClose:69.6},
-  soxl:{p:106.74, rsi:26.9, m50:147.91, m200:108.42, hi:302.0, prevClose:106.35},
-  upro:{p:153.73, rsi:45.1, m50:145.75, m200:126.99, hi:158.63, prevClose:149.14}
+  asOf:'2026-09-05',
+  vix:14.53,
+  tqqq:{p:72.37, rsi:40.2, m50:71.53, m200:61.5, hi:88.09, prevClose:72.03},
+  soxl:{p:117.28, rsi:30.2, m50:145.21, m200:108.82, hi:302.0, prevClose:106.74},
+  upro:{p:151.88, rsi:45.7, m50:146.09, m200:127.2, hi:158.63, prevClose:153.73}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
@@ -1643,27 +1643,24 @@ const Dash = {
       +'<div class="box"><div class="l">마지막 기록</div><div class="v" style="font-size:14px">'+(recs[0]?new Date(recs[0].ts).toLocaleDateString('ko-KR'):'–')+'</div></div>';
     try{
       var q=JSON.parse(localStorage.getItem('isl_qld_v1')||'null'); var el=document.getElementById('dashQld');
-      var USH={'2026-01-01':1,'2026-01-19':1,'2026-02-16':1,'2026-04-03':1,'2026-05-25':1,'2026-06-19':1,'2026-07-03':1,'2026-09-07':1,'2026-11-26':1,'2026-12-25':1};
       var iso=function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
-      var trad=function(d){return d.getDay()!==0&&d.getDay()!==6&&!USH[iso(d)];};
-      var firstBiz=function(y,m){var d=new Date(y,m,1);while(!trad(d)){d.setDate(d.getDate()+1);}return d;};
       var t0=new Date();t0.setHours(0,0,0,0);
-      var nb=firstBiz(t0.getFullYear(),t0.getMonth());
-      if(nb<t0){var ny=t0.getMonth()===11?t0.getFullYear()+1:t0.getFullYear();var nm=t0.getMonth()===11?0:t0.getMonth()+1;nb=firstBiz(ny,nm);}
-      var isBuy=(iso(nb)===iso(t0)); var dday=Math.round((nb-t0)/864e5);
-      var wd=['일','월','화','수','목','금','토'][nb.getDay()];
-      var buyLine=isBuy
-        ? '<div class="box" style="border-color:#22c55e;background:#052e16"><div class="l">📅 오늘</div><div class="v" style="color:#4ade80">정기 매수일</div></div>'
-        : '<div class="box"><div class="l">📅 다음 매수일</div><div class="v" style="font-size:14px">'+iso(nb)+' ('+wd+') · D-'+dday+'</div></div>';
+      var dow=t0.getDay(); // 0=일
+      var nm=new Date(t0); nm.setDate(t0.getDate()+((1-dow)+7)%7); // 다음(또는 오늘) 월요일
+      var isMon=(dow===1);
+      var buyLine=isMon
+        ? '<div class="box" style="border-color:#22c55e;background:#052e16"><div class="l">🔁 오늘</div><div class="v" style="color:#4ade80">자동매수일(월)</div></div>'
+        : '<div class="box"><div class="l">🔁 다음 자동매수</div><div class="v" style="font-size:14px">'+iso(nm)+' (월)</div></div>';
+      var totAuto=(q&&Array.isArray(q.log))? q.log.reduce(function(a,l){return a+(l.add||0);},0):0;
       if(el){ el.innerHTML = q ? (
         '<div class="kpi">'+buyLine
         +'<div class="box"><div class="l">보유</div><div class="v">'+(q.sh||0)+'주</div></div>'
         +'<div class="box"><div class="l">평단</div><div class="v">$'+R.fmt(q.avg||0)+'</div></div>'
         +'<div class="box"><div class="l">평가금</div><div class="v">$'+R.fmt((q.sh||0)*(q.avg||0))+'</div></div>'
-        +'<div class="box"><div class="l">월 기본</div><div class="v">$'+(q.base_usd||100)+'</div></div></div>'
-        +'<div class="src" style="margin-top:6px"><b>매수 시점:</b> 매월 1영업일(주말·휴장이면 다음 영업일) 1회 매수. 금액은 그날 200일선 이격으로 자동 조절 — 위 $100 / 딥0~10% $150 / 딥10~20% $250 / 딥20%+ $400.</div>'
-        +'<div class="src">딥 급락(200일선 -10%↓) 시엔 정기일 전이라도 텔레그램 초안에 추가 매수 알림. 실제 매수액·주수는 그날 주문 초안 참고.</div>'
-        +'<div class="src">⚠️ 2x 레버리지 — 하락장 큰 낙폭·감쇄 위험. 체결은 텔레그램 봇에 "체결 QLD 매수 N 가격".</div>'
+        +'<div class="box"><div class="l">누적 자동매수</div><div class="v">'+totAuto+'주</div></div></div>'
+        +'<div class="src" style="margin-top:6px"><b>방식:</b> 토스증권에서 <b>매주 월요일 QLD 1주</b> 자동매수 · 재원: QDTE·XDTE·RDTE 배당. 매주 월요일 종가로 보유·평단이 자동 반영됩니다.</div>'
+        +'<div class="src">실체결가가 종가와 다르면 텔레그램 봇에 "체결 QLD 매수 1 실제가격"으로 정정.</div>'
+        +'<div class="src">⚠️ 2x 레버리지 — 하락장 큰 낙폭·감쇄 위험.</div>'
       ) : '<div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div>'; }
     }catch(e){ console.log('dashQld',e); }
         document.getElementById('dashRecent').innerHTML = recs.length? recs.slice(0,5).map(r=>'<div class="sig"><span class="pill '+(r.type==='VR'?'buy':'hold')+'">'+r.type+'</span><div style="flex:1"><b>'+r.symbol+'</b> <span class="small muted">'+r.summary+'</span></div><span class="src">'+new Date(r.ts).toLocaleDateString('ko-KR')+'</span></div>').join('') : '<div class="muted small">아직 저장된 기록이 없습니다.</div>';
