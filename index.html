@@ -120,6 +120,9 @@
   <div class="card"><h3 style="margin:0 0 6px">🔁 SCHD 주간 자동적립 <span class="small muted">(미국배당100 · 토스 · 매주 월 $35 소수점)</span></h3>
     <div id="dashSchd"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
   </div>
+  <div class="card"><h3 style="margin:0 0 6px">🎯 QLD:SCHD 비중 리밸런싱 <span class="small muted">(목표 75:25 · 밴드 ±5%p)</span></h3>
+    <div id="dashRebal"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
+  </div>
   <div class="card">
     <h2>대시보드</h2>
     <div class="note">각 전략 탭에서 “기록 저장”을 누르면 여기 누적 상황이 표시됩니다. 데이터는 이 브라우저에만 저장됩니다.</div>
@@ -692,7 +695,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-09-05',
+  asOf:'2026-09-06',
   vix:14.53,
   tqqq:{p:72.37, rsi:40.2, m50:71.53, m200:61.5, hi:88.09, prevClose:72.03},
   soxl:{p:117.28, rsi:30.2, m50:145.21, m200:108.82, hi:302.0, prevClose:106.74},
@@ -1443,6 +1446,7 @@ const CS = {
         try{ if(s.income && s.income.monthly_series){ localStorage.setItem('isl_monthly_v1', JSON.stringify(s.income.monthly_series)); } }catch(e){}
         try{ if(s.qld){ localStorage.setItem('isl_qld_v1', JSON.stringify(s.qld)); } }catch(e){}
         try{ if(s.schd){ localStorage.setItem('isl_schd_v1', JSON.stringify(s.schd)); } }catch(e){}
+        try{ if(s.qld_schd_rebal){ localStorage.setItem('isl_qldschd_rebal_v1', JSON.stringify(s.qld_schd_rebal)); } }catch(e){}
         if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); if(typeof DTE!=='undefined'&&DTE.render) DTE.render(); }
         // 서버가 만든 VR 밴드 1년치(주간) 시계열 저장 → bandChart 가 사용
         if(s.vr_band_hist){ try{ localStorage.setItem('isl_vrband_srv_v1', JSON.stringify(s.vr_band_hist)); if(typeof VR!=='undefined'&&VR.renderBand) VR.renderBand(); }catch(e){} }
@@ -1683,6 +1687,36 @@ const Dash = {
       };
       renderAccum('isl_qld_v1','dashQld',true);
       renderAccum('isl_schd_v1','dashSchd',false);
+      // ── QLD:SCHD 비중 리밸런싱 ──
+      (function(){
+        var el=document.getElementById('dashRebal'); if(!el) return;
+        var q=JSON.parse(localStorage.getItem('isl_qld_v1')||'null');
+        var sc=JSON.parse(localStorage.getItem('isl_schd_v1')||'null');
+        var rb=JSON.parse(localStorage.getItem('isl_qldschd_rebal_v1')||'null')||{target_qld:75,band:5};
+        if(!q||!sc){ el.innerHTML='<div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div>'; return; }
+        var lp=function(b){return (Array.isArray(b.log)&&b.log.length?(b.log[b.log.length-1].px||0):0)||b.avg||0;};
+        var qpx=lp(q), spx=lp(sc);
+        var qv=(q.sh||0)*qpx, sv=(sc.sh||0)*spx, pair=qv+sv;
+        var tq=rb.target_qld||75, band=rb.band||5;
+        if(pair<=0){ el.innerHTML='<div class="muted small">보유 없음 — 클라우드 새로고침 후 표시.</div>'; return; }
+        var curq=qv/pair*100, dev=curq-tq;
+        var h='<div class="kpi">'
+          +'<div class="box"><div class="l">현재 QLD</div><div class="v">'+curq.toFixed(1)+'%</div></div>'
+          +'<div class="box"><div class="l">현재 SCHD</div><div class="v">'+(100-curq).toFixed(1)+'%</div></div>'
+          +'<div class="box"><div class="l">목표</div><div class="v">'+tq+':'+(100-tq)+'</div></div>'
+          +'<div class="box"><div class="l">편차</div><div class="v" style="color:'+(Math.abs(dev)<=band?'#4ade80':'#f59e0b')+'">'+(dev>=0?'+':'')+dev.toFixed(1)+'%p</div></div></div>';
+        if(Math.abs(dev)<=band){
+          h+='<div class="src" style="margin-top:6px">✅ 밴드 내 — 리밸런싱 불필요.</div>';
+        } else if(dev<0){
+          var need=pair*tq/100-qv;
+          h+='<div class="src" style="margin-top:6px">🔻 <b>QLD 비중 부족</b> → QLD 매수 <b>$'+Math.round(need).toLocaleString()+'</b> 필요. ① 여유 예수금 우선 사용 → ② 부족분 SCHD 매도로 충당 → 75:25 복원.</div>';
+        } else {
+          var trim=qv-pair*tq/100;
+          h+='<div class="src" style="margin-top:6px">🔺 QLD 비중 초과 → (선택) SCHD로 $'+Math.round(trim).toLocaleString()+' 이동 시 75:25 복원.</div>';
+        }
+        h+='<div class="src" style="font-size:11px">QLD 급락 시 여유 예수금+SCHD 매도로 QLD를 목표까지 매수. ±5%p 안이면 거래 안 함. 시세는 최근 반영가 기준(참고용).</div>';
+        el.innerHTML=h;
+      })();
     }catch(e){ console.log('dashQld',e); }
         document.getElementById('dashRecent').innerHTML = recs.length? recs.slice(0,5).map(r=>'<div class="sig"><span class="pill '+(r.type==='VR'?'buy':'hold')+'">'+r.type+'</span><div style="flex:1"><b>'+r.symbol+'</b> <span class="small muted">'+r.summary+'</span></div><span class="src">'+new Date(r.ts).toLocaleDateString('ko-KR')+'</span></div>').join('') : '<div class="muted small">아직 저장된 기록이 없습니다.</div>';
   }
