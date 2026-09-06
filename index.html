@@ -114,13 +114,13 @@
     <div class="note">매일 넣을 주문을 한눈에. 실제 주문은 Fi PRO에서 직접 넣으세요.</div>
     <div id="todayOrders" style="margin-top:10px"></div>
   </div>
-  <div class="card"><h3 style="margin:0 0 6px">🔁 QLD 주간 자동적립 <span class="small muted">(2x 나스닥100 · 토스 · 매주 월 $100 소수점)</span></h3>
+  <div class="card"><h3 style="margin:0 0 6px">🔁 QLD 일일 자동적립 <span class="small muted">(2x 나스닥100 · 토스 · 매 거래일 $20 소수점)</span></h3>
     <div id="dashQld"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
   </div>
-  <div class="card"><h3 style="margin:0 0 6px">🔁 SCHD 주간 자동적립 <span class="small muted">(미국배당100 · 토스 · 매주 월 $35 소수점)</span></h3>
+  <div class="card"><h3 style="margin:0 0 6px">🔁 SCHD 일일 자동적립 <span class="small muted">(미국배당100 · 토스 · 매 거래일 $7 소수점)</span></h3>
     <div id="dashSchd"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
   </div>
-  <div class="card"><h3 style="margin:0 0 6px">🎯 QLD:SCHD 비중 리밸런싱 <span class="small muted">(목표 75:25 · 밴드 ±5%p)</span></h3>
+  <div class="card"><h3 style="margin:0 0 6px">🎯 QLD:SCHD 비중 리밸런싱 <span class="small muted">(목표 75:25 · 하이브리드 분기+±15%p)</span></h3>
     <div id="dashRebal"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
   </div>
   <div class="card">
@@ -1663,7 +1663,7 @@ const Dash = {
         var b=JSON.parse(localStorage.getItem(key)||'null'); var el=document.getElementById(elId);
         if(!el) return;
         if(!b){ el.innerHTML='<div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div>'; return; }
-        var W=b.weekly_usd||0, sh=b.sh||0, avg=b.avg||0;
+        var W=b.daily_usd||0, sh=b.sh||0, avg=b.avg||0;
         var P0=(Array.isArray(b.log)&&b.log.length?(b.log[b.log.length-1].px||0):0)||avg||0;
         var totUsd=(Array.isArray(b.log))? b.log.reduce(function(a,l){return a+(l.usd||0);},0):0;
         var h='<div class="kpi">'+buyLine()
@@ -1671,12 +1671,12 @@ const Dash = {
           +'<div class="box"><div class="l">평단</div><div class="v">$'+R.fmt(avg)+'</div></div>'
           +'<div class="box"><div class="l">평가금</div><div class="v">$'+R.fmt(sh*P0)+'</div></div>'
           +'<div class="box"><div class="l">누적 투입</div><div class="v">$'+R.fmt(totUsd)+'</div></div></div>'
-          +'<div class="src" style="margin-top:6px"><b>방식:</b> 토스증권에서 <b>매주 월요일 $'+W+' 소수점 자동매수</b> · 재원: 미국 배당. 매주 월요일 종가로 보유·평단이 자동 반영됩니다.</div>';
+          +'<div class="src" style="margin-top:6px"><b>방식:</b> 토스증권에서 <b>매 거래일 $'+W+' 소수점 자동매수</b> · 재원: 미국 배당. 매주 월요일 종가로 보유·평단이 자동 반영됩니다.</div>';
         // 5·10년 예상 (달러 DCA 시뮬)
         if(P0>0){
-          var proj=function(Y,g){var n=Math.round(Y*52),wr=Math.pow(1+g,1/52),p=P0,s=sh;for(var i=0;i<n;i++){s+=W/p;p*=wr;}return s*p;};
+          var proj=function(Y,g){var n=Math.round(Y*252),wr=Math.pow(1+g,1/252),p=P0,s=sh;for(var i=0;i<n;i++){s+=W/p;p*=wr;}return s*p;};
           var row=function(Y){var c=[0.08,0.15,0.25].map(function(g){var v=proj(Y,g);return '<td style="text-align:right;padding:2px 6px">$'+Math.round(v).toLocaleString()+'<br><span class="muted" style="font-size:11px">'+fmtK(v)+'</span></td>';}).join('');return '<tr><td style="padding:2px 6px"><b>'+Y+'년</b></td>'+c+'</tr>';};
-          h+='<div class="src" style="margin-top:8px"><b>📈 예상 평가액</b> (현재가 $'+R.fmt(P0)+' · 매주 $'+W+' 적립 가정)</div>'
+          h+='<div class="src" style="margin-top:8px"><b>📈 예상 평가액</b> (현재가 $'+R.fmt(P0)+' · 매 거래일 $'+W+' 적립 가정)</div>'
             +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px">'
             +'<tr class="muted"><td style="padding:2px 6px">기간</td><td style="text-align:right;padding:2px 6px">연 8%</td><td style="text-align:right;padding:2px 6px">연 15%</td><td style="text-align:right;padding:2px 6px">연 25%</td></tr>'
             +row(5)+row(10)+'</table>';
@@ -1692,12 +1692,12 @@ const Dash = {
         var el=document.getElementById('dashRebal'); if(!el) return;
         var q=JSON.parse(localStorage.getItem('isl_qld_v1')||'null');
         var sc=JSON.parse(localStorage.getItem('isl_schd_v1')||'null');
-        var rb=JSON.parse(localStorage.getItem('isl_qldschd_rebal_v1')||'null')||{target_qld:75,band:5};
+        var rb=JSON.parse(localStorage.getItem('isl_qldschd_rebal_v1')||'null')||{target_qld:75,band:15};
         if(!q||!sc){ el.innerHTML='<div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div>'; return; }
         var lp=function(b){return (Array.isArray(b.log)&&b.log.length?(b.log[b.log.length-1].px||0):0)||b.avg||0;};
         var qpx=lp(q), spx=lp(sc);
         var qv=(q.sh||0)*qpx, sv=(sc.sh||0)*spx, pair=qv+sv;
-        var tq=rb.target_qld||75, band=rb.band||5;
+        var tq=rb.target_qld||75, band=rb.band||15;
         if(pair<=0){ el.innerHTML='<div class="muted small">보유 없음 — 클라우드 새로고침 후 표시.</div>'; return; }
         var curq=qv/pair*100, dev=curq-tq;
         var h='<div class="kpi">'
@@ -1706,7 +1706,7 @@ const Dash = {
           +'<div class="box"><div class="l">목표</div><div class="v">'+tq+':'+(100-tq)+'</div></div>'
           +'<div class="box"><div class="l">편차</div><div class="v" style="color:'+(Math.abs(dev)<=band?'#4ade80':'#f59e0b')+'">'+(dev>=0?'+':'')+dev.toFixed(1)+'%p</div></div></div>';
         if(Math.abs(dev)<=band){
-          h+='<div class="src" style="margin-top:6px">✅ 밴드 내 — 리밸런싱 불필요.</div>';
+          h+='<div class="src" style="margin-top:6px">✅ 편차 '+dev.toFixed(1)+'%p — 임계(±'+band+'%p) 이내. 리밸런싱은 분기별 점검 시 실행.</div>';
         } else if(dev<0){
           var need=pair*tq/100-qv;
           h+='<div class="src" style="margin-top:6px">🔻 <b>QLD 비중 부족</b> → QLD 매수 <b>$'+Math.round(need).toLocaleString()+'</b> 필요. ① 여유 예수금 우선 사용 → ② 부족분 SCHD 매도로 충당 → 75:25 복원.</div>';
@@ -1714,7 +1714,7 @@ const Dash = {
           var trim=qv-pair*tq/100;
           h+='<div class="src" style="margin-top:6px">🔺 QLD 비중 초과 → (선택) SCHD로 $'+Math.round(trim).toLocaleString()+' 이동 시 75:25 복원.</div>';
         }
-        h+='<div class="src" style="font-size:11px">QLD 급락 시 여유 예수금+SCHD 매도로 QLD를 목표까지 매수. ±5%p 안이면 거래 안 함. 시세는 최근 반영가 기준(참고용).</div>';
+        h+='<div class="src" style="font-size:11px">하이브리드: 분기별(1·4·7·10월 초) 점검 + 그 사이 편차 ±15%p 초과 시 즉시. QLD 급락 시 여유 예수금+SCHD 매도로 QLD 매수. 시세는 최근 반영가 기준(참고용).</div>';
         el.innerHTML=h;
       })();
     }catch(e){ console.log('dashQld',e); }
