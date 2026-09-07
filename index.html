@@ -426,8 +426,18 @@
     <p class="small src">분할수(N) 변형 프리셋의 slope는 엑셀 패턴(별% 이 T=N/2에서 0이 됨 → slope = 2×base÷N)에서 도출했습니다. 언제든 직접 수정 가능합니다.</p>
   </div>
   <div class="card">
-    <h2>VR(밸류리밸런싱) 규칙 요약</h2>
-    <p class="small">새 V = 직전 V + 직전 Pool/G + (E−V)/(2√G) + 적립 − 인출 (실력공식, E=보유주수×현재가). 하단 = V×(1−밴드), 상단 = V×(1+밴드).</p>
+    <h2>VR(밸류리밸런싱) 규칙 요약 <span class="small muted">· 라오어 실력공식</span></h2>
+    <div style="background:#0b1220;border:1px solid #1e293b;border-radius:10px;padding:10px 12px;margin:6px 0">
+      <div style="font-size:15px"><b>새 V = 직전 V + Pool/G + (E−V)/(2√G) + 적립 − 인출</b></div>
+      <div class="small muted" style="margin-top:4px">G=10 · E = 위험자산 평가액(보유주수 × 현재가)</div>
+    </div>
+    <p class="small"><b>💡 이게 무슨 뜻?</b> 매 사이클 목표금액 <b>V</b>를 조금씩 키우며, 실제 평가금(E)이 그 목표에 닿도록 사고팝니다.</p>
+    <p class="small">· <b>V</b> = 이번 사이클에 "가지고 있어야 할" 목표 금액 (기준선)<br>
+       · <b>Pool/G</b> = 목표를 꾸준히 키우는 성장분 (G=10, 여유자금의 1/10씩)<br>
+       · <b>(E−V)/(2√10)</b> = <b>실력 보정</b>. 평가금이 목표보다 <span style="color:#f87171">낮으면(하락장) 목표 V를 낮춰</span> 무리한 매수를 막고, <span style="color:#4ade80">높으면(상승장) 목표를 올려</span> 이익 실현을 유도. 차이의 약 1/6.3(≈16%)만 반영해 완만하게 따라감<br>
+       · <b>±적립/인출</b> = 내가 넣거나 빼는 현금</p>
+    <p class="small">📉 <b>하단 = V×(1−밴드)</b> 아래로 평가금이 빠지면 <b>매수</b>, 📈 <b>상단 = V×(1+밴드)</b> 위로 오르면 <b>매도</b>. 밴드 안이면 관망. (매수는 항상 Pool 70% 한도 — 30%는 깊은 하락 대비 비축)</p>
+    <p class="small src">⚠️ TQQQ는 3배 레버리지 고위험. 실력공식도 Pool 고갈·변동성 잠식·장기 하락 위험을 없애지 못합니다.</p>
     <p class="small">매수필요 = max(0, 하단−평가금), 매도필요 = max(0, 평가금−상단). Pool 한도 = (Pool+적립−인출)×한도%. 매수주수 = 내림(최대매수 ÷ (가격+수수료)).</p>
   </div>
 </section>
