@@ -427,7 +427,7 @@
   </div>
   <div class="card">
     <h2>VR(밸류리밸런싱) 규칙 요약</h2>
-    <p class="small">새 V = 직전 V + 직전 Pool/G + 적립 − 인출. 하단 = V×(1−밴드), 상단 = V×(1+밴드).</p>
+    <p class="small">새 V = 직전 V + 직전 Pool/G + (E−V)/(2√G) + 적립 − 인출 (실력공식, E=보유주수×현재가). 하단 = V×(1−밴드), 상단 = V×(1+밴드).</p>
     <p class="small">매수필요 = max(0, 하단−평가금), 매도필요 = max(0, 평가금−상단). Pool 한도 = (Pool+적립−인출)×한도%. 매수주수 = 내림(최대매수 ÷ (가격+수수료)).</p>
   </div>
 </section>
@@ -1055,10 +1055,11 @@ const VRengine = {
   calc(p){
     const {G,band,pool,fee,dep,wd,mult,pv,pp,ps,price}=p;
     const deposit = dep*mult;
-    const newV = pv + pp/G + deposit - wd;
+    const evalBefore = ps*price;                                  // E = 실제 위험자산 평가액
+    const corr = (evalBefore>0 && G>0) ? (evalBefore - pv)/(2*Math.sqrt(G)) : 0;  // 라오어 실력공식 보정항 (E-V)/(2√G)
+    const newV = pv + pp/G + corr + deposit - wd;
     const lower = newV*(1-band);
     const upper = newV*(1+band);
-    const evalBefore = ps*price;
     const buyNeed = (evalBefore < lower) ? Math.max(0, newV-evalBefore) : 0;  // 라오어: 밴드 이탈 시 V까지 리밸런싱
     const sellNeed= (evalBefore > upper) ? Math.max(0, evalBefore-newV) : 0;
     const poolAvail = pp+deposit-wd;
@@ -1072,7 +1073,7 @@ const VRengine = {
     const endPool = pp+deposit-wd-actualBuy+actualSell;
     const action = buyShares>0?('매수 '+buyShares+'주'):(sellShares>0?('매도 '+sellShares+'주'):'관망 / 밴드 내');
     const totalAsset = endShares*price+endPool;
-    return {deposit,newV,lower,upper,evalBefore,buyNeed,sellNeed,poolAvail,poolLimit,maxBuy,buyShares,sellShares,actualBuy,actualSell,endShares,endPool,action,totalAsset};
+    return {deposit,corr,newV,lower,upper,evalBefore,buyNeed,sellNeed,poolAvail,poolLimit,maxBuy,buyShares,sellShares,actualBuy,actualSell,endShares,endPool,action,totalAsset};
   }
 };
 
