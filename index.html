@@ -114,13 +114,16 @@
     <div class="note">매일 넣을 주문을 한눈에. 실제 주문은 Fi PRO에서 직접 넣으세요.</div>
     <div id="todayOrders" style="margin-top:10px"></div>
   </div>
-  <div class="card"><h3 style="margin:0 0 6px">🔁 QLD 일일 자동적립 <span class="small muted">(2x 나스닥100 · 토스 · 매 거래일 $20 소수점)</span></h3>
-    <div id="dashQld"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
+  <div class="card"><h3 style="margin:0 0 6px">🔁 QQQM 일일 자동적립 <span class="small muted">(나스닥100 · 토스 · 매 거래일 $20 소수점 · 9/10~)</span></h3>
+    <div id="dashQqqm"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
   </div>
-  <div class="card"><h3 style="margin:0 0 6px">🔁 DGRO 일일 자동적립 <span class="small muted">(배당성장 · 토스 · 매 거래일 $5 소수점)</span></h3>
+  <div class="card"><h3 style="margin:0 0 6px">🔁 DGRO 일일 자동적립 <span class="small muted">(배당성장 · 토스 · 매 거래일 $5 소수점 · 9/9~)</span></h3>
     <div id="dashDgro"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
   </div>
-  <div class="card"><h3 style="margin:0 0 6px">🎯 QLD:DGRO 비중 리밸런싱 <span class="small muted">(목표 75:25 · 하이브리드 분기+±15%p)</span></h3>
+  <div class="card"><h3 style="margin:0 0 6px">📦 QLD 보유 <span class="small muted">(2x 나스닥100 · 레버리지 · 여유자금 수동 매수)</span></h3>
+    <div id="dashQld"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
+  </div>
+  <div class="card"><h3 style="margin:0 0 6px">🎯 QQQM:DGRO 비중 리밸런싱 <span class="small muted">(목표 75:25 · 하이브리드 분기+±15%p)</span></h3>
     <div id="dashRebal"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
   </div>
   <div class="card">
@@ -709,11 +712,11 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-09-08',
-  vix:15.84,
-  tqqq:{p:72.37, rsi:40.2, m50:71.53, m200:61.5, hi:88.09, prevClose:72.03},
-  soxl:{p:117.28, rsi:30.2, m50:145.21, m200:108.82, hi:302.0, prevClose:106.74},
-  upro:{p:151.88, rsi:45.7, m50:146.09, m200:127.2, hi:158.63, prevClose:153.73}
+  asOf:'2026-09-09',
+  vix:15.81,
+  tqqq:{p:72.16, rsi:48.9, m50:71.53, m200:61.62, hi:88.09, prevClose:72.37},
+  soxl:{p:123.27, rsi:45.8, m50:143.36, m200:109.26, hi:302.0, prevClose:117.28},
+  upro:{p:149.3, rsi:46.7, m50:146.44, m200:127.42, hi:158.63, prevClose:151.88}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
@@ -1461,6 +1464,7 @@ const CS = {
         try{ if(s.income && s.income.monthly_series){ localStorage.setItem('isl_monthly_v1', JSON.stringify(s.income.monthly_series)); } }catch(e){}
         try{ if(s.qld){ localStorage.setItem('isl_qld_v1', JSON.stringify(s.qld)); } }catch(e){}
         try{ if(s.dgro){ localStorage.setItem('isl_dgro_v1', JSON.stringify(s.dgro)); } }catch(e){}
+        try{ if(s.qqqm){ localStorage.setItem('isl_qqqm_v1', JSON.stringify(s.qqqm)); } }catch(e){}
         try{ if(s.qld_schd_rebal){ localStorage.setItem('isl_qldschd_rebal_v1', JSON.stringify(s.qld_schd_rebal)); } }catch(e){}
         if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); if(typeof DTE!=='undefined'&&DTE.render) DTE.render(); }
         // 서버가 만든 VR 밴드 1년치(주간) 시계열 저장 → bandChart 가 사용
@@ -1686,9 +1690,11 @@ const Dash = {
           +'<div class="box"><div class="l">평단</div><div class="v">$'+R.fmt(avg)+'</div></div>'
           +'<div class="box"><div class="l">평가금</div><div class="v">$'+R.fmt(sh*P0)+'</div></div>'
           +'<div class="box"><div class="l">누적 투입</div><div class="v">$'+R.fmt(totUsd)+'</div></div></div>'
-          +'<div class="src" style="margin-top:6px"><b>방식:</b> 토스증권에서 <b>매 거래일 $'+W+' 소수점 자동매수</b> · 재원: 미국 배당. 매주 월요일 종가로 보유·평단이 자동 반영됩니다.</div>';
-        // 5·10년 예상 (달러 DCA 시뮬)
-        if(P0>0){
+          +(W>0
+             ? '<div class="src" style="margin-top:6px"><b>방식:</b> 토스증권에서 <b>매 거래일 $'+W+' 소수점 자동매수</b> · 재원: 미국 배당. 매 거래일 종가로 보유·평단이 자동 반영됩니다.</div>'
+             : '<div class="src" style="margin-top:6px"><b>방식:</b> 자동적립 없음 · <b>여유자금 있을 때 수동 매수</b>. 체결 시 봇에 "체결 '+(b.sym||'').toUpperCase()+' 매수 N 가격" 보내면 반영.</div>');
+        // 5·10년 예상 (달러 DCA 시뮬) — 자동적립(W>0)일 때만
+        if(P0>0 && W>0){
           var proj=function(Y,g){var n=Math.round(Y*252),wr=Math.pow(1+g,1/252),p=P0,s=sh;for(var i=0;i<n;i++){s+=W/p;p*=wr;}return s*p;};
           var row=function(Y){var c=[0.08,0.15,0.25].map(function(g){var v=proj(Y,g);return '<td style="text-align:right;padding:2px 6px">$'+Math.round(v).toLocaleString()+'<br><span class="muted" style="font-size:11px">'+fmtK(v)+'</span></td>';}).join('');return '<tr><td style="padding:2px 6px"><b>'+Y+'년</b></td>'+c+'</tr>';};
           h+='<div class="src" style="margin-top:8px"><b>📈 예상 평가액</b> (현재가 $'+R.fmt(P0)+' · 매 거래일 $'+W+' 적립 가정)</div>'
@@ -1700,12 +1706,13 @@ const Dash = {
           +(isLev?' ⚠️ QLD는 2x 레버리지 — 하락·횡보장 감쇄로 지수 2배보다 나쁠 수 있음.':'')+'</div>';
         el.innerHTML=h;
       };
-      renderAccum('isl_qld_v1','dashQld',true);
+      renderAccum('isl_qqqm_v1','dashQqqm',false);
       renderAccum('isl_dgro_v1','dashDgro',false);
-      // ── QLD:DGRO 비중 리밸런싱 ──
+      renderAccum('isl_qld_v1','dashQld',true);
+      // ── QQQM:DGRO 비중 리밸런싱 ──
       (function(){
         var el=document.getElementById('dashRebal'); if(!el) return;
-        var q=JSON.parse(localStorage.getItem('isl_qld_v1')||'null');
+        var q=JSON.parse(localStorage.getItem('isl_qqqm_v1')||'null');
         var sc=JSON.parse(localStorage.getItem('isl_dgro_v1')||'null');
         var rb=JSON.parse(localStorage.getItem('isl_qldschd_rebal_v1')||'null')||{target_qld:75,band:15};
         if(!q||!sc){ el.innerHTML='<div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div>'; return; }
@@ -1716,7 +1723,7 @@ const Dash = {
         if(pair<=0){ el.innerHTML='<div class="muted small">보유 없음 — 클라우드 새로고침 후 표시.</div>'; return; }
         var curq=qv/pair*100, dev=curq-tq;
         var h='<div class="kpi">'
-          +'<div class="box"><div class="l">현재 QLD</div><div class="v">'+curq.toFixed(1)+'%</div></div>'
+          +'<div class="box"><div class="l">현재 QQQM</div><div class="v">'+curq.toFixed(1)+'%</div></div>'
           +'<div class="box"><div class="l">현재 DGRO</div><div class="v">'+(100-curq).toFixed(1)+'%</div></div>'
           +'<div class="box"><div class="l">목표</div><div class="v">'+tq+':'+(100-tq)+'</div></div>'
           +'<div class="box"><div class="l">편차</div><div class="v" style="color:'+(Math.abs(dev)<=band?'#4ade80':'#f59e0b')+'">'+(dev>=0?'+':'')+dev.toFixed(1)+'%p</div></div></div>';
