@@ -109,6 +109,10 @@
 
 <main>
 <section id="dash" class="tab active dashg">
+  <div class="card" style="border-color:#eab308">
+    <h2>🎯 10억 목표 트래커</h2>
+    <div id="dashGoal"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
+  </div>
   <div class="card" style="border-color:#3b82f6">
     <h2>📌 오늘의 주문</h2>
     <div class="note">매일 넣을 주문을 한눈에. 실제 주문은 Fi PRO에서 직접 넣으세요.</div>
@@ -1465,6 +1469,8 @@ const CS = {
         try{ if(s.qld){ localStorage.setItem('isl_qld_v1', JSON.stringify(s.qld)); } }catch(e){}
         try{ if(s.dgro){ localStorage.setItem('isl_dgro_v1', JSON.stringify(s.dgro)); } }catch(e){}
         try{ if(s.qqqm){ localStorage.setItem('isl_qqqm_v1', JSON.stringify(s.qqqm)); } }catch(e){}
+        try{ if(s.networth){ localStorage.setItem('isl_networth_v1', JSON.stringify(s.networth)); } }catch(e){}
+        try{ if(s.goal_tracker){ localStorage.setItem('isl_goaltracker_v1', JSON.stringify(s.goal_tracker)); } }catch(e){}
         try{ if(s.qld_schd_rebal){ localStorage.setItem('isl_qldschd_rebal_v1', JSON.stringify(s.qld_schd_rebal)); } }catch(e){}
         if(s.risk){ Risk.save(s.risk); if(typeof Risk.render==='function') Risk.render(); if(typeof DTE!=='undefined'&&DTE.render) DTE.render(); }
         // 서버가 만든 VR 밴드 1년치(주간) 시계열 저장 → bandChart 가 사용
@@ -1668,6 +1674,35 @@ const Dash = {
       +'<div class="box"><div class="l">무한매수법</div><div class="v">'+ib.length+'</div></div>'
       +'<div class="box"><div class="l">VR</div><div class="v">'+vr.length+'</div></div>'
       +'<div class="box"><div class="l">마지막 기록</div><div class="v" style="font-size:14px">'+(recs[0]?new Date(recs[0].ts).toLocaleDateString('ko-KR'):'–')+'</div></div>';
+    // ── 10억 목표 트래커 ──
+    function renderGoal(){
+      var el=document.getElementById('dashGoal'); if(!el) return;
+      var g=JSON.parse(localStorage.getItem('isl_goaltracker_v1')||'null');
+      var nw=JSON.parse(localStorage.getItem('isl_networth_v1')||'null');
+      if(!g){ el.innerHTML='<div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div>'; return; }
+      var FX=g.fx||1418, targetKRW=g.target_krw||1e9, targetUSD=targetKRW/FX;
+      var cur=0;
+      if(nw&&Array.isArray(nw.hist)&&nw.hist.length){ cur=+nw.hist[nw.hist.length-1].total||0; }
+      var prog=targetUSD>0?Math.min(100,cur/targetUSD*100):0;
+      var fill=Math.round(prog/5), bar='█'.repeat(fill)+'░'.repeat(20-fill);
+      var krw=function(u){return u*FX;};
+      var eok=function(u){return '₩'+(u*FX/1e8).toFixed(2)+'억';};
+      var p=g.proj_10yr_usd||{};
+      var h='<div class="kpi">'
+        +'<div class="box"><div class="l">목표</div><div class="v">₩10억<br><span class="muted small">$'+Math.round(targetUSD).toLocaleString()+'</span></div></div>'
+        +'<div class="box"><div class="l">현재 순자산</div><div class="v">$'+Math.round(cur).toLocaleString()+'<br><span class="muted small">'+eok(cur)+'</span></div></div>'
+        +'<div class="box"><div class="l">진행률</div><div class="v" style="color:#eab308">'+prog.toFixed(1)+'%</div></div></div>'
+        +'<div class="src" style="font-family:monospace;margin-top:4px">'+bar+' '+prog.toFixed(1)+'%</div>'
+        +'<div class="src" style="margin-top:8px"><b>📊 10년 후 예상(가정 기반)</b></div>'
+        +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:2px">'
+        +'<tr class="muted"><td style="padding:2px 6px">시나리오</td><td style="text-align:right;padding:2px 6px">10년 후</td><td style="text-align:right;padding:2px 6px">목표대비</td></tr>'
+        +'<tr><td style="padding:2px 6px">보수적</td><td style="text-align:right">'+eok(p.cons||0)+'</td><td style="text-align:right">'+((p.cons||0)/targetUSD*100).toFixed(0)+'%</td></tr>'
+        +'<tr><td style="padding:2px 6px">중립</td><td style="text-align:right">'+eok(p.base||0)+'</td><td style="text-align:right">'+((p.base||0)/targetUSD*100).toFixed(0)+'%</td></tr>'
+        +'<tr><td style="padding:2px 6px"><b>낙관</b></td><td style="text-align:right"><b>'+eok(p.opt||0)+'</b></td><td style="text-align:right"><b>'+((p.opt||0)/targetUSD*100).toFixed(0)+'%</b></td></tr>'
+        +'</table>'
+        +'<div class="src" style="font-size:11px;margin-top:4px">현재값=매일 자동계산 순자산(환율 '+FX+'). 10억은 낙관(강세장)에서 도달 — 대부분 TQQQ 기여. ※ 예측 아님, 레버리지·감쇄 위험.</div>';
+      el.innerHTML=h;
+    }
     try{
       var iso=function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
       var t0=new Date();t0.setHours(0,0,0,0);
@@ -1706,6 +1741,7 @@ const Dash = {
           +(isLev?' ⚠️ QLD는 2x 레버리지 — 하락·횡보장 감쇄로 지수 2배보다 나쁠 수 있음.':'')+'</div>';
         el.innerHTML=h;
       };
+      (function(){ try{ renderGoal(); }catch(e){ console.log('goal',e); } })();
       renderAccum('isl_qqqm_v1','dashQqqm',false);
       renderAccum('isl_dgro_v1','dashDgro',false);
       renderAccum('isl_qld_v1','dashQld',true);
