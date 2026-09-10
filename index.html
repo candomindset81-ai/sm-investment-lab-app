@@ -1865,6 +1865,8 @@ const Income = {
   tax(){ const t=parseFloat(localStorage.getItem(this.TKEY)); return isNaN(t)?15:t; },
   isKRX(sym){ return /^\d/.test(String(sym||'')); },
   taxRateFor(sym){ return this.isKRX(sym) ? 0 : (this.tax()/100); },   // 한국 ISA(6자리) 비과세 · 미국 15%
+  cgtRealized(){ try{ return +localStorage.getItem('isl_cgt_realized_krw')||0; }catch(e){ return 0; } },   // 연말 양도세: 연중 실현손익(원)
+  setCgtRealized(v){ try{ localStorage.setItem('isl_cgt_realized_krw', +v||0); }catch(e){} try{ this.monitors(); }catch(e){} },
   seedDefaults(){ if(localStorage.getItem('wos_income_seed22'))return; this.save([{sym:'QDTE',sh:548,avg:29.3539,px:28.72,dist:0.172087,tw:16,freq:'weekly'},{sym:'XDTE',sh:378,avg:38.457,px:38.595,dist:0.149533,tw:16,freq:'weekly'},{sym:'RDTE',sh:0,avg:0,px:28.57,dist:0.20,tw:16,freq:'weekly'},{sym:'JEPQ',sh:168,avg:58.0486,px:58.25,dist:0.705,tw:21,freq:'monthly'},{sym:'IWMI',sh:26,avg:52.48,px:52.48,dist:0.6046,tw:7,freq:'monthly'},{sym:'441640',sh:230,avg:9.13,px:9.13,dist:0.07,tw:4,freq:'monthly'},{sym:'458730',sh:40,avg:10.84,px:10.84,dist:0.03,tw:8,freq:'monthly'}]); localStorage.setItem('wos_income_seed22','1'); },
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
   freqN(r){ return DFREQ(r&&r.sym, r&&r.freq); },   // 연 지급 횟수: 월배당 12 / 주배당 52 (종목명으로 자동 보정)
@@ -2006,6 +2008,44 @@ const Income = {
         +'<div class="src" style="margin-top:6px;color:'+col+';font-weight:700">'+label+'</div>'
         +'<div class="src" style="margin-top:2px">\uD658\uC728 \u20A9'+fx+'/$ \u00B7 \uACBD\uACE0\uC120 1,900\uB9CC\uC6D0 \u00B7 \uD55C\uB3C4\uC120 2,000\uB9CC\uC6D0</div></div>';
     }catch(e){ console.log('tax monitor',e); }
+    // 🧾 연말 양도소득세 최적화 (미국 직접보유분 손익통산)
+    try{
+      const fxEl2=document.getElementById('pro_fx'); const fx2=(fxEl2&&+fxEl2.value)?+fxEl2.value:1418;
+      const realized=Income.cgtRealized(); const DED=2500000, RATE=0.22;
+      let gains=[], losses=[], unrG=0, unrL=0;
+      inc.forEach(function(x){ if(/^\d/.test(String(x.sym)))return;   // KRX(ISA)는 양도세 대상 아님
+        const sh=+x.sh||0, avg=+x.avg||0, px=+x.px||avg; if(!sh||!avg)return;
+        const g=sh*(px-avg)*fx2;
+        if(g>=0){ gains.push([x.sym,g]); unrG+=g; } else { losses.push([x.sym,g]); unrL+=g; }
+      });
+      const taxNow=Math.max(0,(realized-DED))*RATE;
+      const room=Math.max(0, DED-realized);
+      const needLoss=Math.max(0, realized-DED);
+      let trows='';
+      gains.sort(function(a,b){return b[1]-a[1];}).concat(losses.sort(function(a,b){return a[1]-b[1];})).forEach(function(r){
+        const c=r[1]>=0?'#22c58b':'#ff5d5d';
+        trows+='<tr><td>'+r[0]+'</td><td style="text-align:right;color:'+c+'">₩'+Math.round(r[1]).toLocaleString()+'</td><td style="text-align:right">'+(r[1]>=0?'이익':'손실')+'</td></tr>';
+      });
+      let advice='';
+      if(realized>DED){
+        const canOffset=Math.min(needLoss, -unrL);
+        const afterTax=Math.max(0,(realized-canOffset-DED))*RATE;
+        advice='🚨 현재 실현 과세표준 ₩'+Math.round(realized).toLocaleString()+' (공제 초과 ₩'+Math.round(needLoss).toLocaleString()+' · 예상세액 ₩'+Math.round(taxNow).toLocaleString()+')<br>→ 미실현손실 <b>₩'+Math.round(canOffset).toLocaleString()+'</b> 실현 시 세액 ₩'+Math.round(taxNow).toLocaleString()+' → ₩'+Math.round(afterTax).toLocaleString()+(canOffset<needLoss?' <span style="color:#ffb020">(손실 부족 — 완전 상계 불가)</span>':' ✅ 세액 0 가능');
+      } else {
+        advice='✅ 현재 과세표준이 공제(₩250만) 이내 — 예상세액 ₩0<br>→ <b>무세로 이익 ₩'+Math.round(room).toLocaleString()+'</b> 추가 실현 가능(공제 소진). 큰 손실 종목은 이익이 클 해에 실현해야 절세 효과.';
+      }
+      h+='<div class="card"><h3 style="margin:0 0 6px">🧾 연말 양도세 최적화 <span class="small muted">(미국 직접보유·손익통산·ISA 제외)</span></h3>'
+        +'<div class="grid yellow"><label class="f">연중 실현손익(원, 매도확정분)<input id="cgt_realized" type="number" step="100000" value="'+realized+'" onchange="Income.setCgtRealized(this.value)"></label></div>'
+        +'<div class="kpi">'
+        +'<div class="box"><div class="l">미실현 이익(US)</div><div class="v" style="color:#22c58b">₩'+Math.round(unrG).toLocaleString()+'</div></div>'
+        +'<div class="box"><div class="l">미실현 손실(US)</div><div class="v" style="color:#ff5d5d">₩'+Math.round(unrL).toLocaleString()+'</div></div>'
+        +'<div class="box"><div class="l">현재 예상세액</div><div class="v">₩'+Math.round(taxNow).toLocaleString()+'</div></div>'
+        +'<div class="box"><div class="l">공제 여유</div><div class="v">₩'+Math.round(room).toLocaleString()+'</div></div>'
+        +'</div>'
+        +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px"><thead><tr style="color:#8aa2c0"><th style="text-align:left;padding:2px 0">종목</th><th style="text-align:right">미실현손익</th><th style="text-align:right">구분</th></tr></thead><tbody>'+trows+'</tbody></table>'
+        +'<div class="src" style="margin-top:8px;line-height:1.6">'+advice+'</div>'
+        +'<div class="src" style="margin-top:6px">기본공제 ₩250만/년 · 세율 22% · 환율 ₩'+fx2+'/$ · 결제일(T+1) 기준—연말 며칠 전 매도 · 워시세일 규정 없음(손실실현 후 재매수 가능) · 일반정보·세무사 확인 권장</div></div>';
+    }catch(e){ console.log('cgt monitor',e); }
     // \uD83D\uDCB0 \uBC30\uB2F9 \uC218\uB839 \uC6D0\uC7A5
     try{
       let dlog=[]; try{ dlog=JSON.parse(localStorage.getItem('isl_divlog_v1')||'[]'); }catch(_e){}
