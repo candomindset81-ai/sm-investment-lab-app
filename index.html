@@ -716,11 +716,11 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-09-09',
-  vix:15.81,
-  tqqq:{p:72.16, rsi:48.9, m50:71.53, m200:61.62, hi:88.09, prevClose:72.37},
-  soxl:{p:123.27, rsi:45.8, m50:143.36, m200:109.26, hi:302.0, prevClose:117.28},
-  upro:{p:149.3, rsi:46.7, m50:146.44, m200:127.42, hi:158.63, prevClose:151.88}
+  asOf:'2026-09-10',
+  vix:16.45,
+  tqqq:{p:71.55, rsi:48.5, m50:71.42, m200:61.72, hi:88.09, prevClose:72.16},
+  soxl:{p:125.87, rsi:54.0, m50:141.15, m200:109.71, hi:302.0, prevClose:123.27},
+  upro:{p:147.19, rsi:41.7, m50:146.6, m200:127.62, hi:158.63, prevClose:149.3}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
@@ -1847,9 +1847,9 @@ function resetAll(){
    ※ 주당 금액은 매주 변동합니다. 실제 수령액으로 덮어쓰는 것을 권장합니다. */
 const DIST = {
   asOf:'2026-08-04', nextEx:'2026-08-06', payDay:'금요일', exDay:'목요일',
-  perShare:{ QDTE:0.1370, XDTE:0.0900, RDTE:0.2000, JEPQ:0.50, IWMI:0.6046, '441640':0.07, '458730':0.03 },
-  freq:{ QDTE:'weekly', XDTE:'weekly', RDTE:'weekly', JEPQ:'monthly', IWMI:'monthly', '441640':'monthly', '458730':'monthly' },
-  src:{ QDTE:'주배당 YTD 평균(변동 반영)', XDTE:'주배당 YTD 평균(변동 반영)', RDTE:'러셀2000 0DTE 커버드콜·주배당(소형주)', JEPQ:'월배당 변동 $0.50~0.70(월 지급)', '441640':'KODEX 미국배당커버드콜·월배당', IWMI:'NEOS 러셀2000 하이인컴·월배당(RUT 콜매도·소형주)', '458730':'TIGER 미국배당다우존스·SCHD형 월배당' }
+  perShare:{ QDTE:0.1370, XDTE:0.0900, RDTE:0.2000, JEPQ:0.50, ULTY:0.31, IWMI:0.6046, '441640':0.07, '458730':0.03 },
+  freq:{ QDTE:'weekly', XDTE:'weekly', RDTE:'weekly', JEPQ:'monthly', ULTY:'weekly', IWMI:'monthly', '441640':'monthly', '458730':'monthly' },
+  src:{ QDTE:'주배당 YTD 평균(변동 반영)', XDTE:'주배당 YTD 평균(변동 반영)', RDTE:'러셀2000 0DTE 커버드콜·주배당(소형주)', JEPQ:'월배당 변동 $0.50~0.70(월 지급)', ULTY:'YieldMax 울트라 옵션인컴·주배당(최근8주 평균 $0.31·초고위험)', '441640':'KODEX 미국배당커버드콜·월배당', IWMI:'NEOS 러셀2000 하이인컴·월배당(RUT 콜매도·소형주)', '458730':'TIGER 미국배당다우존스·SCHD형 월배당' }
 };
 // 배당 빈도 자동보정: 보유행에 freq가 없거나 잘못돼도 종목명으로 월/주 판정 → 연 지급횟수 반환
 const DFREQ = (sym,freq)=>{ const f=freq||(DIST.freq&&DIST.freq[sym]); return f==='monthly'?12:52; };
@@ -2584,7 +2584,7 @@ const Refresh = {
 
 /* ===================== 💹 인컴 Pro 모듈 ===================== */
 const Pro = {
-  syms:['QDTE','XDTE','RDTE','JEPQ','IWMI','441640','458730'],
+  syms:['QDTE','XDTE','RDTE','JEPQ','ULTY','IWMI','441640','458730'],
   rh(){ try{return JSON.parse(localStorage.getItem('isl_roundhill_v1'))||null}catch(e){return null} },
   rsAll(){ try{return JSON.parse(localStorage.getItem('isl_realstats_v1'))||{}}catch(e){return {}} },
   monthlySeries(){ try{return JSON.parse(localStorage.getItem('isl_monthly_v1'))||[]}catch(e){return []} },
@@ -2657,7 +2657,7 @@ const Pro = {
   },
   lineSVG(rows){
     // 최근 12주 주당 배당 추이 (종목별 선그래프)
-    const cols={QDTE:'#22c58b',XDTE:'#ffd24a',RDTE:'#ff7a7a',JEPQ:'#4ea1ff',IWMI:'#e8688a','441640':'#c58bff','458730':'#8fe3a0'};
+    const cols={QDTE:'#22c58b',XDTE:'#ffd24a',RDTE:'#ff7a7a',JEPQ:'#4ea1ff',ULTY:'#ff9f45',IWMI:'#e8688a','441640':'#c58bff','458730':'#8fe3a0'};
     const series=rows.map(function(x){ return {sym:x.sym, v:(x.hist||[]).slice(-12).map(function(p){return +p[1];})}; }).filter(function(s){return s.v.length;});
     if(!series.length) return '<span class="small muted">배당 이력이 아직 부족합니다.</span>';
     const W=640,H=240,pl=44,pr=90,pt=14,pb=26;
