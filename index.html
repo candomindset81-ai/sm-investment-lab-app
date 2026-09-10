@@ -1871,7 +1871,7 @@ const Income = {
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
   freqN(r){ return DFREQ(r&&r.sym, r&&r.freq); },   // 연 지급 횟수: 월배당 12 / 주배당 52 (종목명으로 자동 보정)
   totals(){ let mv=0,cost=0,yr=0,yrNet=0; this.load().forEach(r=>{ const y=r.sh*(+r.dist||0)*Income.freqN(r); mv+=r.sh*r.px; cost+=r.sh*r.avg; yr+=y; yrNet+=y*(1-Income.taxRateFor(r.sym)); });
-    try{ const _at=Income.taxRateFor('QQQM'); ['isl_qqqm_v1','isl_dgro_v1','isl_qld_v1'].forEach(function(k){ const b=JSON.parse(localStorage.getItem(k)||'null'); if(b&&b.sh&&b.ann_div){ const y=b.sh*b.ann_div; yr+=y; yrNet+=y*(1-_at); } }); }catch(e){}   // 적립블록(QQQM·DGRO·QLD) 배당 합산
+    try{ const _at=Income.taxRateFor('QQQM'); ['isl_dgro_v1'].forEach(function(k){ const b=JSON.parse(localStorage.getItem(k)||'null'); if(b&&b.sh&&b.ann_div){ const y=b.sh*b.ann_div; yr+=y; yrNet+=y*(1-_at); } }); }catch(e){}   // 적립블록(QQQM·DGRO·QLD) 배당 합산
     return {mv:mv,cost:cost,wk:yr/52,yr:yr,mo:yr/12,yrNet:yrNet,moNet:yrNet/12}; },
   add(){ const sym=R.s('wi_sym').trim().toUpperCase(); if(!sym){alert('종목을 입력하세요');return;}
     const row={sym:sym, sh:R.n('wi_sh')||0, avg:R.n('wi_avg')||0, px:R.n('wi_px')||0, dist:R.n('wi_dist')||0, tw:R.n('wi_tw')||0};
@@ -1979,7 +1979,7 @@ const Income = {
     const inc=this.load(); const taxR=this.tax()/100; let h='';
     // 🌱 적립블록(QQQM·DGRO·QLD) 배당 — 인컴 테이블엔 없지만 월배당 합계에 포함
     try{
-      const AK=[['isl_qqqm_v1','QQQM'],['isl_dgro_v1','DGRO'],['isl_qld_v1','QLD']];
+      const AK=[['isl_dgro_v1','DGRO']];
       let arows='', ag=0, an=0, any=false;
       AK.forEach(function(p){ let b=null; try{ b=JSON.parse(localStorage.getItem(p[0])||'null'); }catch(_e){}
         if(!b||!b.sh)return; any=true; const ann=(+b.ann_div||0), yr=b.sh*ann, mo=yr/12, non=mo*(1-taxR);
@@ -1989,7 +1989,7 @@ const Income = {
         arows+='<tr><td><b>'+p[1]+'</b>'+_frb+'</td><td style="text-align:right">'+(+b.sh).toFixed(4)+'</td><td style="text-align:right">$'+R.fmt(ann)+'</td><td style="text-align:right">$'+R.fmt(mo)+'</td><td style="text-align:right">$'+R.fmt(yr)+'</td></tr>';
       });
       if(any){
-        h+='<div class="card"><h3 style="margin:0 0 6px">🌱 적립블록 배당 <span class="small muted">(QQQM·DGRO·QLD · 소수점 자동적립 · 월배당 합계에 포함됨)</span></h3>'
+        h+='<div class="card"><h3 style="margin:0 0 6px">🌱 적립블록 배당 <span class="small muted">(DGRO 분기배당만 반영 · QQQM·QLD·TQQQ 제외)</span></h3>'
           +'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#8aa2c0"><th style="text-align:left;padding:2px 0">종목</th><th style="text-align:right">수량</th><th style="text-align:right">연배당/주</th><th style="text-align:right">월배당</th><th style="text-align:right">연배당</th></tr></thead><tbody>'+arows+'</tbody></table>'
           +'<div class="src" style="margin-top:6px">∑ 적립블록 월배당 세전 $'+R.fmt(ag)+' · 세후 $'+R.fmt(an)+' <span class="muted">(위 인컴 합계에 이미 반영)</span></div></div>';
       }
