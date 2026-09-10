@@ -1984,7 +1984,9 @@ const Income = {
       AK.forEach(function(p){ let b=null; try{ b=JSON.parse(localStorage.getItem(p[0])||'null'); }catch(_e){}
         if(!b||!b.sh)return; any=true; const ann=(+b.ann_div||0), yr=b.sh*ann, mo=yr/12, non=mo*(1-taxR);
         ag+=mo; an+=non;
-        arows+='<tr><td><b>'+p[1]+'</b></td><td style="text-align:right">'+(+b.sh).toFixed(4)+'</td><td style="text-align:right">$'+R.fmt(ann)+'</td><td style="text-align:right">$'+R.fmt(mo)+'</td><td style="text-align:right">$'+R.fmt(yr)+'</td></tr>';
+        const _fr=b.div_freq==='quarterly'?'분기':(b.div_freq==='annual'?'연1회':(b.div_freq==='monthly'?'월':''));
+        const _frb=_fr?' <span class="tag" style="background:#2a1a40;color:#c58bff;font-size:10px">'+_fr+'</span>':'';
+        arows+='<tr><td><b>'+p[1]+'</b>'+_frb+'</td><td style="text-align:right">'+(+b.sh).toFixed(4)+'</td><td style="text-align:right">$'+R.fmt(ann)+'</td><td style="text-align:right">$'+R.fmt(mo)+'</td><td style="text-align:right">$'+R.fmt(yr)+'</td></tr>';
       });
       if(any){
         h+='<div class="card"><h3 style="margin:0 0 6px">🌱 적립블록 배당 <span class="small muted">(QQQM·DGRO·QLD · 소수점 자동적립 · 월배당 합계에 포함됨)</span></h3>'
