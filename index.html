@@ -113,22 +113,20 @@
     <h2>🎯 10억 목표 트래커</h2>
     <div id="dashGoal"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
   </div>
+  <div class="card" style="border-color:#22c55e">
+    <h2>🏦 계좌별 자산 <span class="small muted">(ISA · 레버리지 · 인컴엔진 — 텔레그램 계좌요약과 같은 숫자)</span></h2>
+    <div id="dashAccounts"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
+  </div>
   <div class="card" style="border-color:#3b82f6">
     <h2>📌 오늘의 주문</h2>
     <div class="note">매일 넣을 주문을 한눈에. 실제 주문은 Fi PRO에서 직접 넣으세요.</div>
     <div id="todayOrders" style="margin-top:10px"></div>
   </div>
-  <div class="card"><h3 style="margin:0 0 6px">🔁 QQQM 일일 자동적립 <span class="small muted">(나스닥100 · 토스 · 매 거래일 $20 소수점 · 9/10~)</span></h3>
-    <div id="dashQqqm"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
-  </div>
-  <div class="card"><h3 style="margin:0 0 6px">🔁 DGRO 일일 자동적립 <span class="small muted">(배당성장 · 토스 · 매 거래일 $5 소수점 · 9/9~)</span></h3>
+  <div class="card"><h3 style="margin:0 0 6px">🔁 DGRO 일일 자동적립 <span class="small muted">(배당성장 · 인컴엔진 계좌 · 매 거래일 $20 소수점)</span></h3>
     <div id="dashDgro"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
   </div>
-  <div class="card"><h3 style="margin:0 0 6px">📦 QLD 보유 <span class="small muted">(2x 나스닥100 · 레버리지 · 여유자금 수동 매수)</span></h3>
+  <div class="card"><h3 style="margin:0 0 6px">📦 QLD 보유 <span class="small muted">(2x 나스닥100 · 레버리지 계좌 · 여유자금 수동 매수)</span></h3>
     <div id="dashQld"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
-  </div>
-  <div class="card"><h3 style="margin:0 0 6px">🎯 QQQM:DGRO 비중 리밸런싱 <span class="small muted">(목표 75:25 · 하이브리드 분기+±15%p)</span></h3>
-    <div id="dashRebal"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
   </div>
   <div class="card">
     <h2>대시보드</h2>
@@ -178,6 +176,7 @@
     <div class="btnrow">
       <button class="act" onclick="IB.calc()">주문표 계산</button>
       <button class="ghost" onclick="toggleAudit('ib_audit')">계산 근거 보기</button>
+      <button class="ghost" title="사이클 완료 후 새로 시작" onclick="alert('SOXL 무한매수법 새 사이클: 텔레그램 봇에 「리셋20」(20분할·1만$) 또는 「리셋40」(40분할·2만$)을 보내면 서버·앱이 자동 리셋됩니다. 리버스(후반전)는 진행이 절반을 넘으면 자동 발동돼 별도 조작이 필요 없습니다.')">🔄 새 사이클 리셋</button>
     </div>
     <div id="ib_status" style="margin-top:12px"></div>
     <div id="ib_orders"></div>
@@ -716,22 +715,22 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-09-10',
-  vix:16.45,
-  tqqq:{p:71.55, rsi:48.5, m50:71.42, m200:61.72, hi:88.09, prevClose:72.16},
-  soxl:{p:125.87, rsi:54.0, m50:141.15, m200:109.71, hi:302.0, prevClose:123.27},
-  upro:{p:147.19, rsi:41.7, m50:146.6, m200:127.62, hi:158.63, prevClose:149.3}
+  asOf:'2026-10-01',
+  vix:16.39,
+  tqqq:{p:78.03, rsi:67.9, m50:71.67, m200:63.28, hi:88.09, prevClose:77.46},
+  soxl:{p:147.86, rsi:65.6, m50:127.0, m200:116.34, hi:302.0, prevClose:147.0},
+  upro:{p:146.97, rsi:53.8, m50:148.3, m200:130.14, hi:158.63, prevClose:147.96}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
 /* ===================== 매크로 데이터 (매주 자동 갱신 블록) =====================
    [AUTO-UPDATE:MACRO] 매주 자동 작업이 이 블록만 교체합니다. */
 const MACRO = {
-  asOf:'2026-09-07',
-  vix:14.53,
+  asOf:'2026-09-28',
+  vix:14.87,
   regime:'상승',
   fearGreed:'-',
-  us10y:'4.78%',
+  us10y:'5.18%',
   fedRate:'-',
   note:''
 };
@@ -1469,6 +1468,7 @@ const CS = {
         try{ if(s.qld){ localStorage.setItem('isl_qld_v1', JSON.stringify(s.qld)); } }catch(e){}
         try{ if(s.dgro){ localStorage.setItem('isl_dgro_v1', JSON.stringify(s.dgro)); } }catch(e){}
         try{ if(s.qqqm){ localStorage.setItem('isl_qqqm_v1', JSON.stringify(s.qqqm)); } }catch(e){}
+        try{ if(s.account_view){ localStorage.setItem('isl_accounts_v1', JSON.stringify(s.account_view)); } }catch(e){}
         try{ if(s.networth){ localStorage.setItem('isl_networth_v1', JSON.stringify(s.networth)); } }catch(e){}
         try{ if(s.goal_tracker){ localStorage.setItem('isl_goaltracker_v1', JSON.stringify(s.goal_tracker)); } }catch(e){}
         try{ if(s.qld_schd_rebal){ localStorage.setItem('isl_qldschd_rebal_v1', JSON.stringify(s.qld_schd_rebal)); } }catch(e){}
@@ -1674,6 +1674,38 @@ const Dash = {
       +'<div class="box"><div class="l">무한매수법</div><div class="v">'+ib.length+'</div></div>'
       +'<div class="box"><div class="l">VR</div><div class="v">'+vr.length+'</div></div>'
       +'<div class="box"><div class="l">마지막 기록</div><div class="v" style="font-size:14px">'+(recs[0]?new Date(recs[0].ts).toLocaleDateString('ko-KR'):'–')+'</div></div>';
+    // ── 🏦 계좌별 자산 (서버 account_summary.py 가 매일 계산한 account_view 를 그대로 표시) ──
+    function renderAccounts(){
+      var el=document.getElementById('dashAccounts'); if(!el) return;
+      var v=JSON.parse(localStorage.getItem('isl_accounts_v1')||'null');
+      if(!v||!Array.isArray(v.accounts)){ el.innerHTML='<div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div>'; return; }
+      var FX=+v.fx||1418;
+      var usd=function(x){return '$'+Math.round(+x||0).toLocaleString();};
+      var krw=function(x){return '₩'+Math.round(+x||0).toLocaleString();};
+      var shf=function(x){x=+x||0;return Math.abs(x-Math.round(x))<1e-9?String(Math.round(x)):x.toFixed(4);};
+      var h='<div class="kpi">';
+      v.accounts.forEach(function(a){
+        var pct=v.grand_usd>0?(a.total_usd/v.grand_usd*100):0;
+        h+='<div class="box"><div class="l">'+a.title+'</div><div class="v">'+usd(a.total_usd)+'<br><span class="muted small">'+pct.toFixed(0)+'%'+(a.ccy==='KRW'?' · '+krw(a.total):'')+'</span></div></div>';
+      });
+      h+='<div class="box" style="border-color:#22c55e"><div class="l">💰 총자산</div><div class="v">'+usd(v.grand_usd)+'<br><span class="muted small">₩'+((+v.grand_krw||0)/1e8).toFixed(2)+'억</span></div></div></div>';
+      v.accounts.forEach(function(a){
+        var K=a.ccy==='KRW', m=K?krw:usd;
+        h+='<div class="src" style="margin-top:10px"><b>'+a.title+'</b> — '+(K?krw(a.total)+' ('+usd(a.total_usd)+')':usd(a.total))+'</div>'
+          +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:2px">'
+          +'<tr class="muted"><td style="padding:2px 6px">종목</td><td style="text-align:right;padding:2px 6px">보유</td><td style="text-align:right;padding:2px 6px">현재가</td><td style="text-align:right;padding:2px 6px">평가</td></tr>';
+        (a.rows||[]).forEach(function(r){
+          var pxs=K?krw(r.px):'$'+(+r.px||0).toFixed(2);
+          h+='<tr><td style="padding:2px 6px">'+r.sym+(r.px_src==='saved'?' <span class="muted" title="시세 조회 실패 → 마지막 저장가">*</span>':'')+'</td>'
+            +'<td style="text-align:right;padding:2px 6px">'+shf(r.sh)+'주</td><td style="text-align:right;padding:2px 6px">'+pxs+'</td>'
+            +'<td style="text-align:right;padding:2px 6px">'+m(r.val)+'</td></tr>';
+        });
+        h+='<tr><td style="padding:2px 6px">💵 현금</td><td></td><td></td><td style="text-align:right;padding:2px 6px">'+(K?krw(a.cash):'$'+(+a.cash||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}))+'</td></tr></table>';
+        if(a.auto) h+='<div class="src" style="font-size:11px">🔁 자동: '+a.auto+'</div>';
+      });
+      h+='<div class="src" style="font-size:11px;margin-top:6px">기준일 '+v.date+' · 환율 ₩'+Math.round(FX)+'/$ · 매일 아침 브리핑 때 갱신'+((v.saved_px||[]).length?' · * 표시는 시세 조회 실패로 마지막 저장가 사용':'')+'</div>';
+      el.innerHTML=h;
+    }
     // ── 10억 목표 트래커 ──
     function renderGoal(){
       var el=document.getElementById('dashGoal'); if(!el) return;
@@ -1683,6 +1715,7 @@ const Dash = {
       var FX=g.fx||1418, targetKRW=g.target_krw||1e9, targetUSD=targetKRW/FX;
       var cur=0;
       if(nw&&Array.isArray(nw.hist)&&nw.hist.length){ cur=+nw.hist[nw.hist.length-1].total||0; }
+      try{ var _av=JSON.parse(localStorage.getItem('isl_accounts_v1')||'null'); if(_av&&_av.grand_usd>0) cur=+_av.grand_usd; }catch(e){}   // 계좌별 합계(텔레그램과 동일)를 우선
       var prog=targetUSD>0?Math.min(100,cur/targetUSD*100):0;
       var fill=Math.round(prog/5), bar='█'.repeat(fill)+'░'.repeat(20-fill);
       var krw=function(u){return u*FX;};
@@ -1710,9 +1743,9 @@ const Dash = {
       var nm=new Date(t0); nm.setDate(t0.getDate()+((1-dow)+7)%7);
       var isMon=(dow===1);
       var fmtK=function(v){return v>=1e8?('₩'+(v*1418/1e8).toFixed(2)+'억'):('₩'+Math.round(v*1418/1e4)+'만');};
-      var buyLine=function(){ return isMon
-        ? '<div class="box" style="border-color:#22c55e;background:#052e16"><div class="l">🔁 오늘</div><div class="v" style="color:#4ade80">자동매수일(월)</div></div>'
-        : '<div class="box"><div class="l">🔁 다음 자동매수</div><div class="v" style="font-size:14px">'+iso(nm)+' (월)</div></div>'; };
+      var buyLine=function(W){ return W>0
+        ? '<div class="box" style="border-color:#22c55e;background:#052e16"><div class="l">🔁 자동매수</div><div class="v" style="color:#4ade80;font-size:14px">매 거래일 $'+W+'</div></div>'
+        : '<div class="box"><div class="l">🖐 매수 방식</div><div class="v" style="font-size:14px">수동</div></div>'; };
       var renderAccum=function(key, elId, isLev){
         var b=JSON.parse(localStorage.getItem(key)||'null'); var el=document.getElementById(elId);
         if(!el) return;
@@ -1720,7 +1753,7 @@ const Dash = {
         var W=b.daily_usd||0, sh=b.sh||0, avg=b.avg||0;
         var P0=(Array.isArray(b.log)&&b.log.length?(b.log[b.log.length-1].px||0):0)||avg||0;
         var totUsd=(Array.isArray(b.log))? b.log.reduce(function(a,l){return a+(l.usd||0);},0):0;
-        var h='<div class="kpi">'+buyLine()
+        var h='<div class="kpi">'+buyLine(W)
           +'<div class="box"><div class="l">보유</div><div class="v">'+sh.toFixed(3)+'주</div></div>'
           +'<div class="box"><div class="l">평단</div><div class="v">$'+R.fmt(avg)+'</div></div>'
           +'<div class="box"><div class="l">평가금</div><div class="v">$'+R.fmt(sh*P0)+'</div></div>'
@@ -1742,7 +1775,7 @@ const Dash = {
         el.innerHTML=h;
       };
       (function(){ try{ renderGoal(); }catch(e){ console.log('goal',e); } })();
-      renderAccum('isl_qqqm_v1','dashQqqm',false);
+      (function(){ try{ renderAccounts(); }catch(e){ console.log('accounts',e); } })();
       renderAccum('isl_dgro_v1','dashDgro',false);
       renderAccum('isl_qld_v1','dashQld',true);
       // ── QQQM:DGRO 비중 리밸런싱 ──
@@ -2507,7 +2540,7 @@ const DTE = {
         +'<div class="box"><div class="l">현재 US ETF 세후</div><div class="v">$'+R.fmt(usn)+'</div></div>'
         +'<div class="box"><div class="l">달성률</div><div class="v">'+p.toFixed(0)+'%</div></div>'
         +'<div class="box"><div class="l">남은</div><div class="v">$'+R.fmt(Math.max(0,goal-usn))+'</div></div></div>'
-        +'<div class="src" style="margin-top:6px">'+bar+' · 구성: 토스 매 거래일 QLD $20·DGRO $5 (배당 재원) + TQQQ VR 격주 $250(봉급) + ISA 배당은 커버드콜 재투자</div></div>';
+        +'<div class="src" style="margin-top:6px">'+bar+' · 구성: 인컴엔진 매 거래일 DGRO $20·GPIQ $5 (배당 재원) + TQQQ VR 격주 $231(봉급) + ISA 441640 매월 2주</div></div>';
     }catch(e){ console.log('dte goal',e); }
     // ── 🔥 ROC 히트맵 (추정) ──
     try{
