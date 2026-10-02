@@ -959,17 +959,16 @@ const IBengine = {
     if(priceMissing) endAvg=avg;
     else if(endShares===0) endAvg=0;
     else endAvg = (avg*shares + (bs>0?bs*bp:0) - avg*(ss||0))/endShares;
-    const buyInc = (bs>= (o.starQty+o.avgQty) && bs>0) ? 1 : (bs>0 ? 0.5 : 0);
+    // T = 금액 기준: 보유원가(주수×평단) ÷ 1회매수금 — 서버(apply_fills.ib_fill)와 동일.
+    // 매수는 투입액만큼, 쿼터매도는 원가 1/4 감소(=T×0.75), 지정가(3/4)매도는 T×0.25와 같아짐.
+    const tOf = (sh,av) => o.F>0 ? (sh*av)/o.F : T;
     let newT, action;
     if(priceMissing){ newT=T; action='가격입력필요'; }
     else if((bs||0)===0 && (ss||0)===0){ newT=T; action='No Fill'; }
     else if(endShares===0){ newT=0; action='Cycle End'; }
-    else if((ss||0)>0){
-      const isDesig = ss>=o.desigQty;
-      newT = (isDesig ? T*0.25 : T*0.75) + buyInc;
-      action = (isDesig?'지정가매도(T×0.25)':'쿼터매도(T×0.75)') + (buyInc?(' + 매수(+'+buyInc+')'):'');
-    } else { newT=T+buyInc; action='매수(+'+buyInc+')'; }
-    return {endShares,endCash:R.money(endCash),endAvg:endAvg===0?0:R.money(endAvg),newT:R.fix(newT,4),action};
+    else { newT=tOf(endShares,endAvg);
+      action=((ss||0)>0?(ss>=o.desigQty?'지정가매도':'쿼터매도'):'매수')+' → T '+R.fix(T,2)+'→'+R.fix(newT,2)+' (보유원가÷1회매수금)'; }
+    return {endShares,endCash:R.money(endCash),endAvg:endAvg===0?0:R.money(endAvg),newT:R.fix(newT,2),action};
   }
 };
 
@@ -1010,7 +1009,10 @@ const IB = {
       +'<div class="box"><div class="l">별% / 별지점</div><div class="v">'+R.pct(o.starPct)+' / '+(o.starPoint?('$'+R.fmt(o.starPoint)):'–')+'</div></div>'
       +'<div class="box"><div class="l">1회매수금</div><div class="v">$'+R.fmt(o.F)+'</div></div>'
       +'<div class="box"><div class="l">모드</div><div class="v">'+(o.reverse?'<span class="pill warn">리버스 필요</span>':'<span class="pill ok">일반</span>')+'</div></div>'
-      +'</div>';
+      +'</div>'
+      +(function(){ const inv=p.shares*p.avg, tm=o.F>0?inv/o.F:0, gap=p.T-tm;   // 진행률: T(회차) vs 실제 투입(회분)
+          return '<div class="src" style="margin-top:6px">진행: T '+p.T+'/'+p.N+' · 실제 투입 $'+R.fmt(inv)+' = <b>'+tm.toFixed(1)+'회분</b>'
+            +(Math.abs(gap)>=1?' <span style="color:#ff9d5c">(T가 '+(gap>0?'+':'')+gap.toFixed(1)+' 앞섬 — 1주 단위 반올림 때문)</span>':'')+'</div>'; })();
     const row=(cls,label,type,price,qty)=>{ const amt=(price&&qty)?price*qty:'';
       return '<tr class="'+cls+'"><td>'+label+'</td><td><span class="pill '+cls+'">'+type+'</span></td><td>'+(price?('$'+R.fmt(price)):'–')+'</td><td>'+(qty||0)+'</td><td>'+(amt?('$'+R.fmt(amt)):'–')+'</td></tr>'; };
     const dipRows=(o.dipOrders||[]).map((d,i)=>row('buy','⑤ 급락 하단 LOC '+(i+1)+' (누적 '+d.cum+'주)','매수',d.price,d.qty)).join('');
@@ -1066,7 +1068,7 @@ const IB = {
       +'<tr><td>매도 수량</td><td>내림(보유 '+sh+' / '+div+') = <b>'+sellQty+'주</b></td></tr>'
       +'<tr><td>별지점(최근5일 평균)</td><td>'+(isNaN(star)?'최근 5일 종가 평균 입력':'$'+R.fmt(star))+'</td></tr>'
       +'<tr class="buy"><td>쿼터매수 예산</td><td>'+(first?'첫날은 매수 없음':'총현금/4 = <b>$'+R.fmt(buyBudget)+'</b> (별지점 아래 LOC)')+'</td></tr>'
-      +'</tbody></table><div class="note">T 갱신: '+(N>=40?'40분할 — 매도 T×0.95, 매수 T+(40−T)×0.25':'20분할 — 매도 T×0.9, 매수 T+(20−T)×0.25')+'.</div>';
+      +'</tbody></table><div class="note">T 갱신: 금액 기준 — 체결 후 T = 보유원가(주수×평단) ÷ 1회매수금 (매도 '+div+'분의 1 → T도 '+div+'분의 1 감소). 체결을 텔레그램/앱에 반영하면 자동 계산.</div>';
   }
 };
 
