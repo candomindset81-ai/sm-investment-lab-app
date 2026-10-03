@@ -79,6 +79,13 @@
   .note{font-size:12px;color:var(--muted);margin-top:6px}
   .src{font-size:11.5px;color:#6b7896}
   /* 차트 개편(XC) */
+  .hub-hold{width:100%;border-collapse:collapse;font-size:13px}.hub-hold th{font-size:11.5px;color:var(--muted);font-weight:600;text-align:right;padding:4px 4px;line-height:1.2}
+  .hub-hold td{text-align:right;padding:7px 4px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}.hub-hold th:first-child,.hub-hold td:first-child{text-align:left}
+  .hub-hold tfoot td{font-weight:800;border-top:2px solid var(--line)}
+  details.fold{padding:0}details.fold>summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:700;font-size:14px;color:var(--txt);display:flex;align-items:center;gap:6px}
+  details.fold>summary::-webkit-details-marker{display:none}details.fold>summary::before{content:'▸';color:var(--muted);transition:transform .15s}
+  details.fold[open]>summary::before{transform:rotate(90deg)}details.fold[open]{padding-bottom:12px}details.fold>*:not(summary){margin-left:14px;margin-right:14px}
+  .card details.fold{border:1px solid var(--line);border-radius:10px;margin-top:10px}details.fold .card.folded{border:0;background:transparent;padding:0;margin:0}
   .xc-head{margin:2px 0 8px}.xc-head .big{font-size:20px;font-weight:800;line-height:1.3}.xc-head .sub{font-size:13px;color:#cbd5e6;margin-top:2px}
   .xc-sec{font-size:13px;color:#cbd5e6;margin:12px 0 6px;font-weight:600}
   .xc-rng{display:inline-flex;gap:2px;background:#232c3d;border:1px solid var(--line);border-radius:8px;padding:2px}
@@ -474,12 +481,13 @@
 
 <section id="income" class="tab hub">
   <div class="card">
-    <h2>💰 인컴 엔진 <span class="tag">QDTE · XDTE · JEPQ · 441640 · 458730</span></h2>
+    <h2>📋 보유 종목 <span class="tag">인컴엔진 · ISA</span></h2>
+    <div id="wi_table" style="margin-top:4px"></div>
+    <details class="fold"><summary>✏️ 보유 직접 수정 · 배당 세율</summary>
     <div class="note">주간 배당 ETF 보유를 입력하면 평가금·비중·주/월/연 배당·Yield on Cost를 계산합니다. 기존 매매 전략(VR·무한매수법)과 <b>완전히 독립된 모듈</b>이며, 데이터는 이 브라우저에만 저장됩니다.</div>
     <div class="grid">
       <label class="f">배당 세율(%)<input id="wi_tax" type="number" step="0.1" value="15" onchange="Income.setTax()"></label>
     </div>
-    <h3>① 보유 입력 (추가/수정)</h3>
     <div class="grid yellow">
       <label class="f">종목<input id="wi_sym" type="text" placeholder="QDTE" value=""></label>
       <label class="f">보유수량<input id="wi_sh" type="number" step="1" value=""></label>
@@ -489,11 +497,10 @@
       <label class="f">목표비중(%)<input id="wi_tw" type="number" step="1" value=""></label>
     </div>
     <div class="btnrow"><button class="act" onclick="Income.add()">➕ 추가/갱신</button></div>
-    <div id="wi_table" style="margin-top:12px"></div>
+    </details>
   </div>
   <div id="income_monitors"></div>
-  <div class="card">
-    <h3>🛒 매수 배분 계산기</h3>
+  <details class="card fold"><summary>🛒 매수 배분 계산기</summary>
     <div class="note">투자할 금액을 넣으면 <b>목표 비중</b>에 맞춰 종목별 <b>매수 주수</b>를 계산합니다. (① 에 종목·현재가·목표비중을 먼저 입력. 목표비중 미설정 시 동일 비중으로 배분)</div>
     <div class="grid yellow">
       <label class="f">투자 금액($)<input id="bp_amt" type="number" step="1" value=""></label>
@@ -501,9 +508,8 @@
     </div>
     <div class="btnrow"><button class="act" onclick="BuyPlan.calc()">매수 주수 계산</button></div>
     <div id="bp_out" style="margin-top:12px"></div>
-  </div>
-  <div class="card">
-    <h3>② 배당 수령 기록</h3>
+  </details>
+  <details class="card fold"><summary>🧾 배당 수령 기록 (직접 입력)</summary>
     <div class="note">실제로 받은 배당을 기록하면 누적·세후가 집계됩니다.</div>
     <div class="grid yellow">
       <label class="f">날짜<input id="wd_date" type="date" value=""></label>
@@ -517,12 +523,11 @@
     </div>
     <div id="wd_sched" class="src" style="margin-top:8px"></div>
     <div id="wd_out" style="margin-top:10px"></div>
-  </div>
-  <div class="card">
-    <h3>📈 배당 추이 (종목별)</h3>
+  </details>
+  <details class="card fold"><summary>📈 배당 추이 (종목별)</summary>
     <div class="note">기록된 배당을 종목별로 주차별 비교합니다. 주당 분배금은 매주 변동폭이 크니 추세로 보세요.</div>
     <div id="wd_chart" style="margin-top:8px"></div>
-  </div>
+  </details>
 </section>
 
 <section id="goals" class="tab active dashg">
@@ -612,17 +617,17 @@
 
 <section id="pro" class="tab hub">
   <div class="card">
-    <h2>💹 인컴 Pro <span class="tag">QDTE·XDTE·JEPQ·441640·458730 전문 분석</span></h2>
-    <div class="note">전문 지표(YoC·CAGR·MDD·Sharpe 등)·배당 시뮬레이터·차트·내보내기. 실측 지표는 서버(Roundhill 일별 NAV·리스크)에서 매일 계산되고, 시뮬레이터는 <b>가정 기반 추정</b>입니다. 목표비중 QDTE 34 / XDTE 33 / JEPQ 33. <b>JEPQ는 월배당·JPMorgan</b>이라 Roundhill 공식 NAV·주간 지표는 QDTE·XDTE만 제공됩니다.</div>
+    <h2>🔬 상세 분석 · 도구 <span class="tag">필요할 때 펼쳐 보기</span></h2>
+    <details class="fold"><summary>⬇️ 내보내기 (CSV · Excel · PNG · PDF)</summary>
     <div class="btnrow">
-      <button class="act" onclick="CS.fetch()">☁️ 클라우드에서 새로고침</button>
       <button class="act" onclick="Pro.exportCSV()">⬇️ CSV</button>
       <button class="act" onclick="Pro.exportXLS()">⬇️ Excel</button>
       <button class="act" onclick="Pro.exportPNG()">⬇️ 차트 PNG</button>
       <button class="act" onclick="window.print()">🖨️ PDF(인쇄)</button>
-    </div>
-    <div id="pro_sim_inputs" style="margin-top:12px">
-      <h3 style="margin:6px 0">🔮 배당 시뮬레이터 <span class="small muted">(가정 기반 추정 · 실측 아님)</span></h3>
+    </div></details>
+    <div id="pro_out" style="margin-top:4px"><span class="small muted">클라우드 데이터를 불러오는 중…</span></div>
+    <details class="fold"><summary>🔮 배당 시뮬레이터 <span class="small muted">(가정 기반 추정)</span></summary>
+    <div id="pro_sim_inputs" style="margin-top:8px">
       <div class="kpi" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
         <div class="box"><div class="l">기간(년)</div><select id="pro_years" style="width:100%"><option>1</option><option>3</option><option selected>5</option><option>10</option></select></div>
         <div class="box"><div class="l">NAV 변화 %/년</div><input id="pro_nd" type="number" value="-12" step="0.5" style="width:100%"></div>
@@ -634,10 +639,10 @@
       </div>
       <div class="btnrow"><button class="act" onclick="Pro.simulate()">▶️ 시뮬레이션 실행 (3가지 재투자 방식)</button></div>
     </div>
-    <div id="pro_out" style="margin-top:12px"><span class="small muted">클라우드 데이터를 불러오는 중…</span></div>
     <div id="pro_sim_out" style="margin-top:12px"></div>
-    <div class="card" style="border:1px solid #3a6ea5;background:rgba(58,110,165,0.06);margin-top:14px">
-      <h3 style="margin:0 0 6px;color:#7fb2ff">💡 원리 · 왜 배당이 줄고, 재투자가 필요한가</h3>
+    </details>
+    <details class="fold"><summary>💡 원리 · 왜 배당이 줄고, 재투자가 필요한가</summary>
+    <div style="margin-top:6px">
       <div style="font-size:13px;line-height:1.7">
         <b>1) 배당 = NAV(순자산)의 일정 비율</b> — 재원이 옵션 프리미엄이라 펀드 자산 규모(NAV)에 비례합니다. 그래서 <b>NAV가 줄면 주당 배당(달러)도 같이 줄어요.</b><br>
         <b>2) 이 ETF들은 구조적으로 NAV가 매년 −8~−15% 침식</b> — 상승은 커버드콜로 잘리고 하락은 그대로 맞는 데다, 분배금의 40~50%가 <b>ROC(자본환급=내 원금 되돌려주기)</b>라 그만큼 NAV가 깎입니다(⚠️ 원금잠식).<br>
@@ -646,6 +651,7 @@
         <b>→ 핵심: "주당 배당은 녹지만, 재투자로 주식 수를 불리면 총 배당이 커진다."</b>
       </div>
     </div>
+    </details>
   </div>
 </section>
 
@@ -2774,7 +2780,106 @@ const Refresh = {
     if(btn){ btn.innerHTML='⏳ 새로고침 중…'; btn.disabled=true; }
     let hasTok=false;
     try{ hasTok=(typeof CS!=='undefined' && CS.token && !!CS.token()); if(hasTok){ await CS.fetch(); } }catch(e){ console.log('refresh cloud',e); }
-    try{ IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); renderMacro(); QDTE.render(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); renderTodayOrders(); }catch(e){ console.log('refresh render',e); }
+    try{ 
+/* ===================== 인컴 허브 정리(2026-10-02) =====================
+   한눈에 요약(맨 위) → 보유 종목 → 종목 건강도(NAV 엔진) 만 펼쳐 두고, 나머지 분석·도구는 한 줄로 접는다.
+   계산·렌더 함수는 그대로 두고, 렌더 직후 배치만 바꾼다(WOS.refresh·Pro.render 뒤 자동 실행). */
+const Hub = {
+  REMOVE:[/적립블록 배당/, /계좌별 요약/],                    // 대시보드·요약과 중복 → 숨김
+  FOLD:[/종합과세 모니터/, /연말 양도세/, /배당 수령 원장/, /전문 지표/, /배분 · 배당 추이/, /실측 분석/],
+  title(card){ const h=card.querySelector('h2,h3'); if(!h) return '';
+    const c=h.cloneNode(true); c.querySelectorAll('.small,.muted,.tag').forEach(function(x){x.remove();}); return c.textContent.trim(); },
+  wrap(card){ if(card.parentNode && card.parentNode.classList && card.parentNode.classList.contains('fold')) return;
+    const d=document.createElement('details'); d.className='card fold';
+    const s=document.createElement('summary'); s.textContent=this.title(card); d.appendChild(s);
+    card.parentNode.insertBefore(d,card); d.appendChild(card); card.classList.add('folded'); },
+  num(s){ return +(String(s||'').replace(/[^\d.\-]/g,''))||0; },
+  held(){ const s={}; Income.load().forEach(function(x){ if((+x.sh||0)>0) s[String(x.sym).toUpperCase()]=1; }); return s; },
+  holdHTML(){   // 휴대폰용 5열 보유표 (원본 표·수정 버튼은 '보유 직접 수정' 안으로)
+    const inc=Income.load().filter(function(x){return (+x.sh||0)>0;}), tt=Income.totals(); let rows='';
+    inc.map(function(x){ const mv=x.sh*x.px, y=x.sh*(+x.dist||0)*Income.freqN(x), net=y*(1-Income.taxRateFor(x.sym))/12;
+        return {sym:x.sym, mv:mv, w:tt.mv>0?mv/tt.mv*100:0, net:net, yoc:(x.sh*x.avg)>0?y/(x.sh*x.avg)*100:0, isa:Income.isKRX(x.sym)}; })
+      .sort(function(a,b){return b.mv-a.mv;})
+      .forEach(function(r){ rows+='<tr><td><b>'+XC.esc(r.sym)+'</b>'+(r.isa?' <span class="tag" style="font-size:10px">ISA</span>':'')+'</td><td>$'+R.fmt(r.mv,0)+'</td><td>'+r.w.toFixed(0)+'%</td><td>$'+R.fmt(r.net)+'</td><td>'+r.yoc.toFixed(1)+'%</td></tr>'; });
+    return '<table class="hub-hold"><thead><tr><th>종목</th><th>평가금</th><th>비중</th><th>월배당<br><span class="muted">세후</span></th><th>YoC</th></tr></thead><tbody>'+rows
+      +'</tbody><tfoot><tr><td>합계</td><td>$'+R.fmt(tt.mv,0)+'</td><td>100%</td><td>$'+R.fmt(tt.moNet)+'</td><td>'+(tt.cost>0?(tt.yr/tt.cost*100).toFixed(1)+'%':'-')+'</td></tr></tfoot></table>'
+      +'<div class="src">월배당 세후 = 미국 15% 원천징수 반영, ISA 비과세. DGRO 분기배당은 합계에 포함.</div>';
+  },
+  summaryHTML(){
+    const inc=Income.load().filter(function(x){return (+x.sh||0)>0;}), tt=Income.totals();
+    let goal=700; try{ const wf=+document.getElementById('wf_target').value; if(wf>0) goal=wf; }catch(e){}   // 자본흐름 탭의 월 배당 목표(세후)
+    const prog=goal>0?Math.min(100,tt.moNet/goal*100):0, yieldNow=tt.mv>0?tt.yr/tt.mv*100:0, yoc=tt.cost>0?tt.yr/tt.cost*100:0;
+    // 종합과세: 접기 전 모니터 카드에서 숫자 그대로(계산 중복 방지)
+    let fin=0, lim=20000000; const mon=[].slice.call(document.querySelectorAll('#income_monitors .card')).find(function(c){return /종합과세/.test(c.textContent);});
+    if(mon){ const m=mon.textContent.match(/연 금융소득\s*₩([\d,]+)/); if(m) fin=this.num(m[1]); }
+    // 주의 종목: NAV 엔진과 같은 기준
+    let warn=[]; try{ const d=Pro._last||Pro.data(); (d.rows||[]).forEach(function(x){ const nh=Pro.navHealth(x), ds=Pro.divSustain(x), rk=[];
+      if((x.decay||{}).m12!=null&&x.decay.m12<=-15) rk.push('NAV 1년 '+x.decay.m12.toFixed(0)+'%');
+      if(x.roc!=null&&x.roc>=70) rk.push('ROC '+x.roc.toFixed(0)+'%');
+      if(nh&&nh.score<40) rk.push('NAV건강 '+nh.score);
+      if(ds&&ds.score<40) rk.push('배당지속 '+ds.score);
+      if(rk.length && Hub.held()[String(x.sym).toUpperCase()]) warn.push('<b>'+XC.esc(x.sym)+'</b> '+rk.join(' · ')); }); }catch(e){}
+    const bar=function(p,col){ return '<div class="xc-bar" style="margin:4px 0 6px"><div class="f" style="width:'+p.toFixed(1)+'%;background:'+col+'"></div></div>'; };
+    let h='<h2>💡 인컴 한눈에</h2>'
+      +'<div class="xc-head"><div class="big">월 배당 $'+R.fmt(tt.moNet)+' <span class="muted" style="font-size:14px">세후 · 목표 $'+R.fmt(goal,0)+'</span></div>'
+      +'<div class="sub">'+(tt.moNet>=goal?'✅ 목표 달성':'목표까지 <b>$'+R.fmt(goal-tt.moNet)+'/월</b> 부족 · '+prog.toFixed(0)+'%')+'</div></div>'
+      +bar(prog,'#199e70')
+      +'<div class="kpi" style="margin-top:8px">'
+      +'<div class="box"><div class="l">연 배당(세전)</div><div class="v">$'+R.fmt(tt.yr,0)+'</div></div>'
+      +'<div class="box"><div class="l">평가금</div><div class="v">$'+R.fmt(tt.mv,0)+'</div></div>'
+      +'<div class="box"><div class="l">배당수익률 / YoC</div><div class="v">'+yieldNow.toFixed(1)+'% <span class="small muted">/ '+yoc.toFixed(1)+'%</span></div></div>'
+      +'<div class="box"><div class="l">종목 수</div><div class="v">'+inc.length+'</div></div></div>';
+    if(fin>0){ const fp=Math.min(100,fin/lim*100);
+      h+='<div class="xc-sec">🇰🇷 금융소득 종합과세 <span class="muted">(미국계좌 배당 · ISA 제외)</span> — ₩'+(fin/1e4).toFixed(0)+'만 / ₩2,000만 ('+fp.toFixed(0)+'%)</div>'
+        +bar(fp, fp>=95?'#d95926':'#3987e5'); }
+    h+='<div class="xc-sec">⚠️ 주의 종목</div><div class="small" style="line-height:1.7">'+(warn.length?warn.join('<br>'):'<span class="muted">없음 — 모든 종목 정상권</span>')+'</div>'
+      +'<div class="src" style="margin-top:6px">종목별 점수·신호는 아래 \'종목 건강도\', 차트·지표·계산기는 맨 아래 \'상세 분석·도구\'에서 펼쳐 보세요.</div>';
+    return h;
+  },
+  organize(){
+    const inc=document.getElementById('income'), pro=document.getElementById('pro'); if(!inc||!pro) return;
+    const self=this;
+    // ① 요약 카드
+    let sum=document.getElementById('hub_summary');
+    if(!sum){ sum=document.createElement('div'); sum.id='hub_summary'; sum.className='card'; sum.style.borderColor='#199e70';
+      const anchor=inc.querySelector('#wi_table'); const card=anchor?anchor.closest('.card'):null; inc.insertBefore(sum, card||inc.firstChild); }
+    try{ sum.innerHTML=this.summaryHTML(); }catch(e){ console.log('hub summary',e); }
+    // ①-2 보유표: 간결 표 + 원본 표는 '보유 직접 수정' 안으로(한 번만 이동, id 유지라 계속 갱신됨)
+    const wt=document.getElementById('wi_table'), hcard=wt.closest('.card'), edit=hcard.querySelector('details.fold');
+    let hh=document.getElementById('hub_hold'); if(!hh){ hh=document.createElement('div'); hh.id='hub_hold'; hcard.insertBefore(hh, edit||wt); }
+    if(edit && wt.parentNode!==edit) edit.appendChild(wt);
+    try{ hh.innerHTML=this.holdHTML(); }catch(e){ console.log('hub hold',e); }
+    // ② 종목 건강도(NAV 엔진): 보유 종목 카드 바로 아래로
+    let slot=document.getElementById('hub_health');
+    if(!slot){ slot=document.createElement('div'); slot.id='hub_health'; const card=inc.querySelector('#wi_table').closest('.card'); card.parentNode.insertBefore(slot, card.nextSibling); }
+    const eng=[].slice.call(document.querySelectorAll('#pro_out > .card')).find(function(c){return /NAV 의사결정 엔진/.test(c.textContent);});
+    if(eng){ slot.innerHTML=''; const h3=eng.querySelector('h3'); if(h3) h3.firstChild.textContent='🧠 종목 건강도 '; slot.appendChild(eng);
+      const hs=this.held(); eng.querySelectorAll('tbody tr').forEach(function(tr){ const s=(tr.cells[0]||{}).textContent||''; if(!hs[s.trim().toUpperCase()]) tr.remove(); }); }
+    // ③ 중복 카드 숨김 · 나머지 접기
+    [].slice.call(document.querySelectorAll('#income_monitors > .card, #pro_out > .card')).forEach(function(c){
+      const tx=self.title(c);
+      if(self.REMOVE.some(function(r){return r.test(tx);})){ c.style.display='none'; return; }
+      if(self.FOLD.some(function(r){return r.test(tx);})) self.wrap(c);
+    });
+    // ④ 접힌 카드·도구를 '상세 분석·도구' 카드 안으로 모으기 (모니터 카드는 매번 다시 그려지므로 이전 이동분 교체)
+    const pcard=pro.querySelector('.card'); let more=document.getElementById('hub_more');
+    if(pcard && !more){ more=document.createElement('div'); more.id='hub_more'; const ex=pcard.querySelector('details.fold'); pcard.insertBefore(more, ex?ex.nextSibling:null); }
+    if(more){
+      const fresh=[].slice.call(document.querySelectorAll('#income_monitors > details.fold'));
+      if(fresh.length) more.querySelectorAll('[data-hub="mon"]').forEach(function(d){ d.remove(); });
+      fresh.forEach(function(d){ d.setAttribute('data-hub','mon'); d.classList.remove('card'); more.appendChild(d); });
+      [].slice.call(inc.querySelectorAll(':scope > details.fold')).forEach(function(d){ d.classList.remove('card'); more.appendChild(d); });
+      [].slice.call(document.querySelectorAll('#pro_out > details.fold')).forEach(function(d){ d.classList.remove('card'); });
+    }
+    const pr=pro.querySelector('.refresh-bar'); if(pr) pr.style.display='none';   // 새로고침 버튼은 허브 맨 위 하나만
+  }
+};
+(function(){   // 렌더 뒤 자동 정리
+  const w=function(obj,fn){ if(!obj||!obj[fn]) return; const orig=obj[fn]; obj[fn]=function(){ const r=orig.apply(this,arguments); try{ Hub.organize(); }catch(e){ console.log('hub',e); } return r; }; };
+  w(WOS,'refresh'); w(Pro,'render');
+})();
+
+IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); renderMacro(); QDTE.render(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); renderTodayOrders(); }catch(e){ console.log('refresh render',e); }
     if(btn){ btn.innerHTML = hasTok ? '✅ 최신 데이터로 갱신됨' : '✅ 갱신됨 · 클라우드 토큰 없음(매매기록 탭에서 저장)';
       setTimeout(function(){ btn.innerHTML=old; btn.disabled=false; }, 2500); }
     this.busy=false;
