@@ -136,6 +136,10 @@
 
 <main>
 <section id="dash" class="tab active dashg">
+  <div class="card" style="border-color:#d95926">
+    <h2>🧭 오늘 할 일 <span class="small muted">(VR·SOXL·인컴·배분·세금·데이터 통합 · 매일 아침 갱신)</span></h2>
+    <div id="dashActions"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
+  </div>
   <div class="card" style="border-color:#eab308">
     <h2>🎯 10억 목표 트래커</h2>
     <div id="dashGoal"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
@@ -1580,6 +1584,7 @@ const CS = {
         try{ if(s.dgro){ localStorage.setItem('isl_dgro_v1', JSON.stringify(s.dgro)); } }catch(e){}
         try{ if(s.qqqm){ localStorage.setItem('isl_qqqm_v1', JSON.stringify(s.qqqm)); } }catch(e){}
         try{ if(s.account_view){ localStorage.setItem('isl_accounts_v1', JSON.stringify(s.account_view)); } }catch(e){}
+        try{ if(s.actions){ localStorage.setItem('isl_actions_v1', JSON.stringify(s.actions)); } }catch(e){}
         try{ if(s.networth){ localStorage.setItem('isl_networth_v1', JSON.stringify(s.networth)); } }catch(e){}
         try{ if(s.goal_tracker){ localStorage.setItem('isl_goaltracker_v1', JSON.stringify(s.goal_tracker)); } }catch(e){}
         try{ if(s.qld_schd_rebal){ localStorage.setItem('isl_qldschd_rebal_v1', JSON.stringify(s.qld_schd_rebal)); } }catch(e){}
@@ -1794,6 +1799,16 @@ const Dash = {
       +'<div class="box"><div class="l">무한매수법</div><div class="v">'+ib.length+'</div></div>'
       +'<div class="box"><div class="l">VR</div><div class="v">'+vr.length+'</div></div>'
       +'<div class="box"><div class="l">마지막 기록</div><div class="v" style="font-size:14px">'+(recs[0]?new Date(recs[0].ts).toLocaleDateString('ko-KR'):'–')+'</div></div>';
+    // ── 🧭 오늘 할 일 (서버 actions.py 가 매일 아침 계산 — 텔레그램 브리핑 맨 위와 같은 목록) ──
+    function renderActions(){
+      var el=document.getElementById('dashActions'); if(!el) return;
+      var a=JSON.parse(localStorage.getItem('isl_actions_v1')||'null');
+      if(!a||!Array.isArray(a.items)){ el.innerHTML='<div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div>'; return; }
+      if(!a.items.length){ el.innerHTML='<div style="font-size:15px">✅ 오늘 할 일 없음 — 계획대로 유지</div><div class="src">기준 '+a.date+'</div>'; return; }
+      var h='<div class="xc-lad">';
+      a.items.forEach(function(x){ h+='<div class="xc-row" style="grid-template-columns:22px 52px 1fr"><span>'+x.lv+'</span><span class="d" style="color:#cbd5e6;font-weight:700">'+XC.esc(x.area)+'</span><span class="t">'+XC.esc(x.text)+'</span></div>'; });
+      el.innerHTML=h+'</div><div class="src" style="margin-top:6px">🔴 오늘 처리 · 🟠 이번 주 · 🟢 참고 — 기준 '+a.date+' 아침. 실제 주문은 주문표·증권사 화면으로 확인 후 직접.</div>';
+    }
     // ── 🏦 계좌별 자산 (서버 account_summary.py 가 매일 계산한 account_view 를 그대로 표시) ──
     function renderAccounts(){
       var el=document.getElementById('dashAccounts'); if(!el) return;
@@ -1896,6 +1911,7 @@ const Dash = {
       };
       (function(){ try{ renderGoal(); }catch(e){ console.log('goal',e); } })();
       (function(){ try{ renderAccounts(); }catch(e){ console.log('accounts',e); } })();
+      (function(){ try{ renderActions(); }catch(e){ console.log('actions',e); } })();
       renderAccum('isl_dgro_v1','dashDgro',false);
       renderAccum('isl_qld_v1','dashQld',true);
       // ── QQQM:DGRO 비중 리밸런싱 ──
