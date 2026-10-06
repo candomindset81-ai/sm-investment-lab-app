@@ -408,7 +408,7 @@
         <tr><td>현재 상태 조회</td><td><code>상태</code></td></tr>
       </tbody>
     </table>
-    <p class="src">형식: 체결 → 종목 → 매수/매도 → 수량 → 가격. 형식이 틀리면 봇이 올바른 형식을 알려줍니다. GPIQ $7·DGRO $6·JEPQ $5 매일 자동매수(10/5 미국장부터, 이전 DGRO $20·GPIQ $5)와 ISA 441640 월 2주 자동매수는 자동 반영(보낼 필요 없음).</p>
+    <p class="src">형식: 체결 → 종목 → 매수/매도 → 수량 → 가격. 형식이 틀리면 봇이 올바른 형식을 알려줍니다. GPIQ $10·DGRO $10 매일 자동매수(10/6 미국장부터 · JEPQ 자동매수 종료)와 ISA 441640 월 2주 자동매수는 자동 반영(보낼 필요 없음).</p>
   </div>
   <div class="card">
     <h2>② 무한매수법 (SOXL 20분할) — 매 거래일</h2>
@@ -685,11 +685,11 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-10-05',
-  vix:16.23,
-  tqqq:{p:81.01, rsi:74.4, m50:72.13, m200:63.56, hi:88.09, prevClose:78.73},
-  soxl:{p:163.71, rsi:83.9, m50:126.98, m200:117.52, hi:302.0, prevClose:153.69},
-  upro:{p:150.88, rsi:57.8, m50:148.73, m200:130.48, hi:158.63, prevClose:147.75}
+  asOf:'2026-10-06',
+  vix:15.35,
+  tqqq:{p:83.12, rsi:80.6, m50:72.52, m200:63.71, hi:88.09, prevClose:81.01},
+  soxl:{p:164.27, rsi:83.8, m50:127.53, m200:118.13, hi:302.0, prevClose:163.71},
+  upro:{p:153.89, rsi:65.4, m50:149.08, m200:130.67, hi:158.63, prevClose:150.88}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
@@ -2649,7 +2649,7 @@ const DTE = {
         +'<div class="box"><div class="l">현재 US ETF 세후</div><div class="v">$'+R.fmt(usn)+'</div></div>'
         +'<div class="box"><div class="l">달성률</div><div class="v">'+p.toFixed(0)+'%</div></div>'
         +'<div class="box"><div class="l">남은</div><div class="v">$'+R.fmt(Math.max(0,goal-usn))+'</div></div></div>'
-        +'<div class="src" style="margin-top:6px">'+bar+' · 구성: 인컴엔진 매 거래일 GPIQ $7·DGRO $6·JEPQ $5 (배당 재원) + TQQQ VR 격주 $231(봉급) + ISA 441640 매월 2주</div></div>';
+        +'<div class="src" style="margin-top:6px">'+bar+' · 구성: 인컴엔진 매 거래일 GPIQ $10·DGRO $10 (배당 재원) + TQQQ VR 격주 $231(봉급) + ISA 441640 매월 2주</div></div>';
     }catch(e){ console.log('dte goal',e); }
     // ── 🔥 ROC 히트맵 (추정) ──
     try{
