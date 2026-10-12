@@ -401,8 +401,7 @@
         <tr><td>SOXL 1주 매수 @134.69</td><td><code>체결 SOXL 매수 1 134.69</code></td></tr>
         <tr><td>SOXL 6주 매도 @174.14</td><td><code>체결 SOXL 매도 6 174.14</code></td></tr>
         <tr><td>VR TQQQ 1주 매수 @67.34</td><td><code>체결 TQQQ 매수 1 67.34</code> <span class="muted">(VR Pool 현금에서 차감)</span></td></tr>
-        <tr><td>Pool용 SGOV 5주 매도</td><td><code>체결 SGOV 매도 5 100.7</code> <span class="muted">(대금은 VR Pool 현금으로)</span></td></tr>
-        <tr><td>임시 보관 SGOV 매수·매도</td><td><code>체결 SGOV임시 매수 39 100.5</code> <span class="muted">(VR Pool과 별도 · 매도 대금은 레버리지 예수금 → QLD·TQQQ VR 투입용)</span></td></tr>
+        <tr><td>SGOV(임시 현금) 매수·매도</td><td><code>체결 SGOV 매수 39 100.5</code> <span class="muted">(VR Pool 계산 제외 · 매도 대금은 레버리지 예수금 → QLD 매수 또는 <code>입금 VR 500</code>으로 Pool에)</span></td></tr>
         <tr><td>QLD·인컴 종목 매수</td><td><code>체결 QLD 매수 2 92.10</code> · <code>체결 JEPQ 매수 3 57.2</code></td></tr>
         <tr><td>현금 입금</td><td><code>입금 레버리지 500</code>(SOXL 예수금) · <code>입금 VR 231</code>(VR Pool) · <code>입금 인컴 300</code> · <code>입금 ISA 500000</code></td></tr>
         <tr><td>SOXL 전량 매도 후 새 사이클</td><td><code>리셋20</code></td></tr>
@@ -431,12 +430,12 @@
     <table>
       <thead><tr><th>상황</th><th>행동</th></tr></thead>
       <tbody>
-        <tr><td>평가금이 최소밴드 밑 (급락)</td><td style="color:#8fb8ff">사다리 매수 체결 — Pool(현금+SGOV) 사용</td></tr>
+        <tr><td>평가금이 최소밴드 밑 (급락)</td><td style="color:#8fb8ff">사다리 매수 체결 — Pool 현금 사용</td></tr>
         <tr><td>밴드 안</td><td>관망 (지정가만 걸어 둠)</td></tr>
         <tr><td>평가금이 최대밴드 위 (급등)</td><td style="color:#ff9d9d">사다리 매도 체결 — 대금은 Pool로</td></tr>
       </tbody>
     </table>
-    <p class="src"><b>VR Pool</b> = Pool 현금 + SGOV. 한 사이클에 시작 Pool의 <b>75%까지만</b> 매수에 사용합니다. Pool 현금이 첫 계단들보다 적으면 '오늘 할 일'이 SGOV 일부 매도를 알려줍니다.</p>
+    <p class="src"><b>VR Pool</b> = Pool 현금(2주마다 $231 적립 포함 · SGOV는 임시 현금으로 제외). 한 사이클에 시작 Pool의 <b>75%까지만</b> 매수에 사용합니다. Pool 현금이 첫 계단들보다 적으면 '오늘 할 일'이 SGOV 일부 매도를 알려줍니다.</p>
   </div>
   <div class="card">
     <h2>❓ 자주 묻는 질문</h2>
@@ -2328,7 +2327,7 @@ const Analytics = {
       if(lev2){ var LT=+lev2.total_usd||0;
         h+='<div class="src" style="margin:8px 0 2px"><b>🚀 레버리지 계좌 구성</b></div>'
           +bar2('📈 TQQQ (VR)',symUsd.TQQQ||0,'#3987e5',LT)+bar2('⚡ SOXL (무한매수)',symUsd.SOXL||0,'#ffb454',LT)
-          +bar2('📦 QLD',symUsd.QLD||0,'#a78bfa',LT)+bar2('🏦 SGOV (VR Pool)',symUsd.SGOV||0,'#8aa0bd',LT)+((symUsd['SGOV임시']||0)>0?bar2('🧺 SGOV 임시 보관 (QLD·VR 예정 · Pool 제외)',symUsd['SGOV임시'],'#6fb3c8',LT):'')+bar2('💵 현금 (SOXL 예수금·VR Pool)',+lev2.cash||0,'#5b6b86',LT); }
+          +bar2('📦 QLD',symUsd.QLD||0,'#a78bfa',LT)+bar2('🧺 SGOV 임시 현금 (QLD·VR 예정 · Pool 제외)',(symUsd.SGOV||0)+(symUsd['SGOV임시']||0),'#6fb3c8',LT)+bar2('💵 현금 (SOXL 예수금·VR Pool 현금)',+lev2.cash||0,'#5b6b86',LT); }
       h+='<div class="src" style="margin-top:6px">'+(lp>cap?'⚠️ 상한 초과 — 신규 레버리지 매수 보류, 배당·현금은 인컴으로.':'레버리지 비중이 상한 이내입니다.')+' 하락장 충격은 아래 어드바이저의 스트레스 테스트 참고.</div>';
     } else {
       h+='<h3>자산 배분</h3>'+bar('💰 인컴(DTE)',inc,'#38d39f')+bar('📈 그로스(VR)',growth,'#4ea1ff')+bar('⚡ 알파(SOXL '+a.sh+'주×종가)',a.val,'#ffb454')+bar('💴 SOXL 예수금',soxlCash,'#8aa0bd');
