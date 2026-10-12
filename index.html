@@ -392,6 +392,20 @@
     <p class="src">🔕 평일 08:00~18:00(업무시간)에는 정규 메시지가 없고, 혹시 나가는 메시지(지연된 백업·오류 알림·봇 답장)는 <b>무음</b>으로 옵니다.<br>앱은 <b>확인·계산용</b>입니다. 대시보드 = 오늘 할 일·주문·계좌, 각 전략 탭 = 상세 계산과 차트, 인컴 허브 = 배당, 분석 = 배분·목표·재투자.</p>
   </div>
   <div class="card">
+    <h2>🧭 역할 분담 — 무엇이 무엇을 맡나</h2>
+    <table>
+      <thead><tr><th>역할</th><th>종목</th><th>방식</th></tr></thead>
+      <tbody>
+        <tr><td>🚀 성장</td><td>TQQQ (VR) · QLD</td><td>VR 2주 적립 $231 + 사다리 · QLD 여유자금 매수 — 큰 성장, 큰 변동</td></tr>
+        <tr><td>🌱 안정·배당성장</td><td>DGRO · TIGER 미국배당다우존스(458730)</td><td>DGRO 매일 자동매수(인컴 배당 재원) · 458730 ISA 매월 2주 — 나스닥과 덜 움직이고 배당이 매년 성장</td></tr>
+        <tr><td>💵 현금흐름</td><td>GPIQ · JEPQ · XDTE · EDGQ · EDGX</td><td>고배당으로 매달 현금을 만들어 DGRO를 사는 재원 (0DTE는 추가 매수 없이 보유)</td></tr>
+        <tr><td>⚡ 알파</td><td>SOXL</td><td>무한매수법 20분할</td></tr>
+        <tr><td>🏦 대기자금</td><td>현금 · SGOV(임시)</td><td>VR Pool 현금 · 나중에 QLD·TQQQ VR에 쓸 SGOV</td></tr>
+      </tbody>
+    </table>
+    <p class="src">대시보드 🏦 계좌별 자산 아래 <b>역할별 배분</b> 막대와 주간 브리핑 <b>🧭 역할별 배분</b>에서 비중 변화를 확인합니다.</p>
+  </div>
+  <div class="card">
     <h2>① 텔레그램 봇 명령 ⭐</h2>
     <table>
       <thead><tr><th>상황</th><th>보내는 메시지</th></tr></thead>
@@ -1523,6 +1537,7 @@ const CS = {
         try{ if(s.qqqm){ localStorage.setItem('isl_qqqm_v1', JSON.stringify(s.qqqm)); } }catch(e){}
         try{ if(s.account_view){ localStorage.setItem('isl_accounts_v1', JSON.stringify(s.account_view)); } }catch(e){}
         try{ if(s.actions){ localStorage.setItem('isl_actions_v1', JSON.stringify(s.actions)); } }catch(e){}
+        try{ if(s.role_view){ localStorage.setItem('isl_roles_v1', JSON.stringify(s.role_view)); } }catch(e){}
         try{ if(s.networth){ localStorage.setItem('isl_networth_v1', JSON.stringify(s.networth)); } }catch(e){}
         try{ if(s.goal_tracker){ localStorage.setItem('isl_goaltracker_v1', JSON.stringify(s.goal_tracker)); } }catch(e){}
         try{ if(s.qld_schd_rebal){ localStorage.setItem('isl_qldschd_rebal_v1', JSON.stringify(s.qld_schd_rebal)); } }catch(e){}
@@ -1771,6 +1786,14 @@ const Dash = {
         h+='<div class="box"><div class="l">'+a.title+'</div><div class="v">'+usd(a.total_usd)+'<br><span class="muted small">'+pct.toFixed(0)+'%'+(a.ccy==='KRW'?' · '+krw(a.total):'')+'</span></div></div>';
       });
       h+='<div class="box" style="border-color:#22c55e"><div class="l">💰 총자산</div><div class="v">'+usd(v.grand_usd)+'<br><span class="muted small">₩'+((+v.grand_krw||0)/1e8).toFixed(2)+'억</span></div></div></div>';
+      try{ var RV=JSON.parse(localStorage.getItem('isl_roles_v1')||'null');   // 🧭 역할별 배분(성장·안정·현금흐름·알파·대기)
+        if(RV&&Array.isArray(RV.rows)){ var RC={growth:'#3987e5',stable:'#22c55e',cash:'#eab308',alpha:'#ffb454',reserve:'#8aa0bd'};
+          h+='<div class="src" style="margin-top:10px"><b>🧭 역할별 배분</b> <span class="muted">(성장 TQQQ·QLD · 안정·배당성장 DGRO·458730)</span></div>'
+            +'<div style="display:flex;height:14px;border-radius:7px;overflow:hidden;margin:4px 0">';
+          RV.rows.forEach(function(r){ if(r.pct>0) h+='<div title="'+r.label+' '+r.pct+'%" style="width:'+r.pct+'%;background:'+(RC[r.key]||'#5b6b86')+'"></div>'; });
+          h+='</div><div class="src" style="font-size:12px">';
+          RV.rows.forEach(function(r){ if(r.usd>0) h+='<span style="margin-right:10px;white-space:nowrap"><span style="color:'+(RC[r.key]||'#5b6b86')+'">■</span> '+r.label+' <b>'+r.pct.toFixed(0)+'%</b> '+usd(r.usd)+'</span> '; });
+          h+='</div>'; } }catch(e){}
       h+='<details class="fold" style="margin-top:8px"><summary>📋 종목별 보유 · 현금</summary>';
       v.accounts.forEach(function(a){
         var K=a.ccy==='KRW', m=K?krw:usd;
