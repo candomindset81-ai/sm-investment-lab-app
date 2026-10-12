@@ -150,10 +150,8 @@
   <div class="card" style="border-color:#22c55e">
     <h2>🏦 계좌별 자산 <span class="small muted">(ISA · 레버리지 · 인컴엔진 — 텔레그램 계좌요약과 같은 숫자)</span></h2>
     <div id="dashAccounts"><div class="muted small">클라우드 새로고침(☁️) 후 표시됩니다.</div></div>
-    <details class="fold" style="margin-top:10px"><summary>🔁 DGRO 일일 자동적립 · 📦 QLD 보유 상세</summary>
-      <h3 style="margin:8px 0 6px">🔁 DGRO <span class="small muted">(인컴엔진 계좌 · 매 거래일 소수점 자동매수)</span></h3>
-      <div id="dashDgro"></div>
-      <h3 style="margin:14px 0 6px">📦 QLD <span class="small muted">(레버리지 계좌 · 여유자금 수동 매수)</span></h3>
+    <details class="fold" style="margin-top:10px"><summary>📦 QLD 보유 상세</summary>
+      <h3 style="margin:8px 0 6px">📦 QLD <span class="small muted">(레버리지 계좌 · 여유자금 수동 매수)</span></h3>
       <div id="dashQld"></div>
     </details>
   </div>
@@ -1521,7 +1519,7 @@ const CS = {
         try{ if(s.income && s.income.real_stats){ localStorage.setItem('isl_realstats_v1', JSON.stringify(s.income.real_stats)); } }catch(e){}
         try{ if(s.income && s.income.monthly_series){ localStorage.setItem('isl_monthly_v1', JSON.stringify(s.income.monthly_series)); } }catch(e){}
         try{ if(s.qld){ localStorage.setItem('isl_qld_v1', JSON.stringify(s.qld)); } }catch(e){}
-        try{ if(s.dgro){ localStorage.setItem('isl_dgro_v1', JSON.stringify(s.dgro)); } }catch(e){}
+        try{ if(s.dgro){ localStorage.setItem('isl_dgro_v1', JSON.stringify(s.dgro)); } else { localStorage.removeItem('isl_dgro_v1'); } }catch(e){}   // 2026-10-12 DGRO는 인컴 보유종목으로 통합
         try{ if(s.qqqm){ localStorage.setItem('isl_qqqm_v1', JSON.stringify(s.qqqm)); } }catch(e){}
         try{ if(s.account_view){ localStorage.setItem('isl_accounts_v1', JSON.stringify(s.account_view)); } }catch(e){}
         try{ if(s.actions){ localStorage.setItem('isl_actions_v1', JSON.stringify(s.actions)); } }catch(e){}
@@ -1548,7 +1546,7 @@ const CS = {
         s.income.holdings.forEach(function(c){
           const fN=DFREQ(c.sym,c.freq); const _y=(+c.sh||0)*(+c.dist||0)*fN; yr += _y;
           const _kr=(/^\d/.test(String(c.sym))||c.ccy==='KRW'||c.account==='ISA')?0:taxP; yrNet += _y*(1-_kr);
-          const lbl=(fN===12)?'월배당':'주배당';
+          const lbl=(fN===12)?'월배당':(fN===4?'분기배당':'주배당');
           h+='<tr><td>💰 '+c.sym+'</td><td>'+(c.sh||0)+'주 · 평단 $'+(+c.avg||0).toFixed(2)+' · 주당 '+lbl+' $'+(+c.dist||0).toFixed(4)+'</td></tr>';
         });
         const tax=taxP, tgt=+s.income.target_monthly_net||700;
@@ -1863,7 +1861,6 @@ const Dash = {
       (function(){ try{ renderGoal(); }catch(e){ console.log('goal',e); } })();
       (function(){ try{ renderAccounts(); }catch(e){ console.log('accounts',e); } })();
       (function(){ try{ renderActions(); }catch(e){ console.log('actions',e); } })();
-      renderAccum('isl_dgro_v1','dashDgro',false);
       renderAccum('isl_qld_v1','dashQld',true);
       // ── QQQM:DGRO 비중 리밸런싱 ──
       (function(){
