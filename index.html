@@ -697,22 +697,22 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-10-12',
-  vix:15.47,
-  tqqq:{p:81.28, rsi:55.9, m50:74.18, m200:64.32, hi:88.09, prevClose:80.23},
-  soxl:{p:139.76, rsi:48.6, m50:130.75, m200:120.36, hi:302.0, prevClose:142.52},
-  upro:{p:155.72, rsi:53.1, m50:150.65, m200:131.49, hi:158.63, prevClose:153.13}
+  asOf:'2026-10-27',
+  vix:18.23,
+  tqqq:{p:68.43, rsi:24.9, m50:73.93, m200:65.28, hi:88.09, prevClose:66.29},
+  soxl:{p:90.5, rsi:17.0, m50:123.78, m200:123.41, hi:302.0, prevClose:83.56},
+  upro:{p:147.05, rsi:36.3, m50:150.0, m200:133.19, hi:158.63, prevClose:144.04}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
 /* ===================== 매크로 데이터 (매주 자동 갱신 블록) =====================
    [AUTO-UPDATE:MACRO] 매주 자동 작업이 이 블록만 교체합니다. */
 const MACRO = {
-  asOf:'2026-10-10',
-  vix:14.84,
+  asOf:'2026-10-25',
+  vix:19.45,
   regime:'상승',
   fearGreed:'-',
-  us10y:'5.24%',
+  us10y:'4.99%',
   fedRate:'-',
   note:''
 };
@@ -2347,7 +2347,7 @@ const Analytics = {
       if(lev2){ var LT=+lev2.total_usd||0;
         h+='<div class="src" style="margin:8px 0 2px"><b>🚀 레버리지 계좌 구성</b></div>'
           +bar2('📈 TQQQ (VR)',symUsd.TQQQ||0,'#3987e5',LT)+bar2('⚡ SOXL (무한매수)',symUsd.SOXL||0,'#ffb454',LT)
-          +bar2('📦 QLD',symUsd.QLD||0,'#a78bfa',LT)+bar2('🧺 SGOV 임시 현금 (QLD·VR 예정 · Pool 제외)',(symUsd.SGOV||0)+(symUsd['SGOV임시']||0),'#6fb3c8',LT)+bar2('💵 현금 (SOXL 예수금·VR Pool 현금)',+lev2.cash||0,'#5b6b86',LT); }
+          +bar2('📦 QLD',symUsd.QLD||0,'#a78bfa',LT)+bar2('🧺 SGOV 임시 현금 (QLD·VR 예정 · Pool 제외)',(symUsd.SGOV||0)+(symUsd['SGOV임시']||0),'#6fb3c8',LT)+bar2('💵 현금 (SOXL 예수금·VR Pool·여유 현금)',+lev2.cash||0,'#5b6b86',LT); }
       h+='<div class="src" style="margin-top:6px">'+(lp>cap?'⚠️ 상한 초과 — 신규 레버리지 매수 보류, 배당·현금은 인컴으로.':'레버리지 비중이 상한 이내입니다.')+' 하락장 충격은 아래 어드바이저의 스트레스 테스트 참고.</div>';
     } else {
       h+='<h3>자산 배분</h3>'+bar('💰 인컴(DTE)',inc,'#38d39f')+bar('📈 그로스(VR)',growth,'#4ea1ff')+bar('⚡ 알파(SOXL '+a.sh+'주×종가)',a.val,'#ffb454')+bar('💴 SOXL 예수금',soxlCash,'#8aa0bd');
