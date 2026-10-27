@@ -1806,7 +1806,12 @@ const Dash = {
             +'<td style="text-align:right;padding:2px 6px">'+shf(r.sh)+'주</td><td style="text-align:right;padding:2px 6px">'+pxs+'</td>'
             +'<td style="text-align:right;padding:2px 6px">'+m(r.val)+'</td></tr>';
         });
-        h+='<tr><td style="padding:2px 6px">💵 현금</td><td></td><td></td><td style="text-align:right;padding:2px 6px">'+(K?krw(a.cash):'$'+(+a.cash||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}))+'</td></tr></table>';
+        h+='<tr><td style="padding:2px 6px">💵 현금</td><td></td><td></td><td style="text-align:right;padding:2px 6px">'+(K?krw(a.cash):'$'+(+a.cash||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}))+'</td></tr>';
+        if(a.cash_parts){ var cp=a.cash_parts, f2=function(x){return '$'+(+x||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});};
+          h+='<tr class="muted"><td style="padding:2px 6px 2px 18px">└ SOXL 예수금</td><td></td><td></td><td style="text-align:right;padding:2px 6px">'+f2(cp.soxl)+'</td></tr>'
+            +'<tr class="muted"><td style="padding:2px 6px 2px 18px">└ VR Pool 현금</td><td></td><td></td><td style="text-align:right;padding:2px 6px">'+f2(cp.vr_pool)+'</td></tr>'
+            +'<tr class="muted"><td style="padding:2px 6px 2px 18px">└ 여유 현금 (VR 미포함)</td><td></td><td></td><td style="text-align:right;padding:2px 6px">'+f2(cp.free)+'</td></tr>'; }
+        h+='</table>';
         if(a.auto) h+='<div class="src" style="font-size:11px">🔁 자동: '+a.auto+'</div>';
       });
       h+='</details><div class="src" style="font-size:11px;margin-top:6px">기준일 '+v.date+' · 환율 ₩'+Math.round(FX)+'/$ · 매일 아침 브리핑 때 갱신'+((v.saved_px||[]).length?' · * 표시는 시세 조회 실패로 마지막 저장가 사용':'')+'</div>';
