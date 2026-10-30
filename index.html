@@ -474,7 +474,7 @@
       <label class="f">배당 세율(%)<input id="wi_tax" type="number" step="0.1" value="15" onchange="Income.setTax()"></label>
     </div>
     <div class="grid yellow">
-      <label class="f">종목<input id="wi_sym" type="text" placeholder="QDTE" value=""></label>
+      <label class="f">종목<input id="wi_sym" type="text" placeholder="GPIQ" value=""></label>
       <label class="f">보유수량<input id="wi_sh" type="number" step="1" value=""></label>
       <label class="f">평균단가($)<input id="wi_avg" type="number" step="0.01" value=""></label>
       <label class="f">현재가($)<input id="wi_px" type="number" step="0.01" value=""></label>
@@ -498,7 +498,7 @@
     <div class="note">실제로 받은 배당을 기록하면 누적·세후가 집계됩니다.</div>
     <div class="grid yellow">
       <label class="f">날짜<input id="wd_date" type="date" value=""></label>
-      <label class="f">종목<input id="wd_sym" type="text" placeholder="QDTE" value=""></label>
+      <label class="f">종목<input id="wd_sym" type="text" placeholder="GPIQ" value=""></label>
       <label class="f">금액(세전 $)<input id="wd_amt" type="number" step="0.01" value=""></label>
     </div>
     <div class="btnrow">
@@ -545,7 +545,7 @@
   </div>
   <div class="card">
     <h3>⚡ 알파(SOXL) 수익 → 인컴 배분</h3>
-    <div class="note">무한매수법으로 <b>실현한 수익</b>을 세후로 환산해 인컴 엔진(QDTE·XDTE·JEPQ)에 <b>목표 비중대로</b> 배분합니다. 사이클 종료·부분 익절 때마다 사용하세요.</div>
+    <div class="note">무한매수법으로 <b>실현한 수익</b>을 세후로 환산해 인컴 엔진(보유 종목)에 <b>목표 비중대로</b> 배분합니다. 사이클 종료·부분 익절 때마다 사용하세요.</div>
     <div class="grid yellow">
       <label class="f">실현 수익(세전 $)<input id="af_gross" type="number" step="0.01" value=""></label>
       <label class="f">양도세율(%)<input id="af_tax" type="number" step="0.1" value="22"></label>
@@ -558,7 +558,7 @@
 
 <section id="risk" class="tab">
   <div class="card">
-    <h2>🛡️ 리스크 대시보드 <span class="tag">QDTE·XDTE·JEPQ</span></h2>
+    <h2>🛡️ 리스크 대시보드 <span class="tag">보유 인컴 종목</span></h2>
     <div class="note">시장 리스크·배당 지속성을 매일 자동 평가해 <b>신호등·추천</b>으로 보여줍니다. 클라우드(state.json)의 <b>risk</b> 섹션을 읽어 표시하며, 기존 매매 로직과 완전히 분리된 독립 참고용입니다. 실제 리스크 점수는 매일 필리핀 새벽 서버가 계산합니다.</div>
     <div class="btnrow"><button class="act" onclick="CS.fetch()">☁️ 클라우드에서 새로고침</button></div>
     <div id="risk_out" style="margin-top:12px"><span class="small muted">클라우드 리스크 데이터를 불러오는 중… (매매기록 탭에서 토큰이 저장돼 있어야 합니다)</span></div>
@@ -567,7 +567,7 @@
 
 <section id="dte" class="tab" style="display:none">
   <div class="card">
-    <h2>📈 DTE 모니터 <span class="tag">QDTE·XDTE·JEPQ 종목별</span></h2>
+    <h2>📈 DTE 모니터 <span class="tag">보유 종목별</span></h2>
     <div class="note">종목별 <b>총수익률(분배금 재투자)</b>·NAV 추이·추정 ROC·배당 추이를 매일 서버가 계산해 표시합니다. 0DTE 커버드콜 ETF는 분배금률이 아니라 <b>총수익률</b>이 실제 성과 지표입니다.</div>
     <div class="btnrow"><button class="act" onclick="CS.fetch()">☁️ 클라우드에서 새로고침</button></div>
     <div id="dte_out" style="margin-top:12px"><span class="small muted">클라우드 데이터를 불러오는 중…</span></div>
@@ -627,9 +627,9 @@
     <div class="btnrow"><button class="act" onclick="Pro.optimize()">💡 배분 추천</button></div>
     <div id="pro_opt_out"></div>
     <div style="display:none"><!-- 시뮬레이터 통합: Pro '배당 시뮬레이터'로 일원화 -->
-    <h3 style="margin:12px 0 6px">🎛️ What-if 시뮬레이터 <span class="small muted">(QDTE·XDTE·JEPQ 비중 조정 · 즉시 비교)</span></h3>
+    <h3 style="margin:12px 0 6px">🎛️ What-if 시뮬레이터 <span class="small muted">(GPIQ·XDTE·JEPQ 비중 조정 · 즉시 비교)</span></h3>
     <div class="kpi" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
-      <div class="box"><div class="l">QDTE 비중 %</div><input id="pro_wi_qdte" type="number" value="34" step="1" style="width:100%"></div>
+      <div class="box"><div class="l">GPIQ 비중 %</div><input id="pro_wi_qdte" type="number" value="34" step="1" style="width:100%"></div>
       <div class="box"><div class="l">XDTE 비중 %</div><input id="pro_wi_xdte" type="number" value="33" step="1" style="width:100%"></div>
       <div class="box"><div class="l">JEPQ 비중 %</div><input id="pro_wi_jepq" type="number" value="33" step="1" style="width:100%"></div>
       <div class="box"><div class="l">월 추가투자 $</div><input id="pro_wi_add" type="number" value="500" step="100" style="width:100%"></div>
@@ -643,7 +643,7 @@
 
   <details class="card fold"><summary>🔀 $700을 어디에 재투자? · 인컴 재투자 vs VR 성장 <span class="small muted">(참고 비교표)</span></summary>
 
-    <div class="src" style="margin-bottom:8px"><b>방식 A</b> 인컴 재투자(QDTE·XDTE·JEPQ) &nbsp;|&nbsp; <b>방식 B</b> VR 성장 적립 — 2주마다 TQQQ $231 (월 ≈$500)</div>
+    <div class="src" style="margin-bottom:8px"><b>방식 A</b> 인컴 재투자(DGRO·GPIQ 등) &nbsp;|&nbsp; <b>방식 B</b> VR 성장 적립 — 2주마다 TQQQ $231 (월 ≈$500)</div>
     <table><thead><tr><th>항목</th><th>A · 인컴 재투자</th><th>B · VR 성장(TQQQ·UPRO)</th></tr></thead><tbody>
       <tr><td>성장 동력</td><td>분배금 복리(주식 수↑)</td><td>나스닥·S&P <b>3배 레버리지</b> 상승</td></tr>
       <tr><td>기대 성격</td><td>총수익 ~연 14%(프리미엄 의존)</td><td>강세장 매우 높음 · 약세장 급락</td></tr>
@@ -697,11 +697,11 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-10-27',
-  vix:18.23,
-  tqqq:{p:68.43, rsi:24.9, m50:73.93, m200:65.28, hi:88.09, prevClose:66.29},
-  soxl:{p:90.5, rsi:17.0, m50:123.78, m200:123.41, hi:302.0, prevClose:83.56},
-  upro:{p:147.05, rsi:36.3, m50:150.0, m200:133.19, hi:158.63, prevClose:144.04}
+  asOf:'2026-10-30',
+  vix:18.44,
+  tqqq:{p:69.26, rsi:32.0, m50:73.76, m200:65.5, hi:88.09, prevClose:72.36},
+  soxl:{p:102.39, rsi:32.9, m50:121.97, m200:124.14, hi:302.0, prevClose:107.35},
+  upro:{p:149.35, rsi:40.6, m50:149.85, m200:133.61, hi:158.63, prevClose:151.14}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
@@ -1638,22 +1638,6 @@ const GH = {
   autoSync(){ const c=this.cfg(); if(c.auto && c.token){ this.sync(true); } }
 };
 
-/* ===================== QDTE 인컴 → UPRO 트래커 ===================== */
-const QDTE = {
-  KEY:'isl_qdte_v1',
-  bal(){ const v=parseFloat(localStorage.getItem(this.KEY)); return isNaN(v)?0:v; },
-  setBal(v){ localStorage.setItem(this.KEY, String(R.money(Math.max(0,v)))); this.render(); },
-  add(){ const a=R.n('qd_in'); if(isNaN(a)||a<=0){alert('금액을 입력하세요.');return;} this.setBal(this.bal()+a); R.set('qd_in',''); },
-  use(){ const a=R.n('qd_in'); if(isNaN(a)||a<=0){alert('금액을 입력하세요.');return;} this.setBal(this.bal()-a); R.set('qd_in',''); },
-  toUpro(){ const b=this.bal(); if(b<=0){alert('적립된 분배금이 없습니다.');return;}
-    document.getElementById('vr_sym').value='upro'; VR.loadSym(); R.set('vr_dep',R.money(b)); VR.calc();
-    alert('UPRO VR 적립액에 $'+R.fmt(b)+' 를 넣었습니다. VR 탭(UPRO)에서 계산에 반영됐어요.'); },
-  render(){ const el=document.getElementById('qd_out'); if(!el)return;
-    el.innerHTML='<div class="kpi"><div class="box"><div class="l">누적 분배금 (UPRO 매수 자금)</div><div class="v">$'+R.fmt(this.bal())+'</div></div>'
-      +'<div class="box"><div class="l">QDTE 보유</div><div class="v">'+(R.n('qd_sh')||0)+'주</div></div></div>'
-      +'<div class="src" style="margin-top:6px">받은 분배금을 "분배금 적립(+)"으로 쌓고, "→ UPRO VR 적립액으로"를 누르면 그 금액이 UPRO VR 매수 자금(적립액)이 됩니다.</div>'; }
-};
-
 /* ===================== 지표 엔진 ===================== */
 const IX = {
   calc(){
@@ -1994,10 +1978,10 @@ function resetAll(){
 /* 주간 분배금 참고표 — 배당락은 매주 목요일, 지급 금요일 (Roundhill 주간분배)
    ※ 주당 금액은 매주 변동합니다. 실제 수령액으로 덮어쓰는 것을 권장합니다. */
 const DIST = {
-  asOf:'2026-08-04', nextEx:'2026-08-06', payDay:'금요일', exDay:'목요일',
-  perShare:{ QDTE:0.1370, XDTE:0.0900, RDTE:0.2000, JEPQ:0.50, ULTY:0.31, IWMI:0.6046, '441640':0.07, '458730':0.03 },
-  freq:{ QDTE:'weekly', XDTE:'weekly', RDTE:'weekly', JEPQ:'monthly', ULTY:'weekly', IWMI:'monthly', '441640':'monthly', '458730':'monthly' },
-  src:{ QDTE:'주배당 YTD 평균(변동 반영)', XDTE:'주배당 YTD 평균(변동 반영)', RDTE:'러셀2000 0DTE 커버드콜·주배당(소형주)', JEPQ:'월배당 변동 $0.50~0.70(월 지급)', ULTY:'YieldMax 울트라 옵션인컴·주배당(최근8주 평균 $0.31·초고위험)', '441640':'KODEX 미국배당커버드콜·월배당', IWMI:'NEOS 러셀2000 하이인컴·월배당(RUT 콜매도·소형주)', '458730':'TIGER 미국배당다우존스·SCHD형 월배당' }
+  asOf:'2026-10-30', nextEx:'2026-11-05', payDay:'금요일', exDay:'목요일',
+  perShare:{"XDTE": 0.1118, "JEPQ": 0.5669, "458730": 0.0275, "EDGQ": 0.0664, "GPIQ": 0.5088, "EDGX": 0.0456, "DGRO": 0.3734},
+  freq:{"XDTE": "weekly", "JEPQ": "monthly", "458730": "monthly", "EDGQ": "weekly", "GPIQ": "monthly", "EDGX": "weekly", "DGRO": "quarterly"},
+  src:{"XDTE": "S&P500 0DTE 커버드콜·주배당", "JEPQ": "JPMorgan 나스닥 프리미엄인컴·월배당", "458730": "TIGER 미국배당다우존스·SCHD형 월배당", "EDGQ": "Global X 나스닥100 Income Edge·주배당", "GPIQ": "Goldman 나스닥100 프리미엄인컴·월배당", "EDGX": "Global X S&P500 Income Edge·주배당", "DGRO": "iShares 배당성장·분기배당"}
 };
 // 배당 빈도 자동보정: 보유행에 freq가 없거나 잘못돼도 종목명으로 월/주 판정 → 연 지급횟수 반환
 const DFREQ = (sym,freq)=>{ const f=freq||(DIST.freq&&DIST.freq[sym]); return f==='monthly'?12:(f==='quarterly'?4:52); };
@@ -2015,7 +1999,7 @@ const Income = {
   taxRateFor(sym){ return this.isKRX(sym) ? 0 : (this.tax()/100); },   // 한국 ISA(6자리) 비과세 · 미국 15%
   cgtRealized(){ try{ return +localStorage.getItem('isl_cgt_realized_krw')||0; }catch(e){ return 0; } },   // 연말 양도세: 연중 실현손익(원)
   setCgtRealized(v){ try{ localStorage.setItem('isl_cgt_realized_krw', +v||0); }catch(e){} try{ this.monitors(); }catch(e){} },
-  seedDefaults(){ if(localStorage.getItem('wos_income_seed22'))return; this.save([{sym:'QDTE',sh:548,avg:29.3539,px:28.72,dist:0.172087,tw:16,freq:'weekly'},{sym:'XDTE',sh:378,avg:38.457,px:38.595,dist:0.149533,tw:16,freq:'weekly'},{sym:'RDTE',sh:0,avg:0,px:28.57,dist:0.20,tw:16,freq:'weekly'},{sym:'JEPQ',sh:168,avg:58.0486,px:58.25,dist:0.705,tw:21,freq:'monthly'},{sym:'IWMI',sh:26,avg:52.48,px:52.48,dist:0.6046,tw:7,freq:'monthly'},{sym:'441640',sh:230,avg:9.13,px:9.13,dist:0.07,tw:4,freq:'monthly'},{sym:'458730',sh:40,avg:10.84,px:10.84,dist:0.03,tw:8,freq:'monthly'}]); localStorage.setItem('wos_income_seed22','1'); },
+  seedDefaults(){ if(localStorage.getItem('wos_income_seed22'))return; this.save([{"sym": "XDTE", "sh": 226, "avg": 38.4, "px": 38.28, "dist": 0.11181, "tw": 10, "freq": "weekly"}, {"sym": "JEPQ", "sh": 146.08178, "avg": 58.32, "px": 60.24, "dist": 0.56687, "tw": 25, "freq": "monthly"}, {"sym": "458730", "sh": 758, "avg": 11.303, "px": 11.1571, "dist": 0.027504, "tw": 5, "freq": "monthly"}, {"sym": "EDGQ", "sh": 128, "avg": 27.84, "px": 27.52, "dist": 0.0664, "tw": 0, "freq": "weekly"}, {"sym": "GPIQ", "sh": 147.186393, "avg": 57.6395, "px": 58.03, "dist": 0.50881, "tw": 0, "freq": "monthly"}, {"sym": "EDGX", "sh": 120, "avg": 26.6, "px": 26.6, "dist": 0.0456, "tw": 0, "freq": "weekly"}, {"sym": "DGRO", "sh": 141.206743, "avg": 77.5089, "px": 76.89, "dist": 0.3734, "tw": 0, "freq": "quarterly"}]); localStorage.setItem('wos_income_seed22','1'); },
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
   freqN(r){ return DFREQ(r&&r.sym, r&&r.freq); },   // 연 지급 횟수: 월배당 12 / 주배당 52 (종목명으로 자동 보정)
   totals(){ let mv=0,cost=0,yr=0,yrNet=0; this.load().forEach(r=>{ const y=r.sh*(+r.dist||0)*Income.freqN(r); mv+=r.sh*r.px; cost+=r.sh*r.avg; yr+=y; yrNet+=y*(1-Income.taxRateFor(r.sym)); });
@@ -2074,7 +2058,7 @@ const Income = {
   fillDist(){ const a=this.load(); let n=0;
     a.forEach(function(r){ const d=DIST.perShare[r.sym]; if(d){ r.dist=d; if(DIST.freq&&DIST.freq[r.sym]) r.freq=DIST.freq[r.sym]; n++; } });
     this.save(a); WOS.refresh();
-    alert(n+'개 종목의 주당 배당을 채웠습니다 (기준일 '+DIST.asOf+').\n※ QDTE·XDTE=주배당, JEPQ=월배당. 실제 수령액으로 조정하세요.');
+    alert(n+'개 종목의 주당 배당을 채웠습니다 (기준일 '+DIST.asOf+').\n※ XDTE·EDGQ·EDGX=주배당, JEPQ·GPIQ=월배당, DGRO=분기배당. 실제 수령액으로 조정하세요.');
   },
   logWeek(){ const a=this.load().filter(function(r){return (r.sh||0)>0 && (r.dist||0)>0 && DFREQ(r.sym,r.freq)!==12;});
     if(a.length===0){ alert('보유수량과 주당 주간배당이 입력된 종목이 없습니다.'); return; }
@@ -2090,7 +2074,7 @@ const Income = {
   render(){
     R.set('wi_tax', this.tax());
     const a=this.load(); const t=this.totals(); const taxR=this.tax()/100;
-    if(a.length===0){ document.getElementById('wi_table').innerHTML='<div class="muted small">위에서 보유 종목을 추가하세요 (예: QDTE · 100주 · 평단 $45 · 현재가 $46 · 주당 주간배당 $0.25).</div>'; }
+    if(a.length===0){ document.getElementById('wi_table').innerHTML='<div class="muted small">위에서 보유 종목을 추가하세요 (예: GPIQ · 100주 · 평단 $45 · 현재가 $46 · 주당 주간배당 $0.25).</div>'; }
     else {
       let h='<table><thead><tr><th>종목</th><th>수량</th><th>평단</th><th>현재가</th><th>평가금</th><th>비중</th><th>주배당</th><th>월배당</th><th>연배당</th><th>YoC</th><th>목표%</th><th></th></tr></thead><tbody>';
       a.forEach(r=>{ const fN=Income.freqN(r); const mv=r.sh*r.px, cost=r.sh*r.avg, yr=r.sh*(+r.dist||0)*fN, wk=yr/52, mo=yr/12, w=t.mv>0?mv/t.mv:0, yoc=cost>0?yr/cost:0;
@@ -2444,7 +2428,7 @@ const AlphaFlow = {
 const BuyPlan = {
   calc(){ const amt=R.n('bp_amt'); const out=document.getElementById('bp_out'); const mode=(document.getElementById('bp_mode')||{}).value||'equal';
     if(isNaN(amt)||amt<=0){ alert('투자 금액을 입력하세요'); return; }
-    const a=Income.load(); if(a.length===0){ if(out)out.innerHTML='<div class="muted small">먼저 ① 보유 입력에서 종목·현재가를 추가하세요 (예: QDTE·XDTE·JEPQ).</div>'; return; }
+    const a=Income.load(); if(a.length===0){ if(out)out.innerHTML='<div class="muted small">먼저 ① 보유 입력에서 종목·현재가를 추가하세요 (예: GPIQ·XDTE·JEPQ).</div>'; return; }
     let weights=a.map(function(r){ if(mode==='equal')return 1; if(mode==='current')return r.sh*r.px; return (r.tw||0); });
     let sum=weights.reduce(function(s,x){return s+x;},0);
     let note=(mode==='equal'?'동일 비중':(mode==='current'?'현재 비중':'목표 비중'));
@@ -2620,10 +2604,11 @@ const Risk = {
   }
 };
 
+var HELD_SYMS = function(){ try{ var a=(typeof Income!=='undefined'&&Income.load)?Income.load():[]; var s=a.filter(function(r){return +r.sh>0;}).map(function(r){return r.sym;}); return s.length?s:['XDTE','JEPQ','GPIQ']; }catch(e){ return ['XDTE','JEPQ','GPIQ']; } };
 /* ===================== 📈 DTE 모니터 (종목별 상세 · 독립) =====================
    Risk.load().nav (서버가 매일 계산·저장)에서 종목별 총수익률·NAV·ROC·배당을 읽어 표시. */
 const DTE = {
-  syms:['QDTE','XDTE','RDTE','JEPQ'],
+  get syms(){ return HELD_SYMS().filter(function(s){ return !/^\d/.test(s); }); },   // 보유(주수>0) 미국 인컴 종목만 — 매도 종목 제외(2026-10-30)
   col(sc){ return sc>=70?'#ff6b6b':(sc>=45?'#ffd24a':'#5ee2a0'); },
   trc(x){ return x==null?'-':'<b style="color:'+(x>=0?'#5ee2a0':'#ff6b6b')+'">'+(x>0?'+':'')+x+'%</b>'; },
   bars(hist){
@@ -2773,7 +2758,7 @@ const DTE = {
       }
       h+='</div>';
     });
-    h+='<div class="note" style="margin-top:8px">💡 0DTE 커버드콜 ETF는 분배금 상당액이 <b>원금반환(ROC)</b>입니다(Roundhill 최근 19a-1 기준 QDTE 추정 ROC 100%). 그래서 <b>분배금률이 아니라 총수익률(재투자)</b>이 실제 성과 지표예요. 참고용 · 투자 자문 아님.</div>';
+    h+='<div class="note" style="margin-top:8px">💡 0DTE 커버드콜 ETF는 분배금 상당액이 <b>원금반환(ROC)</b>입니다(Roundhill 19a-1 공시 기준). 그래서 <b>분배금률이 아니라 총수익률(재투자)</b>이 실제 성과 지표예요. 참고용 · 투자 자문 아님.</div>';
     el.innerHTML=h;
   }
 };
@@ -2890,7 +2875,7 @@ const Hub = {
   w(WOS,'refresh'); w(Pro,'render');
 })();
 
-IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); renderMacro(); QDTE.render(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); renderTodayOrders(); }catch(e){ console.log('refresh render',e); }
+IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); renderMacro(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); renderTodayOrders(); }catch(e){ console.log('refresh render',e); }
     if(btn){ btn.innerHTML = hasTok ? '✅ 최신 데이터로 갱신됨' : '✅ 갱신됨 · 클라우드 토큰 없음(매매기록 탭에서 저장)';
       setTimeout(function(){ btn.innerHTML=old; btn.disabled=false; }, 2500); }
     this.busy=false;
@@ -2909,7 +2894,7 @@ IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); renderMa
 
 /* ===================== 💹 인컴 Pro 모듈 ===================== */
 const Pro = {
-  syms:['QDTE','XDTE','RDTE','JEPQ','ULTY','IWMI','441640','458730'],
+  get syms(){ return HELD_SYMS(); },   // 보유(주수>0) 종목만 — 매도 종목 제외(2026-10-30)
   rh(){ try{return JSON.parse(localStorage.getItem('isl_roundhill_v1'))||null}catch(e){return null} },
   rsAll(){ try{return JSON.parse(localStorage.getItem('isl_realstats_v1'))||{}}catch(e){return {}} },
   monthlySeries(){ try{return JSON.parse(localStorage.getItem('isl_monthly_v1'))||[]}catch(e){return []} },
@@ -2982,7 +2967,7 @@ const Pro = {
   },
   lineSVG(rows){
     // 최근 12주 주당 배당 추이 (종목별 선그래프)
-    const cols={QDTE:'#22c58b',XDTE:'#ffd24a',RDTE:'#ff7a7a',JEPQ:'#4ea1ff',ULTY:'#ff9f45',IWMI:'#e8688a','441640':'#c58bff','458730':'#8fe3a0'};
+    const cols={XDTE:'#ffd24a',JEPQ:'#4ea1ff',GPIQ:'#4ecdc4',EDGQ:'#b57bff',EDGX:'#8fd14f',DGRO:'#22c58b','458730':'#8fe3a0'};
     const series=rows.map(function(x){ return {sym:x.sym, v:(x.hist||[]).slice(-12).map(function(p){return +p[1];})}; }).filter(function(s){return s.v.length;});
     if(!series.length) return '<span class="small muted">배당 이력이 아직 부족합니다.</span>';
     const W=640,H=240,pl=44,pr=90,pt=14,pb=26;
@@ -3124,7 +3109,7 @@ const Pro = {
     h+='<div style="margin-bottom:14px"><div class="small muted" style="margin-bottom:4px">💵 ② 월 배당금 추이 (세후 실수령 · 최근 12개월)</div>'+this.monthlySVG(d.tax)+'</div>';
     h+='<div style="margin-bottom:14px"><div class="small muted" style="margin-bottom:4px">📉 ③ NAV 변화율 1/3/6/12개월 <span class="muted">(마이너스일수록 원금잠식)</span></div>'+(anyDec?this.navDecaySVG(rows):'<span class="small muted">NAV 변화율 데이터가 아직 없습니다. 서버 리포트 실행 후 채워집니다.</span>')+'</div>';
     h+='<div style="margin-bottom:6px"><div class="small muted" style="margin-bottom:4px">💹 ④ 총수익률 YTD·1년 <span class="muted">(배당 재투자 포함)</span></div>'+(anyRor?this.totRetSVG(rows):'<span class="small muted">총수익률 데이터가 아직 없습니다. 서버 리포트 실행 후 채워집니다.</span>')+'</div>';
-    h+='<div class="src">①②=yfinance 실측 배당 · ③④=QDTE·XDTE는 Roundhill 공식, JEPQ는 yfinance 실측(월배당·JPMorgan). 서버 리포트가 매일 갱신.</div></div>';
+    h+='<div class="src">①②=yfinance 실측 배당 · ③④=XDTE는 Roundhill 공식, 그 외는 yfinance 실측(월배당·JPMorgan). 서버 리포트가 매일 갱신.</div></div>';
     // ── 🧠 NAV 의사결정 엔진 (Health·지속성·스트레스 테스트) ──
     try{ h+=this.engineCards(rows,d); }catch(e){ console.log('pro engine',e); }
     el.innerHTML=h;
@@ -3250,7 +3235,7 @@ const Pro = {
     const gv=function(id){ const e=document.getElementById(id); return e?(+e.value||0):0; };
     let wq=Math.max(0,gv('pro_wi_qdte')), wx=Math.max(0,gv('pro_wi_xdte')), wr=Math.max(0,gv('pro_wi_jepq'));
     let sum=wq+wx+wr; if(sum<=0){ wq=34; wx=33; wr=33; sum=100; }
-    const wN={QDTE:wq/sum, XDTE:wx/sum, JEPQ:wr/sum};
+    const wN={GPIQ:wq/sum, XDTE:wx/sum, JEPQ:wr/sum};
     const addMo=Math.max(0,gv('pro_wi_add'));
     // 시나리오A: 3종목 비중을 입력값(정규화)으로 재배분 → 각 ETF 배당수익률로 월 세후 배당
     let waMoNet=0; const per=d.rows.map(function(x){ const val=d.tot*(wN[x.sym]||0); const mo=val*(dy[x.sym]||0)*(1-tax)/12; waMoNet+=mo;
@@ -3259,7 +3244,7 @@ const Pro = {
     // 시나리오B: 월 addMo 추가투자 1년 → 현재 블렌드 수익률로 추가 배당
     const blendYield=d.tot?baseAnnGross/d.tot:0; const addMoNet=addMo*12*blendYield*(1-tax)/12;
     let h='<div class="card" style="border-color:#6a5acd;margin-top:8px"><h3 style="margin:0 0 4px">🎛️ What-if 결과 <span class="small muted">(추정)</span></h3>';
-    h+='<div class="src" style="margin-bottom:6px">입력 비중 정규화 → QDTE '+per[0].w.toFixed(0)+'% · XDTE '+per[1].w.toFixed(0)+'% · JEPQ '+per[2].w.toFixed(0)+'% (합계 100%)</div>';
+    h+='<div class="src" style="margin-bottom:6px">입력 비중 정규화 → GPIQ '+(wN.GPIQ*100).toFixed(0)+'% · XDTE '+(wN.XDTE*100).toFixed(0)+'% · JEPQ '+(wN.JEPQ*100).toFixed(0)+'% (합계 100%)</div>';
     // 종목별 조정 결과
     h+='<table><thead><tr><th>종목</th><th>조정 비중</th><th>배당수익률</th><th>평가금</th><th>월 세후 배당</th></tr></thead><tbody>';
     per.forEach(function(p){ h+='<tr><td><b>'+p.sym+'</b></td><td>'+p.w.toFixed(1)+'%</td><td>'+p.dy.toFixed(1)+'%</td><td>$'+self.fmt(p.val)+'</td><td>$'+self.fmt(p.mo)+'</td></tr>'; });
@@ -3396,7 +3381,7 @@ function setFreshBadge(dateStr){
   }catch(e){}
 }
 Hist.snapshot();
-IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); QDTE.render(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); Refresh.injectButtons(); setFreshBadge(); try{renderTodayOrders();}catch(e){}
+IB.applyPreset(); VR.loadSym(); IX.calc(); Dash.render(); Log.render(); TG.loadCfg(); renderMacro(); CS.loadToken(); Income.seedDefaults(); WOS.refresh(); Risk.render(); DTE.render(); Pro.render(); Refresh.injectButtons(); setFreshBadge(); try{renderTodayOrders();}catch(e){}
 
 /* ===== 매일 자동 최신화 ===== 앱 열 때(토큰 있으면) 클라우드(state.json)를 자동으로 당겨와 전 탭 갱신.
    + 탭에 돌아올 때(visibilitychange) 최대 30분마다 재동기화. 서버가 매일 갱신한 데이터가 자동 반영됨. */
