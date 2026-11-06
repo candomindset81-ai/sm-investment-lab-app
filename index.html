@@ -398,7 +398,7 @@
       <tbody>
         <tr><td>🚀 성장</td><td>TQQQ (VR) · QLD</td><td>VR 2주 적립 $231 + 사다리 · QLD 여유자금 매수 — 큰 성장, 큰 변동</td></tr>
         <tr><td>🌱 안정·배당성장</td><td>DGRO · TIGER 미국배당다우존스(458730)</td><td>DGRO 매일 자동매수(인컴 배당 재원) · 458730 ISA 매월 2주 — 나스닥과 덜 움직이고 배당이 매년 성장</td></tr>
-        <tr><td>💵 현금흐름</td><td>GPIQ · JEPQ · XDTE · EDGQ · EDGX</td><td>고배당으로 매달 현금을 만들어 DGRO를 사는 재원 (0DTE는 추가 매수 없이 보유)</td></tr>
+        <tr><td>💵 현금흐름</td><td>GPIQ · JEPQ · XDTE · EDGX</td><td>고배당으로 매달 현금을 만들어 DGRO를 사는 재원 (0DTE는 추가 매수 없이 보유)</td></tr>
         <tr><td>⚡ 알파</td><td>SOXL</td><td>무한매수법 20분할</td></tr>
         <tr><td>🏦 대기자금</td><td>현금 · SGOV(임시)</td><td>VR Pool 현금 · 나중에 QLD·TQQQ VR에 쓸 SGOV</td></tr>
       </tbody>
@@ -697,22 +697,22 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-10-30',
-  vix:18.44,
-  tqqq:{p:69.26, rsi:32.0, m50:73.76, m200:65.5, hi:88.09, prevClose:72.36},
-  soxl:{p:102.39, rsi:32.9, m50:121.97, m200:124.14, hi:302.0, prevClose:107.35},
-  upro:{p:149.35, rsi:40.6, m50:149.85, m200:133.61, hi:158.63, prevClose:151.14}
+  asOf:'2026-11-05',
+  vix:16.81,
+  tqqq:{p:62.24, rsi:35.0, m50:73.03, m200:65.66, hi:88.09, prevClose:60.55},
+  soxl:{p:66.68, rsi:33.4, m50:118.28, m200:124.4, hi:302.0, prevClose:73.12},
+  upro:{p:147.26, rsi:45.4, m50:149.28, m200:134.08, hi:158.63, prevClose:140.41}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
 /* ===================== 매크로 데이터 (매주 자동 갱신 블록) =====================
    [AUTO-UPDATE:MACRO] 매주 자동 작업이 이 블록만 교체합니다. */
 const MACRO = {
-  asOf:'2026-10-25',
-  vix:19.45,
+  asOf:'2026-10-31',
+  vix:19.42,
   regime:'상승',
   fearGreed:'-',
-  us10y:'4.99%',
+  us10y:'4.93%',
   fedRate:'-',
   note:''
 };
@@ -1979,9 +1979,9 @@ function resetAll(){
    ※ 주당 금액은 매주 변동합니다. 실제 수령액으로 덮어쓰는 것을 권장합니다. */
 const DIST = {
   asOf:'2026-10-30', nextEx:'2026-11-05', payDay:'금요일', exDay:'목요일',
-  perShare:{"XDTE": 0.1118, "JEPQ": 0.5669, "458730": 0.0275, "EDGQ": 0.0664, "GPIQ": 0.5088, "EDGX": 0.0456, "DGRO": 0.3734},
-  freq:{"XDTE": "weekly", "JEPQ": "monthly", "458730": "monthly", "EDGQ": "weekly", "GPIQ": "monthly", "EDGX": "weekly", "DGRO": "quarterly"},
-  src:{"XDTE": "S&P500 0DTE 커버드콜·주배당", "JEPQ": "JPMorgan 나스닥 프리미엄인컴·월배당", "458730": "TIGER 미국배당다우존스·SCHD형 월배당", "EDGQ": "Global X 나스닥100 Income Edge·주배당", "GPIQ": "Goldman 나스닥100 프리미엄인컴·월배당", "EDGX": "Global X S&P500 Income Edge·주배당", "DGRO": "iShares 배당성장·분기배당"}
+  perShare:{"XDTE": 0.1118, "JEPQ": 0.5669, "458730": 0.0275, "GPIQ": 0.5088, "EDGX": 0.0456, "DGRO": 0.3734},
+  freq:{"XDTE": "weekly", "JEPQ": "monthly", "458730": "monthly", "GPIQ": "monthly", "EDGX": "weekly", "DGRO": "quarterly"},
+  src:{"XDTE": "S&P500 0DTE 커버드콜·주배당", "JEPQ": "JPMorgan 나스닥 프리미엄인컴·월배당", "458730": "TIGER 미국배당다우존스·SCHD형 월배당", "GPIQ": "Goldman 나스닥100 프리미엄인컴·월배당", "EDGX": "Global X S&P500 Income Edge·주배당", "DGRO": "iShares 배당성장·분기배당"}
 };
 // 배당 빈도 자동보정: 보유행에 freq가 없거나 잘못돼도 종목명으로 월/주 판정 → 연 지급횟수 반환
 const DFREQ = (sym,freq)=>{ const f=freq||(DIST.freq&&DIST.freq[sym]); return f==='monthly'?12:(f==='quarterly'?4:52); };
@@ -1999,7 +1999,7 @@ const Income = {
   taxRateFor(sym){ return this.isKRX(sym) ? 0 : (this.tax()/100); },   // 한국 ISA(6자리) 비과세 · 미국 15%
   cgtRealized(){ try{ return +localStorage.getItem('isl_cgt_realized_krw')||0; }catch(e){ return 0; } },   // 연말 양도세: 연중 실현손익(원)
   setCgtRealized(v){ try{ localStorage.setItem('isl_cgt_realized_krw', +v||0); }catch(e){} try{ this.monitors(); }catch(e){} },
-  seedDefaults(){ if(localStorage.getItem('wos_income_seed22'))return; this.save([{"sym": "XDTE", "sh": 226, "avg": 38.4, "px": 38.28, "dist": 0.11181, "tw": 10, "freq": "weekly"}, {"sym": "JEPQ", "sh": 146.08178, "avg": 58.32, "px": 60.24, "dist": 0.56687, "tw": 25, "freq": "monthly"}, {"sym": "458730", "sh": 758, "avg": 11.303, "px": 11.1571, "dist": 0.027504, "tw": 5, "freq": "monthly"}, {"sym": "EDGQ", "sh": 128, "avg": 27.84, "px": 27.52, "dist": 0.0664, "tw": 0, "freq": "weekly"}, {"sym": "GPIQ", "sh": 147.186393, "avg": 57.6395, "px": 58.03, "dist": 0.50881, "tw": 0, "freq": "monthly"}, {"sym": "EDGX", "sh": 120, "avg": 26.6, "px": 26.6, "dist": 0.0456, "tw": 0, "freq": "weekly"}, {"sym": "DGRO", "sh": 141.206743, "avg": 77.5089, "px": 76.89, "dist": 0.3734, "tw": 0, "freq": "quarterly"}]); localStorage.setItem('wos_income_seed22','1'); },
+  seedDefaults(){ if(localStorage.getItem('wos_income_seed22'))return; this.save([{"sym": "XDTE", "sh": 226, "avg": 38.4, "px": 38.28, "dist": 0.11181, "tw": 10, "freq": "weekly"}, {"sym": "JEPQ", "sh": 146.08178, "avg": 58.32, "px": 60.24, "dist": 0.56687, "tw": 25, "freq": "monthly"}, {"sym": "458730", "sh": 758, "avg": 11.303, "px": 11.1571, "dist": 0.027504, "tw": 5, "freq": "monthly"}, {"sym": "GPIQ", "sh": 147.186393, "avg": 57.6395, "px": 58.03, "dist": 0.50881, "tw": 0, "freq": "monthly"}, {"sym": "EDGX", "sh": 120, "avg": 26.6, "px": 26.6, "dist": 0.0456, "tw": 0, "freq": "weekly"}, {"sym": "DGRO", "sh": 141.206743, "avg": 77.5089, "px": 76.89, "dist": 0.3734, "tw": 0, "freq": "quarterly"}]); localStorage.setItem('wos_income_seed22','1'); },
   setTax(){ const t=R.n('wi_tax'); if(!isNaN(t))localStorage.setItem(this.TKEY,t); WOS.refresh(); },
   freqN(r){ return DFREQ(r&&r.sym, r&&r.freq); },   // 연 지급 횟수: 월배당 12 / 주배당 52 (종목명으로 자동 보정)
   totals(){ let mv=0,cost=0,yr=0,yrNet=0; this.load().forEach(r=>{ const y=r.sh*(+r.dist||0)*Income.freqN(r); mv+=r.sh*r.px; cost+=r.sh*r.avg; yr+=y; yrNet+=y*(1-Income.taxRateFor(r.sym)); });
@@ -2058,7 +2058,7 @@ const Income = {
   fillDist(){ const a=this.load(); let n=0;
     a.forEach(function(r){ const d=DIST.perShare[r.sym]; if(d){ r.dist=d; if(DIST.freq&&DIST.freq[r.sym]) r.freq=DIST.freq[r.sym]; n++; } });
     this.save(a); WOS.refresh();
-    alert(n+'개 종목의 주당 배당을 채웠습니다 (기준일 '+DIST.asOf+').\n※ XDTE·EDGQ·EDGX=주배당, JEPQ·GPIQ=월배당, DGRO=분기배당. 실제 수령액으로 조정하세요.');
+    alert(n+'개 종목의 주당 배당을 채웠습니다 (기준일 '+DIST.asOf+').\n※ XDTE·EDGX=주배당, JEPQ·GPIQ=월배당, DGRO=분기배당. 실제 수령액으로 조정하세요.');
   },
   logWeek(){ const a=this.load().filter(function(r){return (r.sh||0)>0 && (r.dist||0)>0 && DFREQ(r.sym,r.freq)!==12;});
     if(a.length===0){ alert('보유수량과 주당 주간배당이 입력된 종목이 없습니다.'); return; }
