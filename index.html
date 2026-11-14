@@ -1874,7 +1874,7 @@ const Dash = {
                 return st.slice().sort(function(a,b2){return a.pct-b2.pct;}).map(function(x){ var sp=Math.ceil(avg*(1+x.pct/100)*100-1e-9)/100, hit=!x.done&&P0&&P0>=sp;
                   return '<tr'+(hit?' class="sell"':'')+(x.done?' style="opacity:.5"':'')+'><td>평단 +'+x.pct+'% 이상</td><td style="text-align:right">매도 '+(x.done?'완료':sq+'주')+'</td><td style="text-align:right">$'+R.fmt(sp)+'</td><td style="text-align:right">보유 1/5'+(hit?' ⚡':'')+'</td></tr>'; }).join(''); })()
             +'</tbody></table>'
-            +'<div class="src" style="font-size:11px">'+(daily?'전일 종가가 평단 대비 손실 10%↑이면 그날 1주 · 15%↑ 2주 · 20%↑ 3주를 LOC(전일 종가 +3%'+(exp&&P0?' = $'+R.fmt(Math.round(P0*1.03*100)/100):'')+')로 매수, 10% 미만이면 매수 없음':'손실 10% 이내 → 매수 없음 · 10%↑ 1주 · 15%↑ 2주 · 20%↑ 3주')+' · 수익 +50·100·150·200% 각 1/5 익절(단계별 1회). 지금 기준 매수 <b>'+exp+'주</b>. 매수하면 평단이 내려가 가격 자동 재계산. 재원: 레버리지 여유 현금.</div>';
+            +'<div class="src" style="font-size:11px">'+(daily?'전일 종가가 평단 대비 손실 10%↑이면 그날 1주 · 15%↑ 2주 · 20%↑ 3주를 LOC(평단 바로 아래 = $'+R.fmt(Math.floor(avg*100)/100-0.01)+', 평단 밑에서만 체결)로 매수, 10% 미만이면 매수 없음':'손실 10% 이내 → 매수 없음 · 10%↑ 1주 · 15%↑ 2주 · 20%↑ 3주')+' · 수익 +50·100·150·200% 각 1/5 익절(단계별 1회). 지금 기준 매수 <b>'+exp+'주</b>. 매수하면 평단이 내려가 가격 자동 재계산. 재원: 레버리지 여유 현금.</div>';
         }
         // 5·10년 예상 (달러 DCA 시뮬) — 자동적립(W>0)일 때만
         if(P0>0 && W>0){
