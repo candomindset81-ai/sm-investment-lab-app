@@ -1865,10 +1865,11 @@ const Dash = {
             return '<tr'+(hit?' class="buy"':'')+'><td>평단 −'+t[0]+'% 아래</td><td style="text-align:right">'+t[1]+'주</td><td style="text-align:right">$'+R.fmt(lim)+'</td><td style="text-align:right">누적 '+cum+'주'+(hit?' ⚡':'')+'</td></tr>'; }).join('');
           h+='<div class="src" style="margin-top:8px"><b>📉 손실 구간 매수 규칙</b> (월~금 LOC · 최근가 $'+R.fmt(P0)+' = 평단 대비 '+(loss>=0?'−':'+')+Math.abs(loss).toFixed(1)+'%)</div>'
             +'<table style="width:100%;font-size:12px;margin-top:4px"><thead><tr><th>조건</th><th>LOC</th><th>가격</th><th></th></tr></thead><tbody>'+tr
-            +((b.take_profit&&!b.take_profit.done)?(function(){ var tp=b.take_profit, sp=Math.ceil(avg*(1+(tp.pct||50)/100)*100-1e-9)/100, sq=Math.max(1,Math.floor(sh*(tp.frac||0.2))), hit=P0&&P0>=sp;
-                return '<tr'+(hit?' class="sell"':'')+'><td>평단 +'+(tp.pct||50)+'% 이상</td><td style="text-align:right">매도 '+sq+'주</td><td style="text-align:right">$'+R.fmt(sp)+'</td><td style="text-align:right">보유 1/5 (1회)'+(hit?' ⚡':'')+'</td></tr>'; })():'')
+            +(function(){ var tp=b.take_profit; if(!tp) return ''; var st=tp.steps||[{pct:tp.pct||50,done:tp.done}], sq=Math.max(1,Math.floor(sh*(tp.frac||0.2)));
+                return st.slice().sort(function(a,b2){return a.pct-b2.pct;}).map(function(x){ var sp=Math.ceil(avg*(1+x.pct/100)*100-1e-9)/100, hit=!x.done&&P0&&P0>=sp;
+                  return '<tr'+(hit?' class="sell"':'')+(x.done?' style="opacity:.5"':'')+'><td>평단 +'+x.pct+'% 이상</td><td style="text-align:right">매도 '+(x.done?'완료':sq+'주')+'</td><td style="text-align:right">$'+R.fmt(sp)+'</td><td style="text-align:right">보유 1/5'+(hit?' ⚡':'')+'</td></tr>'; }).join(''); })()
             +'</tbody></table>'
-            +'<div class="src" style="font-size:11px">손실 10% 이내 → 매수 없음 · 10%↑ 1주 · 15%↑ 2주 · 20%↑ 3주 · 수익 50%↑ 1/5 익절(1회). 지금 기준 예상 매수 <b>'+exp+'주</b>. 매수하면 평단이 내려가 가격 자동 재계산. 재원: 레버리지 여유 현금.</div>';
+            +'<div class="src" style="font-size:11px">손실 10% 이내 → 매수 없음 · 10%↑ 1주 · 15%↑ 2주 · 20%↑ 3주 · 수익 +50·100·150·200% 각 1/5 익절(단계별 1회). 지금 기준 예상 매수 <b>'+exp+'주</b>. 매수하면 평단이 내려가 가격 자동 재계산. 재원: 레버리지 여유 현금.</div>';
         }
         // 5·10년 예상 (달러 DCA 시뮬) — 자동적립(W>0)일 때만
         if(P0>0 && W>0){
