@@ -396,7 +396,7 @@
     <table>
       <thead><tr><th>역할</th><th>종목</th><th>방식</th></tr></thead>
       <tbody>
-        <tr><td>🚀 성장</td><td>TQQQ (VR) · QLD</td><td>VR 2주 적립 $231 + 사다리 · QLD 여유자금 매수 — 큰 성장, 큰 변동</td></tr>
+        <tr><td>🚀 성장</td><td>TQQQ (VR) · QLD</td><td>VR 2주 적립 $231 + 사다리 · QLD 평단 −10/−15/−20% 구간 1·2·3주 LOC — 큰 성장, 큰 변동</td></tr>
         <tr><td>🌱 안정·배당성장</td><td>DGRO · TIGER 미국배당다우존스(458730)</td><td>DGRO 매일 자동매수(인컴 배당 재원) · 458730 ISA 매월 2주 — 나스닥과 덜 움직이고 배당이 매년 성장</td></tr>
         <tr><td>💵 현금흐름</td><td>GPIQ · JEPQ · XDTE · EDGX</td><td>고배당으로 매달 현금을 만들어 DGRO를 사는 재원 (0DTE는 추가 매수 없이 보유)</td></tr>
         <tr><td>⚡ 알파</td><td>SOXL</td><td>무한매수법 20분할</td></tr>
@@ -697,22 +697,22 @@ const today=()=>new Date().toISOString().slice(0,10);
 /* ===================== 시장 데이터 (매일 자동 갱신 블록) =====================
    [AUTO-UPDATE:MKT] 매일 장 마감 후 자동 작업이 이 블록만 최신값으로 교체합니다. */
 const MKT = {
-  asOf:'2026-11-05',
-  vix:16.81,
-  tqqq:{p:62.24, rsi:35.0, m50:73.03, m200:65.66, hi:88.09, prevClose:60.55},
-  soxl:{p:66.68, rsi:33.4, m50:118.28, m200:124.4, hi:302.0, prevClose:73.12},
-  upro:{p:147.26, rsi:45.4, m50:149.28, m200:134.08, hi:158.63, prevClose:140.41}
+  asOf:'2026-11-13',
+  vix:18.31,
+  tqqq:{p:59.88, rsi:43.0, m50:71.24, m200:65.7, hi:88.09, prevClose:60.44},
+  soxl:{p:65.53, rsi:42.9, m50:111.37, m200:124.14, hi:302.0, prevClose:66.03},
+  upro:{p:140.23, rsi:47.1, m50:147.51, m200:134.57, hi:158.63, prevClose:141.7}
 };
 /* [AUTO-UPDATE:MKT-END] */
 
 /* ===================== 매크로 데이터 (매주 자동 갱신 블록) =====================
    [AUTO-UPDATE:MACRO] 매주 자동 작업이 이 블록만 교체합니다. */
 const MACRO = {
-  asOf:'2026-10-31',
-  vix:19.42,
-  regime:'상승',
+  asOf:'2026-11-07',
+  vix:25.64,
+  regime:'중립',
   fearGreed:'-',
-  us10y:'4.93%',
+  us10y:'4.86%',
   fedRate:'-',
   note:''
 };
@@ -1856,7 +1856,17 @@ const Dash = {
           +'<div class="box"><div class="l">누적 투입</div><div class="v">$'+R.fmt(totUsd)+'</div></div></div>'
           +(W>0
              ? '<div class="src" style="margin-top:6px"><b>방식:</b> 토스증권에서 <b>매 거래일 $'+W+' 소수점 자동매수</b> · 재원: 미국 배당. 매 거래일 종가로 보유·평단이 자동 반영됩니다.</div>'
+             : (Array.isArray(b.tiers)&&b.tiers.length) ? '<div class="src" style="margin-top:6px"><b>방식:</b> 월~금 <b>평단 대비 손실 구간 LOC</b>(아래 표) · 재원: 레버리지 여유 현금. 체결 시 봇에 "체결 '+(b.sym||'').toUpperCase()+' 매수 N 가격" 보내면 반영.</div>'
              : '<div class="src" style="margin-top:6px"><b>방식:</b> 자동적립 없음 · <b>여유자금 있을 때 수동 매수</b>. 체결 시 봇에 "체결 '+(b.sym||'').toUpperCase()+' 매수 N 가격" 보내면 반영.</div>');
+        // 2026-11-14 QLD 손실 구간 매수: 평단 −10/−15/−20% 가격에 각 1주 LOC (종가가 그 아래일 때만 체결)
+        if(Array.isArray(b.tiers)&&b.tiers.length&&avg>0){
+          var loss=P0?(1-P0/avg)*100:0, cum=0, exp=0;
+          var tr=b.tiers.map(function(t){ var lim=Math.floor(avg*(1-t[0]/100)*100)/100; cum+=t[1]; var hit=P0&&P0<=lim; if(hit)exp+=t[1];
+            return '<tr'+(hit?' class="buy"':'')+'><td>평단 −'+t[0]+'% 아래</td><td style="text-align:right">'+t[1]+'주</td><td style="text-align:right">$'+R.fmt(lim)+'</td><td style="text-align:right">누적 '+cum+'주'+(hit?' ⚡':'')+'</td></tr>'; }).join('');
+          h+='<div class="src" style="margin-top:8px"><b>📉 손실 구간 매수 규칙</b> (월~금 LOC · 최근가 $'+R.fmt(P0)+' = 평단 대비 '+(loss>=0?'−':'+')+Math.abs(loss).toFixed(1)+'%)</div>'
+            +'<table style="width:100%;font-size:12px;margin-top:4px"><thead><tr><th>조건</th><th>LOC</th><th>가격</th><th></th></tr></thead><tbody>'+tr+'</tbody></table>'
+            +'<div class="src" style="font-size:11px">손실 10% 이내 → 매수 없음 · 10%↑ 1주 · 15%↑ 2주 · 20%↑ 3주. 지금 기준 예상 <b>'+exp+'주</b>. 매수하면 평단이 내려가 가격 자동 재계산. 재원: 레버리지 여유 현금.</div>';
+        }
         // 5·10년 예상 (달러 DCA 시뮬) — 자동적립(W>0)일 때만
         if(P0>0 && W>0){
           var proj=function(Y,g){var n=Math.round(Y*252),wr=Math.pow(1+g,1/252),p=P0,s=sh;for(var i=0;i<n;i++){s+=W/p;p*=wr;}return s*p;};
