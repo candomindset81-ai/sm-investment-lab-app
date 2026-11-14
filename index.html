@@ -1143,8 +1143,8 @@ const VRL = {
     n=Math.round(+n||0); fee=+fee||0; maxBuy=maxBuy||60; maxSell=maxSell||30;
     const lo=V*(1-band), up=V*(1+band), buys=[], sells=[];
     if(n>0){ let cum=0;
-      for(let k=0;k<maxBuy;k++){ const p=lo/(n+k); if(cum+p+fee>usable+1e-9)break; cum+=p+fee; buys.push({p:p,cum:cum,now:!!(price&&price<=p)}); }
-      for(let k=0;k<Math.min(maxSell,n);k++){ const p=up/(n-k); sells.push({p:p,now:!!(price&&price>=p)}); } }
+      for(let k=0;k<maxBuy;k++){ const p=Math.floor(lo/(n+k)*100+1e-9)/100; if(cum+p+fee>usable+1e-9)break; cum+=p+fee; buys.push({p:p,cum:cum,now:!!(price&&price<=p)}); }
+      for(let k=0;k<Math.min(maxSell,n);k++){ const p=Math.ceil(up/(n-k)*100-1e-9)/100; sells.push({p:p,now:!!(price&&price>=p)}); } }
     const E=n*(+price||0);
     return {lo:lo,up:up,E:E,buys:buys,sells:sells,state:(price&&E<lo)?'buy':((price&&E>up)?'sell':'hold'),
             nowBuy:buys.filter(b=>b.now).length, nowSell:sells.filter(s=>s.now).length};
